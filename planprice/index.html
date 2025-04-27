@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prymis AI - Upgrade</title>
+    <style>
+        body {
+            font-family: Inter, -apple-system, system-ui, sans-serif;
+            background-color: #f5f8fc;
+            color: #2d3748;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #1452bd;
+        }
+        
+        .pricing-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .plan-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1452bd;
+        }
+        
+        .price {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 0;
+            color: #1452bd;
+        }
+        
+        .price-details {
+            color: #4a6fa5;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        .plan-description {
+            margin: 20px 0;
+            font-size: 15px;
+            color: #4a5568;
+        }
+        
+        .get-plan-btn {
+            background-color: #1452bd;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: background-color 0.2s;
+            font-size: 15px;
+        }
+        
+        .get-plan-btn:hover {
+            background-color: #1142a3;
+        }
+        
+        .section-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin: 28px 0 12px 0;
+            font-size: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+        
+        .feature-item {
+            display: flex;
+            margin-bottom: 14px;
+            align-items: flex-start;
+        }
+        
+        .feature-check {
+            color: #1452bd;
+            margin-right: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .feature-text {
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        .key-term {
+            font-weight: 600;
+            color: #1452bd;
+        }
+        
+        .testimonial {
+            background-color: #f8fafc;
+            border-left: 3px solid #1452bd;
+            padding: 16px;
+            margin: 24px 0;
+            font-style: italic;
+            color: #4a5568;
+            font-size: 14px;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .testimonial-author {
+            font-weight: 600;
+            color: #1452bd;
+            margin-top: 8px;
+        }
+        
+        .small-text {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 16px;
+            text-align: center;
+        }
+        
+        .show-more {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .show-more-btn {
+            background: none;
+            border: none;
+            color: #1452bd;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .show-more-btn:hover {
+            background-color: rgba(20, 82, 189, 0.1);
+        }
+        
+        .hidden-features {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upgrade your plan</h1>
+    
+    <div class="pricing-card">
+        <div class="plan-name">Verbiflow Premium</div>
+        <div class="price">$10 <span class="price-details">Lifetime Access</span></div>
+        
+        <div class="plan-description">
+            Get all the tools you need to work smarter with our AI assistant platform. One payment, forever access.
+        </div>
+        
+        <button class="get-plan-btn">Get Lifetime Access</button>
+        
+        <div class="section-title">Smart Assistant</div>
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Access to 5 AI models with different expertise areas</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Conversations that remember context across sessions</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Create custom commands for your common tasks</div>
+        </div>
+        
+        <div class="section-title">Media Tools</div>
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Analyze images and videos with detailed insights</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Generate custom images based on your descriptions</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Extract key information from documents instantly</div>
+        </div>
+        
+        <div class="section-title">Work Tools</div>
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Code helper with auto-completion and explanations</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Learning mode for math, science, and programming help</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Secure data handling with advanced protection</div>
+        </div>
+        
+        <div class="section-title">Advanced Features</div>
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Real-time code collaboration with AI mentoring</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Interactive learning modules with progress tracking</div>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Connect to external services via API integration</div>
+        </div>
+        
+        <div class="feature-item hidden-features">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Generate 3D models and assets for games</div>
+        </div>
+        
+        <div class="feature-item hidden-features">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Advanced analytics dashboard for usage insights</div>
+        </div>
+        
+        <div class="feature-item hidden-features">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Media editing suggestions with AI-powered tips</div>
+        </div>
+        
+        <div class="feature-item hidden-features">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Custom notification system with smart alerts</div>
+        </div>
+        
+        <div class="feature-item hidden-features">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">AI-driven game simulation and testing</div>
+        </div>
+        
+        <div class="feature-item hidden-features">
+            <span class="feature-check">✓</span>
+            <div class="feature-text">Encrypted chat backups with secure storage</div>
+        </div>
+        
+        <div class="show-more">
+            <button class="show-more-btn">Show more features</button>
+        </div>
+        
+        <div class="testimonial">
+            "Verbiflow completely transformed how our team works. The multimedia analysis and custom workflows save us hours every day!"
+            <div class="testimonial-author">- Ulise., Video editor.</div>
+        </div>
+        
+        <div class="small-text">One-time payment. No recurring fees. All future updates included.</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const showMoreBtn = document.querySelector('.show-more-btn');
+            const hiddenFeatures = document.querySelectorAll('.hidden-features');
+            
+            showMoreBtn.addEventListener('click', function() {
+                hiddenFeatures.forEach(feature => {
+                    feature.style.display = feature.style.display === 'flex' ? 'none' : 'flex';
+                });
+                
+                this.textContent = this.textContent === 'Show more features' ? 'Show fewer features' : 'Show more features';
+            });
+        });
+    </script>
+</body>
+</html>
