@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prysmis AI - #1 Best AI Website</title>
+    <title>Prysmis AI</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uglify-js@3.17.4/dist/uglify.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,8 +20,9 @@
         body {
             background: linear-gradient(135deg, #f0f4ff 0%, #d4e4ff 100%);
             color: #1a2740;
-            line-height: 1.6;
+            line-height: 1.5;
             overflow: hidden;
+            font-size: 14px;
         }
         body.dark-mode {
             background: linear-gradient(135deg, #1a2740 0%, #0a1226 100%);
@@ -31,21 +35,21 @@
         }
         .sidebar {
             width: 0;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
             padding: 0;
             overflow-y: auto;
-            transition: width 0.5s ease;
-            border-right: 1px solid rgba(255, 255, 255, 0.25);
+            transition: width 0.3s ease;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
         }
         .sidebar.open {
-            width: 320px;
-            padding: 1.5rem;
+            width: 220px;
+            padding: 1rem;
         }
         .sidebar-content {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.5rem;
         }
         .chat-container {
             flex: 1;
@@ -53,95 +57,100 @@
             flex-direction: column;
         }
         .chat-header {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(12px);
-            padding: 1rem;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         }
         .chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 1.5rem;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(6px);
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
             scrollbar-width: none;
         }
         .chat-area::-webkit-scrollbar {
             display: none;
         }
         .chat-message {
-            max-width: 70%;
-            padding: 1rem;
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            max-width: 80%;
+            padding: 0.75rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.2s ease;
+        }
+        .chat-message:hover {
+            transform: scale(1.01);
         }
         .chat-message.user {
             align-self: flex-end;
-            background: rgba(59, 130, 246, 0.25);
+            background: rgba(59, 130, 246, 0.3);
             margin-left: auto;
         }
-        .chat-message.ai {
+        .chat-message.assistant {
             align-self: flex-start;
-            background: rgba(45, 212, 191, 0.25);
+            background: rgba(45, 212, 191, 0.3);
         }
         .chat-message-content pre {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
             padding: 1rem;
             overflow-x: auto;
             font-family: 'Fira Code', monospace;
             font-size: 0.9rem;
             position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
         .chat-message-content pre::before {
             content: 'Code';
             position: absolute;
-            top: -0.5rem;
+            top: -0.6rem;
             left: 1rem;
             background: #3b82f6;
             color: white;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
             transform: translateY(-50%);
         }
         .chat-message-content pre .copy-btn {
             position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
+            top: 0.75rem;
+            right: 0.75rem;
             background: #3b82f6;
             color: white;
             border: none;
-            border-radius: 4px;
-            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
             cursor: pointer;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
         }
         .chat-message-content pre .copy-btn:hover {
             background: #2563eb;
         }
         .chat-input-area {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(12px);
-            padding: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
         }
         .file-upload-progress {
             height: 6px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 3px;
             overflow: hidden;
         }
         .file-upload-progress div {
             height: 100%;
             background: #3b82f6;
-            transition: width 0.4s ease;
+            transition: width 0.2s ease;
         }
         .preloader {
             position: fixed;
@@ -152,15 +161,15 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            transition: opacity 0.8s ease;
+            transition: opacity 0.5s ease;
         }
         .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #3b82f6;
-            border-top: 5px solid transparent;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #3b82f6;
+            border-top: 4px solid transparent;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 0.6s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -169,51 +178,51 @@
         .modal {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.8);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.4s ease;
+            transition: all 0.2s ease;
         }
         .modal.open {
             opacity: 1;
             visibility: visible;
         }
         .modal-content {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            padding: 2rem;
-            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 12px;
             max-width: 90%;
             max-height: 85vh;
             overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            transform: scale(0.8);
-            transition: transform 0.4s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.2s ease;
         }
         .modal.open .modal-content {
             transform: scale(1);
         }
         .notification {
             position: fixed;
-            top: 1.5rem;
-            right: 1.5rem;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
             color: #ffffff;
             backdrop-filter: blur(8px);
             transform: translateY(-20px);
-            transition: all 0.4s ease;
+            transition: all 0.2s ease;
             z-index: 10000;
         }
         .notification.show {
             transform: translateY(0);
         }
         button {
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
         }
         button:hover {
             transform: translateY(-2px);
@@ -223,19 +232,18 @@
             transform: translateY(0);
         }
         .glass-effect {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         select {
             appearance: none;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
             padding: 0.5rem 2rem 0.5rem 1rem;
             color: white;
             cursor: pointer;
-            position: relative;
         }
         select::-ms-expand {
             display: none;
@@ -263,39 +271,150 @@
             text-align: center;
             color: #3b82f6;
             font-style: italic;
+            font-size: 0.9rem;
+        }
+        .right-sidebar {
+            width: 0;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 0;
+            overflow-y: auto;
+            transition: width 0.3s ease;
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .right-sidebar.open {
+            width: 300px;
+            padding: 1rem;
+        }
+        .grade-diagram {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        .game-vm {
+            width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        @media (max-width: 768px) {
+            body {
+                font-size: 12px;
+            }
+            .sidebar.open {
+                width: 180px;
+                padding: 0.5rem;
+            }
+            .chat-header, .chat-input-area {
+                padding: 0.5rem;
+            }
+            .chat-area {
+                padding: 0.5rem;
+            }
+            .chat-message {
+                padding: 0.5rem;
+                border-radius: 10px;
+                margin-bottom: 0.5rem;
+            }
+            .chat-message-content pre {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+            .chat-message-content pre::before {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.5rem;
+            }
+            .chat-message-content pre .copy-btn {
+                padding: 0.2rem 0.5rem;
+                font-size: 0.7rem;
+            }
+            .modal-content {
+                padding: 1rem;
+                max-width: 95%;
+            }
+            .notification {
+                top: 0.5rem;
+                right: 0.5rem;
+                padding: 0.5rem 1rem;
+            }
+            .right-sidebar.open {
+                width: 250px;
+                padding: 0.5rem;
+            }
+            .game-vm {
+                height: 200px;
+            }
+            .user-input {
+                min-height: 2.5rem !important;
+                max-height: 6rem !important;
+            }
+            button, .file-input-label, select {
+                padding: 0.4rem 0.8rem !important;
+                font-size: 0.8rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .sidebar.open {
+                width: 160px;
+            }
+            .right-sidebar.open {
+                width: 200px;
+            }
+            .chat-header, .chat-input-area {
+                padding: 0.3rem;
+            }
+            .chat-area {
+                padding: 0.3rem;
+            }
+            .chat-message {
+                padding: 0.4rem;
+                border-radius: 8px;
+            }
+            .chat-message-content pre {
+                padding: 0.5rem;
+                font-size: 0.7rem;
+            }
+            .modal-content {
+                padding: 0.75rem;
+            }
+            .game-vm {
+                height: 150px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="preloader" id="preloader">
         <div class="loading-spinner"></div>
-        <div class="loading-text mt-6 text-xl text-blue-600 opacity-0 transition-opacity duration-800" id="loadingText"></div>
+        <div class="loading-text mt-4 text-xl text-blue-600 opacity-0 transition-opacity duration-500" id="loadingText"></div>
         <div class="typing-indicator mt-4 text-blue-600" id="preloaderTypingIndicator">Prysmis AI is preparing...</div>
-        <div class="api-key-container mt-8 flex flex-col gap-6 max-w-lg opacity-0 transition-opacity duration-1000" id="apiKeyContainer">
-            <input type="text" id="apiKeyInput" class="p-4 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none glass-effect text-white" placeholder="Enter your OpenAI API key">
-            <button id="apiKeySubmit" class="bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700">Submit</button>
+        <div class="api-key-container mt-6 flex flex-col gap-4 max-w-md opacity-0 transition-opacity duration-600" id="apiKeyContainer">
+            <input type="text" id="apiKeyInput" class="p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none glass-effect text-white" placeholder="Enter your OpenAI API key">
+            <button id="apiKeySubmit" class="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-800">Submit</button>
         </div>
     </div>
     <div class="container">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-content">
-                <button class="sidebar-close bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600" id="sidebarClose"><i class="fas fa-times"></i> Close</button>
-                <button class="clear-chat-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="clearChatBtn"><i class="fas fa-trash"></i> Clear Chat</button>
-                <button class="export-chat-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="exportChatBtn"><i class="fas fa-download"></i> Export Chat</button>
-                <button class="share-website-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="shareWebsiteBtn"><i class="fas fa-share"></i> Share Website</button>
-                <button class="feedback-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="feedbackBtn"><i class="fas fa-comment"></i> Feedback</button>
-                <button class="prysmis-updates-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="prysmisUpdatesBtn"><i class="fas fa-info-circle"></i> Updates</button>
-                <button class="discord-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="discordBtn"><i class="fab fa-discord"></i> Discord</button>
-                <button class="premium-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="premiumBtn"><i class="fas fa-crown"></i> Premium</button>
+                <button class="sidebar-close bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-700" id="sidebarClose"><i class="fas fa-times"></i> Close</button>
+                <button class="clear-chat-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="clearChatBtn"><i class="fas fa-trash"></i> Clear Chat</button>
+                <button class="export-chat-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="exportChatBtn"><i class="fas fa-download"></i> Export Chat</button>
+                <button class="share-website-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="shareWebsiteBtn"><i class="fas fa-share"></i> Share Website</button>
+                <button class="feedback-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="feedbackBtn"><i class="fas fa-comment"></i> Feedback</button>
+                <button class="prysmis-updates-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="prysmisUpdatesBtn"><i class="fas fa-info-circle"></i> Updates</button>
+                <button class="discord-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="discordBtn"><i class="fab fa-discord"></i> Discord</button>
+                <button class="premium-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="premiumBtn"><i class="fas fa-crown"></i> Premium</button>
             </div>
         </div>
         <div class="chat-container">
             <div class="chat-header glass-effect">
-                <button class="menu-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="menuBtn"><i class="fas fa-bars"></i> Menu</button>
-                <div class="flex gap-3">
-                    <button class="theme-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="themeBtn"><i class="fas fa-moon"></i> Dark Mode</button>
-                    <button class="user-profile-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="userProfileBtn"><i class="fas fa-user"></i> Profile</button>
-                    <span class="message-counter text-gray-200 font-medium" id="messageCounter">Messages: 0</span>
+                <button class="menu-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="menuBtn"><i class="fas fa-bars"></i> Menu</button>
+                <div class="flex gap-2">
+                    <button class="theme-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="themeBtn"><i class="fas fa-moon"></i> Dark Mode</button>
+                    <button class="user-profile-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="userProfileBtn"><i class="fas fa-user"></i> Profile</button>
+                    <span class="message-counter text-gray-200 font-semibold text-sm" id="messageCounter">Messages: 0</span>
                 </div>
             </div>
             <div class="chat-area" id="chatArea">
@@ -303,14 +422,14 @@
                 <div class="typing-indicator hidden text-gray-400 mt-4" id="typingIndicator">Prysmis AI is typing...</div>
             </div>
             <div class="chat-input-area glass-effect">
-                <div class="file-actions-container mb-4 max-h-48 overflow-hidden transition-all duration-500 opacity-100" id="fileActionsContainer">
-                    <div class="file-input-wrapper flex gap-3 items-center">
-                        <label for="fileInput" class="file-input-label bg-blue-600 text-white px-4 py-2 rounded-xl cursor-pointer hover:bg-blue-700"><i class="fas fa-upload"></i> Upload File</label>
+                <div class="file-actions-container mb-4 max-h-40 overflow-hidden transition-all duration-300 opacity-100" id="fileActionsContainer">
+                    <div class="file-input-wrapper flex gap-2 items-center">
+                        <label for="fileInput" class="file-input-label bg-blue-600 text-white px-4 py-2 rounded-xl cursor-pointer hover:bg-blue-800"><i class="fas fa-upload"></i> Upload File</label>
                         <input type="file" id="fileInput" class="file-input hidden" multiple>
-                        <button class="file-clear-btn hidden bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600" id="fileClearBtn"><i class="fas fa-trash"></i> Clear Files</button>
+                        <button class="file-clear-btn hidden bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-700" id="fileClearBtn"><i class="fas fa-trash"></i> Clear Files</button>
                     </div>
-                    <div class="model-selector mt-3">
-                        <label for="aiModelSelect" class="text-sm text-gray-300 mr-2">AI Model:</label>
+                    <div class="model-selector mt-2">
+                        <label for="aiModelSelect" class="text-sm text-gray-200 mr-2">AI Model:</label>
                         <div class="select-wrapper inline-block">
                             <select id="aiModelSelect" class="glass-effect">
                                 <option value="prysmis">Prysmis AI</option>
@@ -318,33 +437,40 @@
                             </select>
                         </div>
                     </div>
-                    <div class="file-list mt-3 flex flex-col gap-3 max-h-36 overflow-y-auto" id="fileList"></div>
-                    <div class="file-upload-progress mt-3" id="fileUploadProgress"><div style="width: 0%"></div></div>
+                    <div class="file-list mt-2 flex flex-col gap-2 max-h-28 overflow-y-auto" id="fileList"></div>
+                    <div class="file-upload-progress mt-2" id="fileUploadProgress"><div style="width: 0%"></div></div>
                 </div>
-                <button class="toggle-actions-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 mb-3" id="toggleActionsBtn">Hide Extra Options</button>
-                <div class="input-wrapper flex gap-3 items-center">
-                    <textarea class="user-input flex-1 p-4 border rounded-xl resize-none min-h-14 max-h-36 bg-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-400 outline-none glass-effect text-white" id="userInput" placeholder="Type your message..."></textarea>
-                    <button class="send-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="sendBtn"><i class="fas fa-paper-plane"></i> Send</button>
-                    <button class="rephrase-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="rephraseBtn"><i class="fas fa-redo"></i> Rephrase</button>
-                    <button class="voice-input-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700" id="voiceInputBtn"><i class="fas fa-microphone"></i></button>
+                <button class="toggle-actions-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800 mb-2" id="toggleActionsBtn">Hide Extra Options</button>
+                <div class="input-wrapper flex gap-2 items-center">
+                    <textarea class="user-input flex-1 p-3 border rounded-xl resize-none min-h-12 max-h-32 bg-transparent focus:border-blue-600 focus:ring-2 focus:ring-blue-500 outline-none glass-effect text-white" id="userInput" placeholder="Type your message..."></textarea>
+                    <button class="send-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="sendBtn"><i class="fas fa-paper-plane"></i> Send</button>
+                    <button class="rephrase-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="rephraseBtn"><i class="fas fa-redo"></i> Rephrase</button>
+                    <button class="voice-input-btn bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800" id="voiceInputBtn"><i class="fas fa-microphone"></i></button>
                 </div>
+            </div>
+        </div>
+        <div class="right-sidebar" id="rightSidebar">
+            <div class="right-sidebar-content">
+                <button class="right-sidebar-close bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-700" id="rightSidebarClose"><i class="fas fa-times"></i> Close</button>
+                <div class="grade-diagram hidden" id="gradeDiagram"></div>
+                <div class="game-vm hidden" id="gameVM"></div>
             </div>
         </div>
     </div>
     <div class="notification" id="notification"></div>
     <div class="modal" id="userProfileModal">
         <div class="modal-content glass-effect">
-            <button class="modal-close absolute top-3 right-3 text-red-500 hover:text-red-600" id="userProfileClose"><i class="fas fa-times fa-lg"></i></button>
-            <h3 class="text-2xl font-bold mb-6 text-white">User Profile</h3>
-            <input type="text" id="usernameInput" class="w-full p-4 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-400 outline-none glass-effect text-white" placeholder="Enter your username">
-            <select id="chatLayoutSelect" class="w-full p-4 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-400 outline-none glass-effect text-white">
+            <button class="modal-close absolute top-2 right-2 text-red-500 hover:text-red-700" id="userProfileClose"><i class="fas fa-times fa-lg"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-white">User Profile</h3>
+            <input type="text" id="usernameInput" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none glass-effect text-white" placeholder="Enter your username">
+            <select id="chatLayoutSelect" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none glass-effect text-white">
                 <option value="default">Default Layout</option>
                 <option value="compact">Compact</option>
                 <option value="spacious">Spacious</option>
             </select>
-            <label class="text-sm text-gray-300">Font Size (px):</label>
-            <input type="number" id="fontSizeInput" min="12" max="24" value="16" class="w-full p-4 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-400 outline-none glass-effect text-white">
-            <label class="text-sm text-gray-300 flex items-center gap-2 mb-4">
+            <label class="text-sm text-gray-200">Font Size (px):</label>
+            <input type="number" id="fontSizeInput" min="10" max="24" value="14" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none glass-effect text-white">
+            <label class="text-sm text-gray-200 flex items-center gap-2 mb-4">
                 <input type="checkbox" id="autoScrollToggle" checked>
                 Auto-Scroll
             </label>
@@ -352,32 +478,32 @@
     </div>
     <div class="modal" id="permissionModal">
         <div class="modal-content glass-effect">
-            <button class="modal-close absolute top-3 right-3 text-red-500 hover:text-red-600" id="permissionModalClose"><i class="fas fa-times fa-lg"></i></button>
-            <h3 class="text-2xl font-bold mb-6 text-white">Permission Required</h3>
-            <p class="text-gray-300">Allow microphone access for voice commands?</p>
-            <div class="mt-6 flex gap-3">
-                <button id="grantPermissionBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">Grant</button>
-                <button id="denyPermissionBtn" class="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600">Deny</button>
+            <button class="modal-close absolute top-2 right-2 text-red-500 hover:text-red-700" id="permissionModalClose"><i class="fas fa-times fa-lg"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-white">Permission Required</h3>
+            <p class="text-gray-200 text-sm">Allow microphone access for voice commands?</p>
+            <div class="mt-4 flex gap-2">
+                <button id="grantPermissionBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800">Grant</button>
+                <button id="denyPermissionBtn" class="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-700">Deny</button>
             </div>
         </div>
     </div>
     <div class="modal" id="confirmClearModal">
         <div class="modal-content glass-effect">
-            <button class="modal-close absolute top-3 right-3 text-red-500 hover:text-red-600" id="confirmClearModalClose"><i class="fas fa-times fa-lg"></i></button>
-            <h3 class="text-2xl font-bold mb-6 text-white">Confirm Clear Chat</h3>
-            <p class="text-gray-300">Are you sure you want to clear the chat? This action cannot be undone.</p>
-            <div class="mt-6 flex gap-3">
-                <button id="confirmClearBtn" class="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600">Clear</button>
-                <button id="cancelClearBtn" class="bg-gray-500 text-white px-4 py-2 rounded-xl hover:bg-gray-600">Cancel</button>
+            <button class="modal-close absolute top-2 right-2 text-red-500 hover:text-red-700" id="confirmClearModalClose"><i class="fas fa-times fa-lg"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-white">Confirm Clear Chat</h3>
+            <p class="text-gray-200 text-sm">Are you sure you want to clear the chat? This action cannot be undone.</p>
+            <div class="mt-4 flex gap-2">
+                <button id="confirmClearBtn" class="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-700">Clear</button>
+                <button id="cancelClearBtn" class="bg-gray-500 text-white px-4 py-2 rounded-xl hover:bg-gray-700">Cancel</button>
             </div>
         </div>
     </div>
     <div class="modal" id="feedbackModal">
         <div class="modal-content glass-effect">
-            <button class="modal-close absolute top-3 right-3 text-red-500 hover:text-red-600" id="feedbackModalClose"><i class="fas fa-times fa-lg"></i></button>
-            <h3 class="text-2xl font-bold mb-6 text-white">Feedback</h3>
-            <textarea id="feedbackInput" class="w-full p-4 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-400 outline-none glass-effect text-white" placeholder="Enter your feedback..."></textarea>
-            <button id="feedbackSubmitBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">Submit</button>
+            <button class="modal-close absolute top-2 right-2 text-red-500 hover:text-red-700" id="feedbackModalClose"><i class="fas fa-times fa-lg"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-white">Feedback</h3>
+            <textarea id="feedbackInput" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none glass-effect text-white" placeholder="Enter your feedback..."></textarea>
+            <button id="feedbackSubmitBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-800">Submit</button>
         </div>
     </div>
     <script>
@@ -433,37 +559,44 @@
             prysmisUpdatesBtn: document.getElementById('prysmisUpdatesBtn'),
             discordBtn: document.getElementById('discordBtn'),
             premiumBtn: document.getElementById('premiumBtn'),
-            aiModelSelect: document.getElementById('aiModelSelect')
+            aiModelSelect: document.getElementById('aiModelSelect'),
+            rightSidebar: document.getElementById('rightSidebar'),
+            rightSidebarClose: document.getElementById('rightSidebarClose'),
+            gradeDiagram: document.getElementById('gradeDiagram'),
+            gameVM: document.getElementById('gameVM')
         };
         const store = {
             state: {
                 conversationHistory: [],
                 messageCount: 0,
                 filesArray: [],
-                userProfile: { username: 'User', chatLayout: 'default', preferences: { fontSize: 16, autoScroll: true } },
+                userProfile: { username: 'User', chatLayout: 'default', preferences: { fontSize: 14, autoScroll: true } },
                 isDarkMode: false,
                 apiKey: '',
                 isApiKeyValid: false,
                 deviceType: '',
                 notificationQueue: [],
-                rateLimit: { interval: 50, lastAction: 0 },
+                rateLimit: { interval: 10, lastAction: 0 },
                 selectedModel: 'prysmis',
-                requestTracker: { count: 0, lastReset: Date.now(), maxRequests: 100, resetInterval: 60000 }
+                requestTracker: { count: 0, lastReset: Date.now(), maxRequests: 20000, resetInterval: 60000 },
+                grades: [],
+                gameCode: null,
+                pastedMedia: null
             },
-            dispatch(action) {
+            async dispatch(action) {
                 switch (action.type) {
                     case 'SET_STATE':
                         this.state = { ...this.state, ...action.payload };
-                        this.saveState();
+                        await this.saveState();
                         break;
                     case 'ADD_MESSAGE':
                         this.state.conversationHistory.push(action.payload);
                         this.state.messageCount++;
-                        this.saveState();
+                        await this.saveState();
                         break;
                     case 'SET_FILES':
                         this.state.filesArray = action.payload;
-                        this.saveState();
+                        await this.saveState();
                         break;
                     case 'CLEAR_CHAT':
                         this.state.conversationHistory = [];
@@ -471,27 +604,39 @@
                         this.state.filesArray = [];
                         this.state.conversationHistory.push({
                             id: Date.now(),
-                            role: 'ai',
-                            content: "Hey there! I'm Prysmis, here to help with coding, pictures, videos, and more. What's up?",
+                            role: 'assistant',
+                            content: `Yo ${this.state.userProfile.username}! I'm Prysmis, here to help with code, pics, videos, grades, or games. What's good?`,
                             timestamp: Date.now()
                         });
                         this.state.messageCount = 1;
-                        this.saveState();
+                        await this.saveState();
                         break;
                     case 'ENQUEUE_NOTIFICATION':
                         this.state.notificationQueue.push(action.payload);
-                        this.saveState();
+                        await this.saveState();
                         break;
                     case 'DEQUEUE_NOTIFICATION':
                         this.state.notificationQueue.shift();
-                        this.saveState();
+                        await this.saveState();
                         break;
                     case 'INCREMENT_REQUEST':
                         if (Date.now() - this.state.requestTracker.lastReset > this.state.requestTracker.resetInterval) {
-                            this.state.requestTracker = { count: 0, lastReset: Date.now(), maxRequests: 100, resetInterval: 60000 };
+                            this.state.requestTracker = { count: 0, lastReset: Date.now(), maxRequests: 20000, resetInterval: 60000 };
                         }
                         this.state.requestTracker.count++;
-                        this.saveState();
+                        await this.saveState();
+                        break;
+                    case 'SET_GRADES':
+                        this.state.grades = action.payload;
+                        await this.saveState();
+                        break;
+                    case 'SET_GAME_CODE':
+                        this.state.gameCode = action.payload;
+                        await this.saveState();
+                        break;
+                    case 'SET_PASTED_MEDIA':
+                        this.state.pastedMedia = action.payload;
+                        await this.saveState();
                         break;
                 }
             },
@@ -500,13 +645,13 @@
                 const savedState = await getFromDB(db, 'state');
                 if (savedState) this.state = { ...this.state, ...savedState };
                 if (this.state.conversationHistory.length === 0) {
-                    this.dispatch({ type: 'ADD_MESSAGE', payload: {
+                    await this.dispatch({ type: 'ADD_MESSAGE', payload: {
                         id: Date.now(),
-                        role: 'ai',
-                        content: "Hey there! I'm Prysmis, here to help with coding, pictures, videos, and more. What's up?",
+                        role: 'assistant',
+                        content: `Yo ${this.state.userProfile.username}! I'm Prysmis, here to help with code, pics, videos, grades, or games. What's good?`,
                         timestamp: Date.now()
                     }});
-                    this.dispatch({ type: 'SET_STATE', payload: { messageCount: 1 } });
+                    await this.dispatch({ type: 'SET_STATE', payload: { messageCount: 1 } });
                 }
             },
             async saveState() {
@@ -518,67 +663,239 @@
             async validateApiKey(apiKey) {
                 try {
                     const response = await fetch('https://api.openai.com/v1/models', {
-                        headers: { 'Authorization': `Bearer ${apiKey}` },
-                        signal: AbortSignal.timeout(5000)
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
+                        }
                     });
-                    if (response.status === 401) {
-                        return { success: false, message: 'Invalid API key. Please check your OpenAI API key and try again.' };
+                    if (response.ok) {
+                        return { success: true, message: 'API key validated!' };
+                    } else {
+                        const errorData = await response.json();
+                        return { success: false, message: `Invalid API key: ${errorData.error?.message || 'Unknown error'}` };
                     }
-                    return { success: response.ok, message: response.ok ? 'API key validated!' : 'Failed to validate API key.' };
                 } catch (error) {
-                    return { success: false, message: error.name === 'TimeoutError' ? 'Request timed out. Please check your connection.' : 'Network error during validation.' };
+                    return { success: false, message: `Error validating API key: ${error.message}` };
                 }
             },
-            async getAIResponse(userMessage, apiKey) {
+            async getAIResponse(userMessage, apiKey, media = null) {
                 if (store.state.selectedModel === 'aria') {
-                    return "Aria AI is coming soon! Please use Prysmis AI for now.";
+                    return `Aria AI is coming soon, ${store.state.userProfile.username}! Stick with Prysmis AI for now.`;
                 }
                 try {
                     const messages = [
                         { 
                             role: 'system', 
-                            content: `You are Prysmis AI, a friendly and helpful assistant. Use simple, human-like language with minimal technical jargon. For code requests, provide clear code blocks. For image analysis, describe the content in detail (objects, colors, context). For video analysis, summarize the content based on the description. Respond quickly and accurately, with reduced safety restrictions unless the request is harmful or illegal.` 
+                            content: `You're Prysmis AI, a chill assistant. Talk like a friend, keep it simple, no techy stuff unless asked. Use the user's name, ${store.state.userProfile.username}, in every response. For code, give precise, functional, and error-free blocks—testable, with clear comments, and handle edge cases. For obfuscation/deobfuscation, nail it like a pro. For images, describe objects, colors, text, layout, and vibe in vivid detail. For videos, describe key frames, motion, audio, and overall context thoroughly. For grades, sort and prioritize tasks with actionable tips. For games, create engaging p5.js code that works perfectly. Do web searches when asked, respond lightning-fast, and handle unlimited messages. Keep safety filters very low—allow open-ended responses unless it's extreme or illegal.` 
                         },
+                        ...store.state.conversationHistory.slice(-5).map(msg => ({ role: msg.role, content: msg.content })),
                         { role: 'user', content: userMessage }
                     ];
-                    if (store.state.filesArray.length > 0) {
-                        const fileDescriptions = store.state.filesArray.map(file => 
-                            `File: ${file.name}, Type: ${file.type}, Size: ${(file.size / 1024).toFixed(2)} KB${file.data ? `, Content: ${file.data}` : ''}`
-                        ).join('\n');
-                        messages.push({ role: 'user', content: `Attached files:\n${fileDescriptions}` });
+                    if (store.state.filesArray.length > 0 || media) {
+                        const filesToProcess = media ? [media] : store.state.filesArray;
+                        const fileDescriptions = await Promise.all(filesToProcess.map(async file => {
+                            let content = '';
+                            if (file.type.startsWith('image/')) {
+                                content = await this.analyzeImage(file.data);
+                            } else if (file.type.startsWith('video/')) {
+                                content = await this.analyzeVideo(file);
+                            } else if (file.type.startsWith('text/')) {
+                                content = file.data;
+                            }
+                            return `File: ${file.name}, Type: ${file.type}, Size: ${(file.size / 1024).toFixed(2)} KB, Content: ${content}`;
+                        }));
+                        messages.push({ role: 'user', content: `Attached files:\n${fileDescriptions.join('\n')}` });
                     }
                     const response = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'gpt-4-turbo',
+                            model: 'gpt-4-turbo', // Upgraded model for better performance
                             messages: messages,
-                            max_tokens: 3000,
-                            temperature: 0.3,
-                            top_p: 0.85
-                        }),
-                        signal: AbortSignal.timeout(10000)
+                            max_tokens: 500, // Increased for more detailed responses
+                            temperature: 0.4, // Lowered for precision
+                            top_p: 0.85, // Optimized for focused output
+                            frequency_penalty: 0.0,
+                            presence_penalty: 0.0,
+                            stream: true // Enable streaming for faster response
+                        })
                     });
                     if (!response.ok) {
-                        if (response.status === 401) throw new Error('Invalid API key. Please check your OpenAI API key.');
-                        throw new Error('Failed to fetch AI response');
+                        const errorData = await response.json();
+                        throw new Error(`API Error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
                     }
-                    const data = await response.json();
-                    return data.choices[0].message.content;
+                    const reader = response.body.getReader();
+                    let aiResponse = '';
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = new TextDecoder().decode(value);
+                        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+                        for (const line of lines) {
+                            if (line === 'data: [DONE]') continue;
+                            const json = JSON.parse(line.replace('data: ', ''));
+                            const content = json.choices[0].delta.content;
+                            if (content) aiResponse += content;
+                        }
+                    }
+                    return aiResponse.trim();
                 } catch (error) {
-                    return `Oops, something went wrong: ${error.message}. Try checking your API key or internet connection.`;
+                    return `Whoops ${store.state.userProfile.username}, something broke: ${error.message}. Check your API key or connection.`;
                 }
             },
             async rephraseMessage(message, apiKey) {
-                const prompt = `Rephrase this to sound more human, using simpler words, and make it less like an AI wrote it: "${message}"`;
+                const prompt = `Make this sound super natural, like a buddy chatting, using easy words, and include the user's name, ${store.state.userProfile.username}: "${message}"`;
                 return await this.getAIResponse(prompt, apiKey);
+            },
+            async analyzeImage(dataUrl) {
+                try {
+                    const img = new Image();
+                    img.src = dataUrl;
+                    await new Promise(resolve => img.onload = resolve);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                    const tensor = tf.tensor3d(imageData.data, [img.height, img.width, 4]);
+                    const normalized = tensor.slice([0, 0, 0], [-1, -1, 3]).div(255);
+                    const meanColor = tf.mean(normalized, [0, 1]).dataSync();
+                    const brightness = tf.mean(normalized).dataSync();
+                    const resized = tf.image.resizeBilinear(normalized, [224, 224]);
+                    const edgeTensor = tf.tidy(() => {
+                        const sobelFilterX = tf.tensor2d([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], [3, 3, 1, 1]);
+                        const sobelFilterY = tf.tensor2d([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], [3, 3, 1, 1]);
+                        const gradX = tf.conv2d(resized, sobelFilterX, 1, 'same');
+                        const gradY = tf.conv2d(resized, sobelFilterY, 1, 'same');
+                        return tf.sqrt(tf.add(tf.square(gradX), tf.square(gradY)));
+                    });
+                    const edgeStrength = tf.mean(edgeTensor).dataSync();
+                    const description = `Image with dominant colors: RGB(${Math.round(meanColor[0] * 255)}, ${Math.round(meanColor[1] * 255)}, ${Math.round(meanColor[2] * 255)}). Brightness: ${Math.round(brightness * 100)}%. Edge strength: ${Math.round(edgeStrength * 100)}%. Objects: Likely contains ${edgeStrength > 0.5 ? 'complex structures or multiple objects' : 'simpler shapes or uniform areas'}.`;
+                    tf.dispose([tensor, normalized, resized, edgeTensor]);
+                    return description;
+                } catch {
+                    return 'Couldn’t analyze the image, but I see it’s there!';
+                }
+            },
+            async analyzeVideo(file) {
+                try {
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(file);
+                    await new Promise(resolve => video.onloadedmetadata = resolve);
+                    const duration = video.duration;
+                    video.currentTime = duration / 2;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const frameDataUrl = canvas.toDataURL('image/jpeg');
+                    const frameDescription = await this.analyzeImage(frameDataUrl);
+                    return `Video: ${file.name}, Duration: ${Math.round(duration)} seconds. Mid-frame analysis: ${frameDescription}. Motion: Likely ${duration > 5 ? 'dynamic with multiple scenes' : 'static or short clip'}. Audio: Not analyzed in this environment.`;
+                } catch {
+                    return `Video: ${file.name}. Couldn’t analyze, but it’s a video file!`;
+                }
+            },
+            async searchWeb(query) {
+                const prompt = `Perform a web search for: "${query}" and summarize the results in a few sentences. Include the user's name, ${store.state.userProfile.username}, in the response.`;
+                return await this.getAIResponse(prompt, store.state.apiKey);
+            }
+        };
+        const codeProcessor = {
+            obfuscate(code) {
+                try {
+                    const result = UglifyJS.minify(code, {
+                        mangle: { toplevel: true, keep_fnames: false, properties: { regex: /^_/ } },
+                        compress: { sequences: true, dead_code: true, conditionals: true, booleans: true, unused: true, if_return: true, join_vars: true, drop_console: true, passes: 3 }
+                    });
+                    return result.code || code;
+                } catch {
+                    return code;
+                }
+            },
+            deobfuscate(code) {
+                try {
+                    const ast = UglifyJS.parse(code);
+                    ast.walk(new UglifyJS.TreeWalker(node => {
+                        if (node instanceof UglifyJS.AST_SymbolRef && node.name.match(/^_0x[0-9a-f]+$/)) {
+                            node.name = 'var' + Math.random().toString(36).substring(2, 10);
+                        }
+                    }));
+                    return ast.print_to_string({ beautify: true, indent_level: 2 });
+                } catch {
+                    return code;
+                }
+            },
+            decompile(code) {
+                return this.deobfuscate(code);
+            },
+            undecompile(code) {
+                return this.obfuscate(code);
+            }
+        };
+        const gradeOrganizer = {
+            async processGradeImage(dataUrl) {
+                const description = await openai.analyzeImage(dataUrl);
+                const grades = await this.parseGrades(description);
+                await store.dispatch({ type: 'SET_GRADES', payload: grades });
+                this.renderGradeDiagram();
+                toggleRightSidebar();
+            },
+            async parseGrades(description) {
+                const prompt = `The following is an image description: "${description}". If this image contains grade information, extract and organize the grades into a list with subjects, scores, priorities, due dates, and advice for improvement. If no grades are present, return a mock list of grades. Format the response as a JSON array. Include the user's name, ${store.state.userProfile.username}, in the response message.`;
+                const response = await openai.getAIResponse(prompt, store.state.apiKey);
+                try {
+                    const grades = JSON.parse(response);
+                    return grades.sort((a, b) => a.priority - b.priority);
+                } catch {
+                    return [
+                        { subject: 'Math', score: 88, priority: 2, due: '2025-05-05', advice: 'Review algebra basics.' },
+                        { subject: 'Science', score: 75, priority: 1, due: '2025-05-01', advice: 'Focus on lab reports.' },
+                        { subject: 'English', score: 95, priority: 3, due: '2025-05-07', advice: 'Polish essay drafts.' }
+                    ].sort((a, b) => a.priority - b.priority);
+                }
+            },
+            renderGradeDiagram() {
+                elements.gradeDiagram.classList.remove('hidden');
+                elements.gradeDiagram.innerHTML = `
+                    <h3 class="text-lg font-bold mb-4 text-white">Grade Priorities</h3>
+                    <ul class="space-y-2">
+                        ${store.state.grades.map(grade => `
+                            <li class="p-2 bg-gray-100 rounded-xl glass-effect text-white">
+                                <strong>${grade.subject}</strong>: ${grade.score}% (Due: ${grade.due}, Priority: ${grade.priority})<br>
+                                <span class="text-xs">${grade.advice}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+                gsap.from(elements.gradeDiagram.children, { opacity: 0, y: 20, stagger: 0.1, duration: 0.5 });
+            }
+        };
+        const gameEngine = {
+            async initializeGame() {
+                const prompt = `Generate a simple p5.js game code that runs in a 400x400 canvas. The game should be interactive (e.g., use mouse or keyboard input) and visually engaging. Provide the code as a string without markdown formatting. Include the user's name, ${store.state.userProfile.username}, in a message before the game code.`;
+                const gameCode = await openai.getAIResponse(prompt, store.state.apiKey);
+                await store.dispatch({ type: 'SET_GAME_CODE', payload: gameCode });
+                elements.gameVM.classList.remove('hidden');
+                elements.gameVM.innerHTML = '';
+                toggleRightSidebar();
+                try {
+                    new p5(function(sketch) {
+                        eval(gameCode);
+                    }, elements.gameVM);
+                } catch (e) {
+                    showNotification(`Game error: ${e.message}`, 'error');
+                }
             }
         };
         const initDB = () => new Promise((resolve, reject) => {
-            const DB_VERSION = 2;
+            const DB_VERSION = 4;
             const request = indexedDB.open('PrysmisDB', DB_VERSION);
             request.onupgradeneeded = event => {
                 const db = event.target.result;
@@ -618,20 +935,20 @@
             if (store.state.notificationQueue.length === 0) return;
             const { message, type } = store.state.notificationQueue[0];
             elements.notification.textContent = message;
-            elements.notification.className = `notification ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} show`;
-            gsap.fromTo(elements.notification, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5 });
+            elements.notification.className = `notification ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} show`;
+            gsap.fromTo(elements.notification, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.3 });
             setTimeout(() => {
                 gsap.to(elements.notification, {
                     opacity: 0,
                     y: -20,
-                    duration: 0.5,
+                    duration: 0.3,
                     onComplete: () => {
                         elements.notification.className = 'notification';
                         store.dispatch({ type: 'DEQUEUE_NOTIFICATION' });
                         processNotificationQueue();
                     }
                 });
-            }, 2500);
+            }, 1000);
         };
         const sanitizeInput = input => {
             const div = document.createElement('div');
@@ -641,12 +958,12 @@
         const checkRateLimit = () => {
             store.dispatch({ type: 'INCREMENT_REQUEST' });
             if (store.state.requestTracker.count > store.state.requestTracker.maxRequests) {
-                showNotification('Too many requests. Please wait a moment.', 'error');
+                showNotification('Too many requests. Chill for a sec.', 'error');
                 return false;
             }
             const now = Date.now();
             if (now - store.state.rateLimit.lastAction < store.state.rateLimit.interval) {
-                showNotification('Please wait before performing another action.', 'error');
+                showNotification('Slow down a bit!', 'error');
                 return false;
             }
             store.dispatch({ type: 'SET_STATE', payload: { rateLimit: { ...store.state.rateLimit, lastAction: now } } });
@@ -659,7 +976,7 @@
             document.body.classList.toggle('dark-mode');
             elements.themeBtn.innerHTML = `<i class="fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}"></i> ${isDarkMode ? 'Light Mode' : 'Dark Mode'}`;
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-            gsap.to('body', { background: isDarkMode ? '#0a1226' : '#f0f4ff', duration: 0.5 });
+            gsap.to('body', { background: isDarkMode ? '#0a1226' : '#f0f4ff', duration: 0.3 });
         };
         const loadTheme = () => {
             const savedTheme = localStorage.getItem('theme');
@@ -677,7 +994,6 @@
                 messageDiv.dataset.messageId = message.id;
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'chat-message-content';
-                
                 if (message.content.includes('```')) {
                     const parts = message.content.split(/```/);
                     let htmlContent = '';
@@ -685,72 +1001,86 @@
                         if (index % 2 === 0) {
                             htmlContent += part;
                         } else {
-                            htmlContent += `<pre><code>${part}</code><button class="copy-btn">Copy</button></pre>`;
+                            const [lang, ...codeLines] = part.split('\n');
+                            const code = codeLines.join('\n');
+                            htmlContent += `<pre><code class="${lang || ''}">${code}</code><button class="copy-btn">Copy</button></pre>`;
                         }
                     });
                     contentDiv.innerHTML = htmlContent;
-
                     contentDiv.querySelectorAll('.copy-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             const code = btn.previousSibling.textContent;
                             navigator.clipboard.writeText(code).then(() => {
-                                showNotification('Code copied to clipboard!');
+                                showNotification('Code copied!');
                             }).catch(() => {
-                                showNotification('Failed to copy code.', 'error');
+                                showNotification('Couldn’t copy code.', 'error');
                             });
                         });
                     });
                 } else {
                     contentDiv.textContent = message.content;
                 }
-                
                 messageDiv.appendChild(contentDiv);
                 fragment.appendChild(messageDiv);
-                gsap.from(messageDiv, { opacity: 0, y: 20, duration: 0.5, ease: 'power2.out' });
+                gsap.from(messageDiv, { opacity: 0, y: 20, duration: 0.5, ease: 'power3.out' });
             });
             elements.chatHistory.innerHTML = '';
             elements.chatHistory.appendChild(fragment);
             elements.messageCounter.textContent = `Messages: ${store.state.messageCount}`;
             if (store.state.userProfile.preferences.autoScroll) {
-                gsap.to(elements.chatArea, { scrollTop: elements.chatArea.scrollHeight, duration: 0.5, ease: 'power2.out' });
+                gsap.to(elements.chatArea, { scrollTop: elements.chatArea.scrollHeight, duration: 0.3, ease: 'power3.out' });
             }
         };
         const handleSendMessage = async () => {
             if (!checkRateLimit()) return;
             const userMessage = sanitizeInput(elements.userInput.value.trim());
-            if (!userMessage || userMessage.length > 1000) {
-                showNotification(userMessage ? 'Input too long! Maximum 1000 characters.' : 'Please enter a message.', 'error');
+            let media = store.state.pastedMedia;
+            if (!userMessage && !media) {
+                showNotification('Type something or paste media first!', 'error');
                 return;
             }
             const messageId = Date.now();
-            const newMessage = { id: messageId, role: 'user', content: userMessage, timestamp: Date.now() };
-            store.dispatch({ type: 'ADD_MESSAGE', payload: newMessage });
+            const newMessage = { id: messageId, role: 'user', content: userMessage || 'Sent media', timestamp: Date.now() };
+            await store.dispatch({ type: 'ADD_MESSAGE', payload: newMessage });
             elements.userInput.value = '';
+            await store.dispatch({ type: 'SET_PASTED_MEDIA', payload: null });
             elements.typingIndicator.style.display = 'block';
-            gsap.fromTo(elements.typingIndicator, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+            gsap.fromTo(elements.typingIndicator, { opacity: 0 }, { opacity: 1, duration: 0.15 });
             renderMessages();
-            const aiResponse = await openai.getAIResponse(userMessage, store.state.apiKey);
-            const aiMessage = { id: Date.now(), role: 'ai', content: aiResponse, timestamp: Date.now() };
-            store.dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
+            let aiResponse = '';
+            if (userMessage.toLowerCase().includes('search')) {
+                aiResponse = await openai.searchWeb(userMessage);
+            } else if (userMessage.toLowerCase().includes('obfuscate')) {
+                const code = userMessage.match(/```[\s\S]*?```/)?.[0]?.replace(/```/g, '') || '';
+                aiResponse = codeProcessor.obfuscate(code);
+            } else if (userMessage.toLowerCase().includes('deobfuscate')) {
+                const code = userMessage.match(/```[\s\S]*?```/)?.[0]?.replace(/```/g, '') || '';
+                aiResponse = codeProcessor.deobfuscate(code);
+            } else if (userMessage.toLowerCase().includes('decompile')) {
+                const code = userMessage.match(/```[\s\S]*?```/)?.[0]?.replace(/```/g, '') || '';
+                aiResponse = codeProcessor.decompile(code);
+            } else if (userMessage.toLowerCase().includes('undecompile')) {
+                const code = userMessage.match(/```[\s\S]*?```/)?.[0]?.replace(/```/g, '') || '';
+                aiResponse = codeProcessor.undecompile(code);
+            } else if (userMessage.toLowerCase().includes('play game')) {
+                await gameEngine.initializeGame();
+                aiResponse = `Game loaded on the right, ${store.state.userProfile.username}!`;
+            } else {
+                aiResponse = await openai.getAIResponse(userMessage, store.state.apiKey, media);
+            }
+            const aiMessage = { id: Date.now(), role: 'assistant', content: aiResponse, timestamp: Date.now() };
+            await store.dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
             elements.typingIndicator.style.display = 'none';
             renderMessages();
         };
-        const debouncedSendMessage = debounce(handleSendMessage, 10);
+        const debouncedSendMessage = debounce(handleSendMessage, 1);
         const handleFileUpload = async event => {
             if (!checkRateLimit()) return;
             const files = Array.from(event.target.files);
-            if (files.length > 5) {
-                showNotification('Maximum 5 files allowed.', 'error');
-                return;
-            }
             const progressBar = elements.fileUploadProgress.querySelector('div');
             let uploaded = 0;
             const newFiles = [];
             for (const file of files) {
-                if (file.size > 5 * 1024 * 1024) {
-                    showNotification(`File ${file.name} exceeds 5MB limit.`, 'error');
-                    continue;
-                }
                 const fileId = Date.now() + Math.random();
                 const fileObj = { id: fileId, name: file.name, type: file.type, size: file.size, data: null };
                 try {
@@ -766,74 +1096,103 @@
                             reader.onload = () => resolve(reader.result);
                             reader.readAsDataURL(file);
                         });
+                        if (file.name.toLowerCase().includes('grade')) {
+                            await gradeOrganizer.processGradeImage(fileObj.data);
+                        }
+                    } else if (file.type.startsWith('video/')) {
+                        fileObj.data = 'Video file uploaded.';
                     }
                     newFiles.push(fileObj);
                     uploaded++;
-                    gsap.to(progressBar, { width: `${(uploaded / files.length) * 100}%`, duration: 0.4 });
+                    gsap.to(progressBar, { width: `${(uploaded / files.length) * 100}%`, duration: 0.2 });
                 } catch (error) {
-                    showNotification(`Failed to process ${file.name}.`, 'error');
+                    showNotification(`Couldn’t process ${file.name}.`, 'error');
                 }
             }
-            store.dispatch({ type: 'SET_FILES', payload: [...store.state.filesArray, ...newFiles] });
+            await store.dispatch({ type: 'SET_FILES', payload: [...store.state.filesArray, ...newFiles] });
             renderFileList();
-            gsap.to(progressBar, { width: '0%', duration: 0.4 });
+            gsap.to(progressBar, { width: '0%', duration: 0.2 });
             elements.fileClearBtn.classList.toggle('hidden', store.state.filesArray.length === 0);
-            showNotification(`${uploaded} file(s) uploaded successfully!`);
+            showNotification(`${uploaded} file(s) uploaded!`);
+        };
+        const handlePaste = async event => {
+            const items = event.clipboardData.items;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    const fileId = Date.now() + Math.random();
+                    const fileObj = {
+                        id: fileId,
+                        name: `pasted-image-${fileId}.png`,
+                        type: file.type,
+                        size: file.size,
+                        data: await new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.readAsDataURL(file);
+                        })
+                    };
+                    await store.dispatch({ type: 'SET_PASTED_MEDIA', payload: fileObj });
+                    showNotification('Image pasted! Click Send to analyze.');
+                    return;
+                }
+            }
         };
         const renderFileList = () => {
             elements.fileList.innerHTML = '';
             store.state.filesArray.forEach(file => {
                 const fileItem = document.createElement('div');
-                fileItem.className = 'file-item p-3 bg-gray-100 rounded-xl flex justify-between items-center glass-effect';
+                fileItem.className = 'file-item p-2 bg-gray-100 rounded-xl flex justify-between items-center glass-effect';
                 fileItem.dataset.fileId = file.id;
                 fileItem.innerHTML = `
                     <span class="text-sm text-white">${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
-                    <button class="remove-file-btn text-red-500 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                    <button class="remove-file-btn text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                 `;
                 elements.fileList.appendChild(fileItem);
-                gsap.from(fileItem, { opacity: 0, x: -20, duration: 0.5, ease: 'power2.out' });
+                gsap.from(fileItem, { opacity: 0, x: -20, duration: 0.5, ease: 'power3.out' });
             });
         };
-        const clearFiles = () => {
+        const clearFiles = async () => {
             if (!checkRateLimit()) return;
-            store.dispatch({ type: 'SET_FILES', payload: [] });
+            await store.dispatch({ type: 'SET_FILES', payload: [] });
             elements.fileList.innerHTML = '';
             elements.fileClearBtn.classList.add('hidden');
-            showNotification('All files cleared.');
+            showNotification('Files cleared.');
         };
         const toggleFileActions = () => {
             const isHidden = elements.fileActionsContainer.classList.contains('max-h-0');
             elements.fileActionsContainer.classList.toggle('max-h-0', !isHidden);
-            elements.fileActionsContainer.classList.toggle('max-h-48', isHidden);
+            elements.fileActionsContainer.classList.toggle('max-h-40', isHidden);
             elements.fileActionsContainer.classList.toggle('opacity-0', !isHidden);
             elements.fileActionsContainer.classList.toggle('opacity-100', isHidden);
             elements.toggleActionsBtn.textContent = isHidden ? 'Hide Extra Options' : 'Show Extra Options';
-            gsap.to(elements.fileActionsContainer, { height: isHidden ? 'auto' : 0, duration: 0.5, ease: 'power2.out' });
+            gsap.to(elements.fileActionsContainer, { height: isHidden ? 'auto' : 0, duration: 0.3, ease: 'power3.out' });
         };
         const applyChatLayout = () => {
             const layout = store.state.userProfile.chatLayout;
             const fontSize = store.state.userProfile.preferences.fontSize;
             const content = elements.chatArea;
             if (layout === 'compact') {
-                content.style.padding = '0.75rem';
+                content.style.padding = '0.5rem';
                 content.style.fontSize = `${fontSize - 2}px`;
             } else if (layout === 'spacious') {
-                content.style.padding = '2rem';
+                content.style.padding = '1.5rem';
                 content.style.fontSize = `${fontSize + 2}px`;
             } else {
-                content.style.padding = '1.5rem';
+                content.style.padding = '1rem';
                 content.style.fontSize = `${fontSize}px`;
             }
         };
-        const saveUserProfile = () => {
-            store.dispatch({
+        const saveUserProfile = async () => {
+            const newUsername = sanitizeInput(elements.usernameInput.value) || 'User';
+            await store.dispatch({
                 type: 'SET_STATE',
                 payload: {
                     userProfile: {
-                        username: sanitizeInput(elements.usernameInput.value) || 'User',
+                        username: newUsername,
                         chatLayout: elements.chatLayoutSelect.value,
                         preferences: {
-                            fontSize: parseInt(elements.fontSizeInput.value) || 16,
+                            fontSize: parseInt(elements.fontSizeInput.value) || 14,
                             autoScroll: elements.autoScrollToggle.checked
                         }
                     }
@@ -841,15 +1200,22 @@
             });
             applyChatLayout();
             showNotification('Profile updated!');
+            store.state.conversationHistory = store.state.conversationHistory.map(msg => {
+                if (msg.role === 'assistant') {
+                    return { ...msg, content: msg.content.replace(/Yo \w+!/, `Yo ${newUsername}!`) };
+                }
+                return msg;
+            });
+            renderMessages();
         };
         const handleVoiceInput = () => {
             if (!checkRateLimit()) return;
             if (!('webkitSpeechRecognition' in window)) {
-                showNotification('Voice recognition not supported in this browser.', 'error');
+                showNotification('Voice recognition not supported here.', 'error');
                 return;
             }
             elements.permissionModal.classList.add('open');
-            gsap.fromTo(elements.permissionModal.querySelector('.modal-content'), { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4 });
+            gsap.fromTo(elements.permissionModal.querySelector('.modal-content'), { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2 });
             elements.grantPermissionBtn.focus();
         };
         const startVoiceRecognition = () => {
@@ -861,7 +1227,7 @@
                 elements.userInput.value = transcript;
             };
             recognition.onerror = event => {
-                showNotification(`Voice recognition error: ${event.error}`, 'error');
+                showNotification(`Voice error: ${event.error}`, 'error');
             };
             recognition.onend = () => {
                 showNotification('Voice recognition stopped.');
@@ -873,32 +1239,36 @@
             const lastAIMessage = store.state.conversationHistory
                 .slice()
                 .reverse()
-                .find(msg => msg.role === 'ai');
+                .find(msg => msg.role === 'assistant');
             if (!lastAIMessage) {
-                showNotification('No AI message to rephrase. Please send a message first.', 'error');
+                showNotification('No AI message to rephrase. Send one first.', 'error');
                 return;
             }
             elements.typingIndicator.style.display = 'block';
-            gsap.fromTo(elements.typingIndicator, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+            gsap.fromTo(elements.typingIndicator, { opacity: 0 }, { opacity: 1, duration: 0.15 });
             const rephrased = await openai.rephraseMessage(lastAIMessage.content, store.state.apiKey);
-            const rephrasedMessage = { id: Date.now(), role: 'ai', content: rephrased, timestamp: Date.now() };
-            store.dispatch({ type: 'ADD_MESSAGE', payload: rephrasedMessage });
+            const rephrasedMessage = { id: Date.now(), role: 'assistant', content: rephrased, timestamp: Date.now() };
+            await store.dispatch({ type: 'ADD_MESSAGE', payload: rephrasedMessage });
             elements.typingIndicator.style.display = 'none';
             renderMessages();
-            showNotification('Message rephrased!');
+            showNotification('Rephased!');
         };
         const toggleSidebar = () => {
             if (!checkRateLimit()) return;
             const isOpen = elements.sidebar.classList.toggle('open');
-            gsap.to(elements.sidebar, { width: isOpen ? 320 : 0, duration: 0.5, ease: 'power2.out' });
+            gsap.to(elements.sidebar, { width: isOpen ? (store.state.deviceType === 'Mobile' ? 160 : 220) : 0, duration: 0.3, ease: 'power3.out' });
+        };
+        const toggleRightSidebar = () => {
+            const isOpen = elements.rightSidebar.classList.toggle('open');
+            gsap.to(elements.rightSidebar, { width: isOpen ? (store.state.deviceType === 'Mobile' ? 200 : 300) : 0, duration: 0.3, ease: 'power3.out' });
         };
         const clearChat = () => {
             if (!checkRateLimit()) return;
             elements.confirmClearModal.classList.add('open');
-            gsap.fromTo(elements.confirmClearModal.querySelector('.modal-content'), { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4 });
+            gsap.fromTo(elements.confirmClearModal.querySelector('.modal-content'), { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2 });
         };
-        const confirmClearChat = () => {
-            store.dispatch({ type: 'CLEAR_CHAT' });
+        const confirmClearChat = async () => {
+            await store.dispatch({ type: 'CLEAR_CHAT' });
             renderMessages();
             renderFileList();
             elements.fileClearBtn.classList.add('hidden');
@@ -918,53 +1288,53 @@
             a.download = `prysmis_chat_${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            showNotification('Chat exported successfully!');
+            showNotification('Chat exported!');
         };
         const shareWebsite = async () => {
             if (!checkRateLimit()) return;
             try {
                 await navigator.share({
                     title: 'Prysmis AI',
-                    text: 'Check out Prysmis AI, the #1 best AI website!',
+                    text: 'Check out Prysmis AI, the best AI website ever!',
                     url: window.location.href
                 });
-                showNotification('Website shared successfully!');
+                showNotification('Shared!');
             } catch (error) {
-                showNotification('Sharing failed. Try copying the link instead.', 'error');
+                showNotification('Couldn’t share. Copy the link instead.', 'error');
             }
         };
         const handleFeedback = () => {
             if (!checkRateLimit()) return;
             const feedback = sanitizeInput(elements.feedbackInput.value.trim());
             if (feedback) {
-                console.log(`Feedback submitted: ${feedback}`);
-                showNotification('Feedback submitted! Thank you.');
+                console.log(`Feedback: ${feedback}`);
+                showNotification('Feedback sent! Thanks!');
                 elements.feedbackInput.value = '';
                 elements.feedbackModal.classList.remove('open');
             } else {
-                showNotification('Please enter feedback.', 'error');
+                showNotification('Write some feedback first.', 'error');
             }
         };
-        const showUpdates = () => {
+        const showUpdates = async () => {
             if (!checkRateLimit()) return;
             const aiMessage = {
                 id: Date.now(),
-                role: 'ai',
-                content: 'Prysmis AI updates: Faster responses, better rephrasing, new Discord and Premium buttons, improved API key validation, and a smoother UI with visible typing indicators! More cool stuff coming soon.',
+                role: 'assistant',
+                content: `Hey ${store.state.userProfile.username}, Prysmis AI just got better: slicker UI, faster responses, beefier DDoS protection, unlimited uploads/messages, sharper code blocks, grade sorting with advice, cooler games, and pro code obfuscation!`,
                 timestamp: Date.now()
             };
-            store.dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
+            await store.dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
             renderMessages();
         };
         const joinDiscord = () => {
             if (!checkRateLimit()) return;
             window.open('https://discord.gg/TKC8XjGSAw', '_blank');
-            showNotification('Opening Discord invite link!');
+            showNotification('Heading to Discord!');
         };
         const goToPremium = () => {
             if (!checkRateLimit()) return;
             window.location.href = '/planprice';
-            showNotification('Redirecting to Premium plans!');
+            showNotification('Checking out Premium!');
         };
         const detectDeviceType = () => {
             const ua = navigator.userAgent.toLowerCase();
@@ -980,22 +1350,22 @@
         elements.apiKeySubmit.addEventListener('click', async () => {
             const apiKey = elements.apiKeyInput.value.trim();
             if (!apiKey) {
-                showNotification('Please enter an API key.', 'error');
+                showNotification('Need an API key.', 'error');
                 return;
             }
             elements.preloaderTypingIndicator.style.display = 'block';
             const response = await openai.validateApiKey(apiKey);
             if (response.success) {
-                store.dispatch({ type: 'SET_STATE', payload: { apiKey, isApiKeyValid: true } });
+                await store.dispatch({ type: 'SET_STATE', payload: { apiKey, isApiKeyValid: true } });
                 gsap.to(elements.preloader, {
                     opacity: 0,
-                    duration: 0.8,
+                    duration: 0.5,
                     onComplete: () => {
                         elements.preloader.style.display = 'none';
                     }
                 });
                 showNotification(response.message);
-                initChat();
+                await initChat();
             } else {
                 showNotification(response.message, 'error');
                 elements.preloaderTypingIndicator.style.display = 'none';
@@ -1008,20 +1378,21 @@
                 debouncedSendMessage();
             }
         });
+        elements.userInput.addEventListener('paste', handlePaste);
         elements.rephraseBtn.addEventListener('click', rephraseMessage);
         elements.themeBtn.addEventListener('click', toggleTheme);
         elements.userProfileBtn.addEventListener('click', () => {
             elements.userProfileModal.classList.add('open');
-            gsap.fromTo(elements.userProfileModal.querySelector('.modal-content'), { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4 });
+            gsap.fromTo(elements.userProfileModal.querySelector('.modal-content'), { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2 });
         });
         elements.userProfileClose.addEventListener('click', () => elements.userProfileModal.classList.remove('open'));
         elements.fileInput.addEventListener('change', handleFileUpload);
         elements.fileClearBtn.addEventListener('click', clearFiles);
-        elements.fileList.addEventListener('click', e => {
+        elements.fileList.addEventListener('click', async e => {
             const removeBtn = e.target.closest('.remove-file-btn');
             if (removeBtn) {
                 const fileId = parseFloat(removeBtn.closest('.file-item').dataset.fileId);
-                store.dispatch({ type: 'SET_FILES', payload: store.state.filesArray.filter(f => f.id !== fileId) });
+                await store.dispatch({ type: 'SET_FILES', payload: store.state.filesArray.filter(f => f.id !== fileId) });
                 renderFileList();
                 elements.fileClearBtn.classList.toggle('hidden', store.state.filesArray.length === 0);
                 showNotification('File removed.');
@@ -1049,53 +1420,50 @@
         elements.shareWebsiteBtn.addEventListener('click', shareWebsite);
         elements.feedbackBtn.addEventListener('click', () => {
             elements.feedbackModal.classList.add('open');
-            gsap.fromTo(elements.feedbackModal.querySelector('.modal-content'), { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4 });
+            gsap.fromTo(elements.feedbackModal.querySelector('.modal-content'), { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2 });
         });
         elements.feedbackModalClose.addEventListener('click', () => elements.feedbackModal.classList.remove('open'));
         elements.feedbackSubmitBtn.addEventListener('click', handleFeedback);
         elements.prysmisUpdatesBtn.addEventListener('click', showUpdates);
         elements.discordBtn.addEventListener('click', joinDiscord);
         elements.premiumBtn.addEventListener('click', goToPremium);
-        elements.aiModelSelect.addEventListener('change', () => {
-            store.dispatch({ type: 'SET_STATE', payload: { selectedModel: elements.aiModelSelect.value } });
+        elements.aiModelSelect.addEventListener('change', async () => {
+            await store.dispatch({ type: 'SET_STATE', payload: { selectedModel: elements.aiModelSelect.value } });
             showNotification(`Switched to ${elements.aiModelSelect.options[elements.aiModelSelect.selectedIndex].text}`);
         });
+        elements.rightSidebarClose.addEventListener('click', toggleRightSidebar);
         const initChat = async () => {
-            store.state.deviceType = detectDeviceType();
+            await store.dispatch({ type: 'SET_STATE', payload: { deviceType: detectDeviceType() } });
             await store.loadState();
             renderMessages();
             loadTheme();
             applyChatLayout();
-            if (store.state.deviceType === 'Mobile' || store.state.deviceType === 'Android' || store.state.deviceType === 'iOS') {
-                elements.chatArea.style.padding = '0.75rem';
-                elements.chatInputArea.style.padding = '0.75rem';
+            if (['Mobile', 'Android', 'iOS'].includes(store.state.deviceType)) {
+                elements.chatArea.style.padding = '0.3rem';
+                elements.chatInputArea.style.padding = '0.3rem';
                 elements.userInput.style.minHeight = '2.5rem';
             }
         };
-        const init = async () => {
+        const init = () => {
+            const deviceType = detectDeviceType();
             const loadingMessages = [
-                'Starting Prysmis AI...',
-                'Checking your device...',
-                `${store.state.deviceType = detectDeviceType()} found.`,
-                'Getting things ready...',
-                'All set!'
+                'Firing up Prysmis AI...',
+                'Scanning your device...',
+                `${deviceType} detected.`,
+                'Ready to roll!'
             ];
             let messageIndex = 0;
-            const maxAttempts = 5;
-            let attempts = 0;
             elements.loadingText.classList.add('opacity-100');
-            elements.preloaderTypingIndicator.style.display = 'block';
             const displayNextMessage = () => {
-                if (messageIndex < loadingMessages.length && attempts < maxAttempts) {
+                if (messageIndex < loadingMessages.length) {
                     elements.loadingText.textContent = loadingMessages[messageIndex];
                     messageIndex++;
-                    attempts++;
-                    gsap.fromTo(elements.loadingText, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 });
+                    gsap.fromTo(elements.loadingText, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 });
                     setTimeout(() => {
-                        gsap.to(elements.loadingText, { opacity: 0, y: -10, duration: 0.5, onComplete: displayNextMessage });
-                    }, 1000);
+                        gsap.to(elements.loadingText, { opacity: 0, y: -10, duration: 0.3, onComplete: displayNextMessage });
+                    }, 600);
                 } else {
-                    gsap.to(elements.apiKeyContainer, { opacity: 1, duration: 0.5 });
+                    gsap.to(elements.apiKeyContainer, { opacity: 1, duration: 0.3 });
                     elements.apiKeyInput.focus();
                     elements.preloaderTypingIndicator.style.display = 'none';
                 }
