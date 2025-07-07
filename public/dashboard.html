@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>prysmisai Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Chats</h2>
+    <ul class="chat-list" id="chatList"></ul>
+    <button id="newChatBtn">New Chat</button>
+    <div style="margin-top:40px;">
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div id="chatTitle">New Chat</div>
+      <select id="aiSelect" style="width:180px;margin-left:20px;">
+        <option value="chatgpt">ChatGPT</option>
+        <option value="simple">Simple AI</option>
+        <option value="reverse">Reverse AI</option>
+        <option value="uppercase">Uppercase AI</option>
+      </select>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="Type your message" />
+      <button id="sendBtn">Send</button>
+    </div>
+    <div class="settings">
+      <h3>Settings - API Keys</h3>
+      <label for="chatgptKey">ChatGPT API Key</label>
+      <input type="text" id="chatgptKey" placeholder="sk-..." autocomplete="off" />
+      <button id="saveSettingsBtn" style="width:100%;">Save Settings</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
