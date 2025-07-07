@@ -7,19 +7,21 @@
 </head>
 <body>
   <div class="sidebar">
-    <h2>Chats</h2>
+    <div class="sidebar-header">
+      <h2>Chats</h2>
+      <button id="newChatBtn" class="sidebar-btn">New Chat</button>
+    </div>
     <ul id="chatList"></ul>
-    <button id="newChatBtn">New Chat</button>
-    <button id="logoutBtn">Sign Out</button>
+    <button id="logoutBtn" class="sidebar-btn logout">Sign Out</button>
   </div>
   <div class="main">
     <div class="header">
       <h2 id="chatTitle">New Chat</h2>
       <select id="aiSelect">
+        <option value="grok">Grok</option>
         <option value="simple">Simple AI</option>
         <option value="reverse">Reverse AI</option>
         <option value="uppercase">Uppercase AI</option>
-        <option value="chatgpt">ChatGPT</option>
       </select>
     </div>
     <div class="messages" id="messages"></div>
@@ -29,7 +31,7 @@
     </div>
     <div class="settings">
       <h3>Settings</h3>
-      <input id="chatgptKey" placeholder="ChatGPT API Key" />
+      <input id="chatgptKey" placeholder="Grok API Key (optional)" />
       <button id="saveSettingsBtn">Save Settings</button>
     </div>
   </div>
