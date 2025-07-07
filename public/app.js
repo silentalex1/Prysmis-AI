@@ -12,9 +12,9 @@ const saveSettingsBtn = document.getElementById('saveSettingsBtn')
 let chats = JSON.parse(localStorage.getItem('prysmisaiChats') || '[]')
 let currentChatId = null
 let apis = JSON.parse(localStorage.getItem('prysmisaiAPIs') || '{}')
-chatgptKeyInput.value = apis.chatgpt || ''
+chatgptKeyInput.value = apis.grok || ''
 function saveChats() { localStorage.setItem('prysmisaiChats', JSON.stringify(chats)) }
-function saveAPIs() { apis.chatgpt = chatgptKeyInput.value.trim(); localStorage.setItem('prysmisaiAPIs', JSON.stringify(apis)) }
+function saveAPIs() { apis.grok = chatgptKeyInput.value.trim(); localStorage.setItem('prysmisaiAPIs', JSON.stringify(apis)) }
 function renderChatList() {
   chatListEl.innerHTML = ''
   chats.forEach((c,i) => {
