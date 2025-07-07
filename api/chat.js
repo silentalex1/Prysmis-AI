@@ -10,42 +10,40 @@ module.exports = async (req, res) => {
     res.status(400).json({ error: 'Missing parameters' })
     return
   }
-
-  async function callOpenAI(apiKey, prompt) {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type':'application/json',
-        'Authorization': 'Bearer ' + apiKey,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 150,
-        temperature: 0.8
-      })
-    })
-    const data = await response.json()
-    return data.choices?.[0]?.message?.content || null
-  }
-
   try {
-    let reply = ''
     if (ai === 'chatgpt' && apis?.chatgpt) {
-      reply = await callOpenAI(apis.chatgpt, message)
-      if (!reply) reply = "OpenAI API returned no result"
-    } else if (ai === 'simple') {
-      reply = `SimpleAI: You said "${message}"`
-    } else if (ai === 'reverse') {
-      reply = message.split('').reverse().join('')
-    } else if (ai === 'uppercase') {
-      reply = message.toUpperCase()
-    } else {
-      reply = "AI not supported or API key missing"
+      const r = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + apis.chatgpt
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: message }],
+          max_tokens: 150,
+          temperature: 0.8
+        })
+      })
+      const data = await r.json()
+      const reply = data.choices?.[0]?.message?.content || 'No response'
+      res.status(200).json({ success: true, reply })
+      return
     }
-
-    res.status(200).json({ success: true, reply })
+    if (ai === 'simple') {
+      res.status(200).json({ success: true, reply: 'Simple AI: ' + message })
+      return
+    }
+    if (ai === 'reverse') {
+      res.status(200).json({ success: true, reply: message.split('').reverse().join('') })
+      return
+    }
+    if (ai === 'uppercase') {
+      res.status(200).json({ success: true, reply: message.toUpperCase() })
+      return
+    }
+    res.status(200).json({ success: false, reply: 'Unsupported AI or missing API key' })
   } catch {
-    res.status(500).json({ success: false, reply: 'AI error' })
+    res.status(500).json({ success: false, reply: 'Internal error' })
   }
 }
