@@ -1,5 +1,4 @@
 const fetch = require('node-fetch')
-
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' })
@@ -21,8 +20,8 @@ module.exports = async (req, res) => {
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
           messages: [{ role: 'user', content: message }],
-          max_tokens: 150,
-          temperature: 0.8
+          max_tokens: 200,
+          temperature: 0.7
         })
       })
       const data = await r.json()
