@@ -2,20 +2,59 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>prysmisai - Login</title>
+  <title>prysmisai - Sign In</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="login-container">
     <h1>prysmisai</h1>
-    <input id="username" placeholder="Username" />
-    <button id="loginBtn">Login</button>
+    <div class="tab-container">
+      <button class="tab active" onclick="showTab('login')">Sign In</button>
+      <button class="tab" onclick="showTab('signup')">Sign Up</button>
+    </div>
+    <div id="login" class="form active">
+      <input id="loginUsername" placeholder="Username" />
+      <input id="loginPassword" type="password" placeholder="Password" />
+      <button id="loginBtn">Sign In</button>
+    </div>
+    <div id="signup" class="form">
+      <input id="signupUsername" placeholder="Username" />
+      <input id="signupPassword" type="password" placeholder="Password" />
+      <input id="confirmPassword" type="password" placeholder="Confirm Password" />
+      <button id="signupBtn">Sign Up</button>
+    </div>
   </div>
   <script>
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'))
+      document.querySelectorAll('.form').forEach(form => form.classList.remove('active'))
+      document.querySelector(`button[onclick="showTab('${tab}')"]`).classList.add('active')
+      document.getElementById(tab).classList.add('active')
+    }
     const loginBtn = document.getElementById('loginBtn')
+    const signupBtn = document.getElementById('signupBtn')
     loginBtn.onclick = () => {
-      const user = document.getElementById('username').value.trim()
-      if (!user) return
+      const user = document.getElementById('loginUsername').value.trim()
+      const pass = document.getElementById('loginPassword').value
+      if (!user || !pass) return alert('Please fill in all fields')
+      const users = JSON.parse(localStorage.getItem('prysmisaiUsers') || '{}')
+      if (users[user] && users[user].password === pass) {
+        localStorage.setItem('prysmisaiUser', user)
+        window.location.href = 'dashboard.html'
+      } else {
+        alert('Invalid username or password')
+      }
+    }
+    signupBtn.onclick = () => {
+      const user = document.getElementById('signupUsername').value.trim()
+      const pass = document.getElementById('signupPassword').value
+      const confirm = document.getElementById('confirmPassword').value
+      if (!user || !pass || !confirm) return alert('Please fill in all fields')
+      if (pass !== confirm) return alert('Passwords do not match')
+      const users = JSON.parse(localStorage.getItem('prysmisaiUsers') || '{}')
+      if (users[user]) return alert('Username already exists')
+      users[user] = { password: pass }
+      localStorage.setItem('prysmisaiUsers', JSON.stringify(users))
       localStorage.setItem('prysmisaiUser', user)
       window.location.href = 'dashboard.html'
     }
