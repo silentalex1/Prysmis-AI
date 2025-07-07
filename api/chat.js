@@ -10,15 +10,15 @@ module.exports = async (req, res) => {
     return
   }
   try {
-    if (ai === 'chatgpt' && apis?.chatgpt) {
-      const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    if (ai === 'grok' && apis?.grok) {
+      const r = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + apis.chatgpt
+          Authorization: 'Bearer ' + apis.grok
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'grok-3',
           messages: [{ role: 'user', content: message }],
           max_tokens: 200,
           temperature: 0.7
