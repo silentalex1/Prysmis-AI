@@ -4,7 +4,13 @@ const chatWindow = document.getElementById('chatWindow');
 const saveKeyBtn = document.getElementById('saveKey');
 const keyInput = document.getElementById('pyrsmisKey');
 const consoleBtn = document.getElementById('consoleBtn');
-consoleBtn.onclick = () => location.href = 'https://platform.prysmisai.wtf/console.html';
+consoleBtn.onclick = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    location.href = 'http://localhost:3000/console.html';
+  } else {
+    location.href = 'https://platform.prysmisai.wtf/console.html';
+  }
+};
 let sessionId = localStorage.getItem('pyrSession') || crypto.randomUUID();
 localStorage.setItem('pyrSession', sessionId);
 keyInput.value = localStorage.getItem('pyrKey') || '';
