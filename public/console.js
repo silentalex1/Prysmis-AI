@@ -5,12 +5,21 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const saveStatus = document.getElementById('saveStatus');
 
 generateKeyBtn.onclick = async () => {
-  const res = await fetch('/api/pyrsmis/key/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  });
-  const data = await res.json();
-  keyOutput.textContent = data.key || 'Failed to generate key';
+  try {
+    const res = await fetch('/api/pyrsmis/key/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.key) {
+      keyOutput.textContent = data.key;
+      apiKeyInput.value = data.key;
+    } else {
+      keyOutput.textContent = 'Failed to generate key';
+    }
+  } catch (error) {
+    keyOutput.textContent = 'Error generating key';
+  }
 };
 
 saveKeyBtn.onclick = async () => {
