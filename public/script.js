@@ -8,7 +8,7 @@ consoleBtn.onclick = () => {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     location.href = 'http://localhost:3000/console.html';
   } else {
-    location.href = 'https://platform.prysmisai.wtf/console.html';
+    location.href = 'https://prysmisai.wtf/console.html';
   }
 };
 let sessionId = localStorage.getItem('pyrSession') || crypto.randomUUID();
