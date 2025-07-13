@@ -10,15 +10,16 @@ generateKeyBtn.onclick = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
+    if (!res.ok) throw new Error('Failed to generate key');
     const data = await res.json();
     if (data.key) {
       keyOutput.textContent = data.key;
       apiKeyInput.value = data.key;
     } else {
-      keyOutput.textContent = 'Failed to generate key';
+      keyOutput.textContent = 'Invalid response from server';
     }
   } catch (error) {
-    keyOutput.textContent = 'Error generating key';
+    keyOutput.textContent = `Error generating key: ${error.message}`;
   }
 };
 
