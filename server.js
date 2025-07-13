@@ -36,18 +36,18 @@ app.post('/api/chat', async (req, res) => {
   const { prompt, sessionId } = req.body;
   const key = validKeys.get(sessionId);
   if (!key) {
-    res.json({ response: 'Invalid or missing API key' });
+    res.json({ response: 'Invalid or missing Pyrsmis AI key' });
     return;
   }
   try {
     const response = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: `Pretend you are Pyrsmis AI with key ${key}. Respond to: ${prompt}` }],
       max_tokens: 150
     });
     res.json({ response: response.data.choices[0].message.content });
   } catch (error) {
-    res.json({ response: 'Error processing request' });
+    res.json({ response: 'Error processing request with Pyrsmis AI' });
   }
 });
 
