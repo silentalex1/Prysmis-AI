@@ -31,7 +31,7 @@ chatForm.onsubmit = async e => {
   if (!prompt) return;
   appendMessage('user', prompt);
   chatInput.value = '';
-  appendMessage('ai', 'Processing...');
+  appendMessage('ai', 'Processing with Pyrsmis AI...');
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
