@@ -14,8 +14,11 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 app.post('/api/pyrsmis/key/generate', (req, res) => {
+  if (!process.env.PYRSMIS_AI_KEY) {
+    return res.status(500).json({ error: 'Server configuration error: Missing PYRSMIS_AI_KEY' });
+  }
   const key = `pyrsmisai_${crypto.randomUUID()}`;
-  validKeys.set(key, true); // Store the generated key as valid
+  validKeys.set(key, true);
   res.json({ key });
 });
 
