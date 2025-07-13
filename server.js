@@ -15,7 +15,7 @@ const openai = new OpenAIApi(configuration);
 
 app.post('/api/pyrsmis/key/generate', (req, res) => {
   const key = `pyrsmisai_${crypto.randomUUID()}`;
-  validKeys.set(key, true);
+  validKeys.set(key, true); // Store the generated key as valid
   res.json({ key });
 });
 
