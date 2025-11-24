@@ -47,12 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDeobfuscate: document.getElementById('btn-deobfuscate'),
         terminalLog: document.getElementById('terminal-log'),
         terminalTime: document.getElementById('terminal-time'),
-        editorLangToggle: document.getElementById('editor-lang-toggle'),
         
         getStartedBtn: document.getElementById('get-started-btn'),
         mobileMenuBtn: document.getElementById('mobile-menu-btn'),
         homeBtn: document.getElementById('home-btn'),
-        sidebar: document.querySelector('aside')
+        sidebar: document.getElementById('sidebar'),
+        mobileOverlay: document.getElementById('mobile-overlay')
     };
 
     let uploadedFile = { data: null, type: null };
@@ -79,6 +79,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if(els.terminalLog) els.terminalLog.textContent = msg;
     };
 
+    const toggleMobileMenu = () => {
+        if(els.sidebar.classList.contains('-translate-x-full')) {
+            els.sidebar.classList.remove('-translate-x-full');
+            els.mobileOverlay.classList.remove('hidden');
+        } else {
+            els.sidebar.classList.add('-translate-x-full');
+            els.mobileOverlay.classList.add('hidden');
+        }
+    };
+
+    if(els.mobileMenuBtn) els.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    if(els.mobileOverlay) els.mobileOverlay.addEventListener('click', toggleMobileMenu);
+
     const switchToStandard = () => {
         els.standardUI.classList.remove('hidden');
         els.codeDumperUI.classList.add('hidden');
@@ -91,9 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!els.historyList) return;
         els.historyList.innerHTML = '';
         const query = els.searchInput ? els.searchInput.value.toLowerCase() : '';
-        
         const filtered = chatHistory.filter(c => c.title.toLowerCase().includes(query));
-        
         filtered.forEach(chat => {
             const div = document.createElement('div');
             div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
@@ -101,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             div.onclick = () => {
                 loadChat(chat.id);
                 toggleHistory(false);
+                if(window.innerWidth < 768) toggleMobileMenu();
             };
             els.historyList.appendChild(div);
         });
@@ -180,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(els.settingsTriggers) els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
     if(els.closeSettings) els.closeSettings.addEventListener('click', () => toggleSettings(false));
-    if(els.getStartedBtn) els.getStartedBtn.addEventListener('click', () => toggleSettings(true));
+    if(els.getStartedBtn) els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
     
     if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
         if(els.apiKey.value.trim()) {
@@ -277,24 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 reader.readAsText(e.target.files[0]);
             }
         });
-    }
-
-    if(els.editorLangToggle) {
-        const editorBtns = els.editorLangToggle.querySelectorAll('button');
-        editorBtns.forEach(btn => btn.addEventListener('click', () => {
-            const lang = btn.getAttribute('data-lang');
-            editorBtns.forEach(b => {
-                if(b.getAttribute('data-lang') === lang) {
-                    b.classList.add('bg-emerald-500', 'text-black');
-                    b.classList.remove('text-gray-400');
-                } else {
-                    b.classList.remove('bg-emerald-500', 'text-black');
-                    b.classList.add('text-gray-400');
-                }
-            });
-            currentLang = lang;
-            logTerminal(`Language switched to ${currentLang}`);
-        }));
     }
 
     if(els.dumperSkipBtn) els.dumperSkipBtn.addEventListener('click', () => {
@@ -421,6 +415,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.runCmd = (cmd) => {
         if(cmd === '/clear') startNewChat();
         else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null, false);
+        else if(cmd === '/features') appendMsg('ai', "**Features:**\n- Smart Modes\n- Code Dumper (Obfuscator)\n- Rizz Tool\n- History System", null, false);
+        else if(cmd === '/invisible tab') {
+             document.title = "Google";
+             const link = document.querySelector("link[rel~='icon']");
+             if (link) link.href = 'https://www.google.com/favicon.ico';
+        }
         els.cmdPopup.classList.add('hidden');
         els.cmdPopup.classList.remove('flex');
         els.input.value = '';
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const loaderDiv = document.createElement('div');
         loaderDiv.id = loaderId;
         loaderDiv.className = "flex w-full justify-start msg-anim mb-4";
-        loaderDiv.innerHTML = `<div class="bg-[#18181b] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
+        loaderDiv.innerHTML = `<div class="bg-[#111] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
         els.chatFeed.appendChild(loaderDiv);
         els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
 
