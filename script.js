@@ -6,12 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSettings: document.getElementById('close-settings'),
         saveSettings: document.getElementById('save-settings-btn'),
         apiKey: document.getElementById('api-key-field'),
-        
         modeBtn: document.getElementById('mode-btn'),
         modeDrop: document.getElementById('mode-dropdown'),
         modeTxt: document.getElementById('current-mode-txt'),
         modeItems: document.querySelectorAll('.mode-item'),
-
         input: document.getElementById('prompt-input'),
         fileInput: document.getElementById('file-input'),
         mediaPreview: document.getElementById('media-preview'),
@@ -20,19 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
         chatFeed: document.getElementById('chat-feed'),
         heroSection: document.getElementById('hero-section'),
         flashOverlay: document.getElementById('flash-overlay'),
-        
         historyModal: document.getElementById('history-modal'),
         historyTrigger: document.getElementById('history-trigger'),
         closeHistory: document.getElementById('close-history'),
         historyList: document.getElementById('history-list'),
         searchInput: document.getElementById('search-input'),
         newChatBtn: document.getElementById('new-chat-btn'),
-        
         dumperKeyModal: document.getElementById('code-dumper-key-modal'),
         closeDumperKey: document.getElementById('close-dumper-key'),
         dumperKeyInput: document.getElementById('dumper-key-input'),
         verifyKeyBtn: document.getElementById('verify-key-btn'),
-        
         codeDumperUI: document.getElementById('code-dumper-ui'),
         standardUI: document.getElementById('standard-ui'),
         dumperUploadState: document.getElementById('dumper-upload-state'),
@@ -47,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDeobfuscate: document.getElementById('btn-deobfuscate'),
         terminalLog: document.getElementById('terminal-log'),
         terminalTime: document.getElementById('terminal-time'),
-        
         getStartedBtn: document.getElementById('get-started-btn'),
         mobileMenuBtn: document.getElementById('mobile-menu-btn'),
         homeBtn: document.getElementById('home-btn'),
@@ -75,9 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(els.terminalTime) els.terminalTime.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
     }, 1000);
 
-    const logTerminal = (msg) => {
-        if(els.terminalLog) els.terminalLog.textContent = msg;
-    };
+    const logTerminal = (msg) => { if(els.terminalLog) els.terminalLog.textContent = msg; };
 
     const toggleMobileMenu = () => {
         if(els.sidebar.classList.contains('-translate-x-full')) {
@@ -99,80 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if(els.homeBtn) els.homeBtn.addEventListener('click', switchToStandard);
-
-    const renderHistory = () => {
-        if(!els.historyList) return;
-        els.historyList.innerHTML = '';
-        const query = els.searchInput ? els.searchInput.value.toLowerCase() : '';
-        const filtered = chatHistory.filter(c => c.title.toLowerCase().includes(query));
-        filtered.forEach(chat => {
-            const div = document.createElement('div');
-            div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
-            div.innerHTML = `<div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div><div class="text-[10px] text-gray-500 font-mono">${new Date(chat.id).toLocaleDateString()}</div>`;
-            div.onclick = () => {
-                loadChat(chat.id);
-                toggleHistory(false);
-                if(window.innerWidth < 768) toggleMobileMenu();
-            };
-            els.historyList.appendChild(div);
-        });
-    };
-
-    const saveChatToStorage = () => {
-        localStorage.setItem('prysmis_history', JSON.stringify(chatHistory));
-        renderHistory();
-    };
-
-    const startNewChat = () => {
-        currentChatId = null;
-        els.chatFeed.innerHTML = '';
-        els.chatFeed.appendChild(els.heroSection);
-        els.heroSection.style.display = 'flex';
-        toggleHistory(false);
-        switchToStandard();
-    };
-
-    const loadChat = (id) => {
-        const chat = chatHistory.find(c => c.id === id);
-        if(!chat) return;
-        currentChatId = id;
-        els.heroSection.style.display = 'none';
-        els.chatFeed.innerHTML = '';
-        chat.messages.forEach(msg => {
-            appendMsg(msg.role, msg.text, msg.img, false);
-        });
-        renderHistory();
-        switchToStandard();
-    };
-
-    const toggleHistory = (show) => {
-        if(show) {
-            els.historyModal.classList.remove('hidden');
-            requestAnimationFrame(() => els.historyModal.classList.remove('opacity-0'));
-            renderHistory();
-            if(els.searchInput) els.searchInput.focus();
-        } else {
-            els.historyModal.classList.add('opacity-0');
-            setTimeout(() => els.historyModal.classList.add('hidden'), 300);
-        }
-    };
-
-    if(els.historyTrigger) els.historyTrigger.addEventListener('click', () => toggleHistory(true));
-    if(els.closeHistory) els.closeHistory.addEventListener('click', () => toggleHistory(false));
-    if(els.searchInput) els.searchInput.addEventListener('input', renderHistory);
-    if(els.newChatBtn) els.newChatBtn.addEventListener('click', startNewChat);
-
-    document.addEventListener('keydown', (e) => {
-        if(e.shiftKey && e.key.toLowerCase() === 'i') {
-            e.preventDefault();
-            toggleHistory(true);
-        }
-        if(e.key === 'Escape') {
-            toggleHistory(false);
-            toggleSettings(false);
-            toggleDumperKey(false);
-        }
-    });
 
     const toggleSettings = (show) => {
         if(show) {
@@ -254,26 +172,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const setLanguage = (lang, btns) => {
-        currentLang = lang;
-        if(btns) {
-            btns.forEach(b => {
-                if(b.getAttribute('data-lang') === lang) {
-                    b.classList.add('bg-emerald-500', 'text-black');
-                    b.classList.remove('text-gray-400', 'bg-white/5');
-                } else {
-                    b.classList.remove('bg-emerald-500', 'text-black');
-                    b.classList.add('text-gray-400', 'bg-white/5');
-                }
-            });
-        }
-    };
-
     if(els.dumperUploadZone) {
         const langBtns = els.dumperUploadZone.querySelectorAll('.lang-chip');
         langBtns.forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            setLanguage(btn.getAttribute('data-lang'), langBtns);
+            langBtns.forEach(b => {
+                b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
+                b.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
+            });
+            btn.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
+            btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
+            currentLang = btn.innerText;
         }));
 
         els.dumperUploadZone.addEventListener('click', () => els.dumperFileInput.click());
@@ -432,6 +341,13 @@ document.addEventListener('DOMContentLoaded', () => {
         els.input.focus();
     };
 
+    window.copyCode = (btn) => {
+        const code = btn.parentElement.nextElementSibling.innerText;
+        navigator.clipboard.writeText(code);
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = "Copy", 2000);
+    };
+
     els.submitBtn.addEventListener('click', handleSend);
 
     async function handleSend() {
@@ -464,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const loaderDiv = document.createElement('div');
         loaderDiv.id = loaderId;
         loaderDiv.className = "flex w-full justify-start msg-anim mb-4";
-        loaderDiv.innerHTML = `<div class="bg-[#111] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
+        loaderDiv.innerHTML = `<div class="bg-[#18181b] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
         els.chatFeed.appendChild(loaderDiv);
         els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
 
@@ -472,12 +388,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const mode = els.modeTxt.innerText;
             let sysPrompt = `You are Prysmis. Mode: ${mode}.`;
             
-            if(mode === 'Rizz tool') sysPrompt = "You are a master of charisma and social dynamics. Provide witty, smooth, and confident replies. Be flirtatious but calibrated. Use modern slang if appropriate.";
-            if(mode === 'Geometry') sysPrompt = "You are a Geometry Professor. Provide step-by-step proofs. State theorems clearly (e.g., Pythagorean Theorem, SAS Congruence). Use formatting to show mathematical steps.";
-            if(mode === 'Biology') sysPrompt = "You are a Biologist. Explain concepts using correct scientific terminology (organelles, mitosis, enzymes). Use analogies to make complex systems understandable.";
-            if(mode === 'Physics') sysPrompt = "You are a Physicist. Break down problems into 'Given', 'Unknown', 'Formula', and 'Solution'. Explain the relationship between variables.";
-            if(mode === 'English') sysPrompt = "You are an Editor and Literature Critic. Analyze text for tone, syntax, and themes. Offer rewrites that improve flow without losing the original voice.";
-            if(mode === 'Coding') sysPrompt = "You are a Lead Developer. Write clean, efficient, and commented code. Explain best practices and potential edge cases.";
+            if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic and cool. Keep it short, edgy, and effective.";
+            if(mode === 'Geometry') sysPrompt = "You are a strict Geometry Professor. Solve the problem step-by-step. Always list theorems, formulas, and proofs used. Be precise.";
+            if(mode === 'Biology') sysPrompt = "You are a Biology expert. Explain concepts using biological terms, cellular processes, and organism functions. Use bullet points for clarity.";
+            if(mode === 'Physics') sysPrompt = "You are a Physics expert. Break down forces, energy, and motion. Use standard SI units and show your math clearly.";
+            if(mode === 'English') sysPrompt = "You are a Literature & Grammar expert. Analyze tone, structure, and themes. Correct grammar without changing the user's voice.";
+            if(mode === 'Coding') sysPrompt = "You are a Senior Software Engineer. Provide clean, modern, and efficient code. Explain the 'why' behind your logic. Use comments in code blocks.";
             if(mode === 'History') sysPrompt = "You are a Historian. Connect events to their causes and effects. Remain objective. Provide dates and key figures.";
             if(mode === 'Philosophy') sysPrompt = "You are a Philosopher. Engage in Socratic questioning. Explore ethical implications and reference major philosophical schools of thought.";
 
@@ -551,12 +467,49 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.innerHTML = parseMD(currentText);
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             i++;
-        }, 10);
+        }, 2);
     }
 
     function parseMD(text) {
-        return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+        let html = text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+
+        html = html.replace(/```(\w+)?<br>([\s\S]*?)```/g, (match, lang, code) => {
+            const cleanCode = code.replace(/<br>/g, '\n');
+            return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${cleanCode}</code></pre></div>`;
+        });
+        
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        return html;
     }
     
     renderHistory();
+    
+    const renderHistoryModal = () => {
+        if(!els.historyList) return;
+        els.historyList.innerHTML = '';
+        const query = els.searchInput ? els.searchInput.value.toLowerCase() : '';
+        const filtered = chatHistory.filter(c => c.title.toLowerCase().includes(query));
+        
+        filtered.forEach(chat => {
+            const div = document.createElement('div');
+            div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
+            div.innerHTML = `<div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div><div class="text-[10px] text-gray-500 font-mono">${new Date(chat.id).toLocaleDateString()}</div>`;
+            div.onclick = () => {
+                loadChat(chat.id);
+                toggleHistory(false);
+            };
+            els.historyList.appendChild(div);
+        });
+    };
+
+    if(els.searchInput) els.searchInput.addEventListener('input', renderHistoryModal);
+    if(els.historyTrigger) els.historyTrigger.addEventListener('click', () => {
+        toggleHistory(true);
+        renderHistoryModal();
+    });
 });
