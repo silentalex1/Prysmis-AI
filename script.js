@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const els = {
         settingsTriggers: [document.getElementById('settings-trigger')],
@@ -98,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach(chat => {
             const div = document.createElement('div');
             div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
-            div.innerHTML = `<div class="font-medium text-white text-sm mb-1 truncate">${chat.title}</div><div class="text-[10px] text-gray-500 font-mono">${new Date(chat.id).toLocaleDateString()}</div>`;
+            div.innerHTML = `<div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div><div class="text-[10px] text-gray-500 font-mono">${new Date(chat.id).toLocaleDateString()}</div>`;
             div.onclick = () => {
                 loadChat(chat.id);
                 toggleHistory(false);
@@ -333,4 +332,231 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
 
-            const data = await respo
+            const data = await response.json();
+            if(data.candidates) {
+                const txt = data.candidates[0].content.parts[0].text;
+                const cleanTxt = txt.replace(/```[a-z]*\n/g, '').replace(/```/g, '');
+                els.dumperOutputArea.value = cleanTxt; 
+                els.dumperAdviceArea.innerHTML = "Operation successful. Review the output for changes.";
+                logTerminal(`${action} complete.`);
+            }
+        } catch(e) {
+            logTerminal("Error processing.");
+            els.dumperOutputArea.value = "Error.";
+        }
+    };
+
+    if(els.btnObfuscate) els.btnObfuscate.addEventListener('click', () => processCode('Obfuscate'));
+    if(els.btnDeobfuscate) els.btnDeobfuscate.addEventListener('click', () => processCode('Deobfuscate'));
+
+    const toggleDropdown = (e) => {
+        e.stopPropagation();
+        if(els.modeDrop.classList.contains('hidden')) {
+            els.modeDrop.classList.remove('hidden');
+            els.modeDrop.classList.add('flex');
+        } else {
+            els.modeDrop.classList.add('hidden');
+            els.modeDrop.classList.remove('flex');
+        }
+    };
+
+    if(els.modeBtn) els.modeBtn.addEventListener('click', toggleDropdown);
+    document.addEventListener('click', (e) => {
+        if(els.modeDrop && !els.modeDrop.classList.contains('hidden') && !els.modeBtn.contains(e.target)) {
+            els.modeDrop.classList.add('hidden');
+            els.modeDrop.classList.remove('flex');
+        }
+    });
+
+    els.modeItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const val = item.getAttribute('data-val');
+            if(val === 'Code Dumper') {
+                if(!isCodeDumperUnlocked) toggleDumperKey(true);
+                else activateCodeDumperMode();
+            } else {
+                els.modeTxt.innerText = val;
+                switchToStandard();
+            }
+        });
+    });
+
+    els.input.addEventListener('input', () => {
+        els.input.style.height = 'auto';
+        els.input.style.height = els.input.scrollHeight + 'px';
+        if(els.input.value.trim().startsWith('/')) {
+            els.cmdPopup.classList.remove('hidden');
+            els.cmdPopup.classList.add('flex');
+        } else {
+            els.cmdPopup.classList.add('hidden');
+            els.cmdPopup.classList.remove('flex');
+        }
+    });
+
+    els.input.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+
+    els.fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            uploadedFile.data = ev.target.result.split(',')[1];
+            uploadedFile.type = file.type;
+            els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group"><img src="${ev.target.result}" class="w-full h-full object-cover"><button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    window.clearMedia = () => {
+        uploadedFile = { data: null, type: null };
+        els.mediaPreview.innerHTML = '';
+        els.fileInput.value = '';
+    };
+
+    window.runCmd = (cmd) => {
+        if(cmd === '/clear') startNewChat();
+        else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null, false);
+        els.cmdPopup.classList.add('hidden');
+        els.cmdPopup.classList.remove('flex');
+        els.input.value = '';
+        els.input.focus();
+    };
+
+    window.setInput = (txt) => {
+        els.input.value = txt;
+        els.input.focus();
+    };
+
+    els.submitBtn.addEventListener('click', handleSend);
+
+    async function handleSend() {
+        const text = els.input.value.trim();
+        if(!text && !uploadedFile.data) return;
+
+        if(!localStorage.getItem('prysmis_key')) return toggleSettings(true);
+
+        if(!currentChatId) {
+            currentChatId = Date.now();
+            chatHistory.unshift({ id: currentChatId, title: text.substring(0, 30) || "New Chat", messages: [] });
+        }
+
+        const chatIndex = chatHistory.findIndex(c => c.id === currentChatId);
+        chatHistory[chatIndex].messages.push({ role: 'user', text: text, img: uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null });
+        saveChatToStorage();
+
+        els.heroSection.style.display = 'none';
+        appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null, false);
+        
+        els.input.value = '';
+        els.input.style.height = 'auto';
+        els.cmdPopup.classList.add('hidden');
+        clearMedia();
+        
+        els.flashOverlay.classList.remove('opacity-0');
+        els.flashOverlay.classList.add('bg-flash-green');
+
+        const loaderId = 'loader-' + Date.now();
+        const loaderDiv = document.createElement('div');
+        loaderDiv.id = loaderId;
+        loaderDiv.className = "flex w-full justify-start msg-anim mb-4";
+        loaderDiv.innerHTML = `<div class="bg-[#18181b] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
+        els.chatFeed.appendChild(loaderDiv);
+        els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+
+        try {
+            const mode = els.modeTxt.innerText;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}.`;
+            
+            if(mode === 'Rizz tool') sysPrompt = "You are a master of charisma and social dynamics. Provide witty, smooth, and confident replies. Be flirtatious but calibrated. Use modern slang if appropriate.";
+            if(mode === 'Geometry') sysPrompt = "You are a Geometry Professor. Provide step-by-step proofs. State theorems clearly (e.g., Pythagorean Theorem, SAS Congruence). Use formatting to show mathematical steps.";
+            if(mode === 'Biology') sysPrompt = "You are a Biologist. Explain concepts using correct scientific terminology (organelles, mitosis, enzymes). Use analogies to make complex systems understandable.";
+            if(mode === 'Physics') sysPrompt = "You are a Physicist. Break down problems into 'Given', 'Unknown', 'Formula', and 'Solution'. Explain the relationship between variables.";
+            if(mode === 'English') sysPrompt = "You are an Editor and Literature Critic. Analyze text for tone, syntax, and themes. Offer rewrites that improve flow without losing the original voice.";
+            if(mode === 'Coding') sysPrompt = "You are a Lead Developer. Write clean, efficient, and commented code. Explain best practices and potential edge cases.";
+            if(mode === 'History') sysPrompt = "You are a Historian. Connect events to their causes and effects. Remain objective. Provide dates and key figures.";
+            if(mode === 'Philosophy') sysPrompt = "You are a Philosopher. Engage in Socratic questioning. Explore ethical implications and reference major philosophical schools of thought.";
+
+            const payload = { contents: [{ parts: [{ text: sysPrompt + "\nUser: " + text }] }] };
+            if(uploadedFile.data) payload.contents[0].parts.push({ inline_data: { mime_type: uploadedFile.type, data: uploadedFile.data } });
+
+            let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if(response.status === 404 || response.status === 400) {
+                response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            const data = await response.json();
+            document.getElementById(loaderId).remove();
+            els.flashOverlay.classList.add('opacity-0');
+            els.flashOverlay.classList.remove('bg-flash-green');
+
+            if(data.candidates && data.candidates[0].content) {
+                const aiText = data.candidates[0].content.parts[0].text;
+                chatHistory[chatIndex].messages.push({ role: 'ai', text: aiText, img: null });
+                saveChatToStorage();
+                streamResponse(aiText);
+            } else {
+                appendMsg('ai', "Error generating response.", null, false);
+            }
+
+        } catch(err) {
+            document.getElementById(loaderId)?.remove();
+            els.flashOverlay.classList.add('opacity-0');
+            els.flashOverlay.classList.remove('bg-flash-green');
+            appendMsg('ai', "Connection failed.", null, false);
+        }
+    }
+
+    function appendMsg(role, text, img, save) {
+        const div = document.createElement('div');
+        div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6`;
+        let content = text.replace(/\n/g, '<br>');
+        if(img) content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
+        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none' : 'ai-msg text-gray-200 rounded-bl-none'}">${content}</div>`;
+        els.chatFeed.appendChild(div);
+        els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+    }
+
+    function streamResponse(text) {
+        const div = document.createElement('div');
+        div.className = `flex w-full justify-start msg-anim mb-6`;
+        const bubble = document.createElement('div');
+        bubble.className = "max-w-[90%] md:max-w-[75%] p-5 rounded-[20px] rounded-bl-none shadow-lg prose ai-msg text-gray-200";
+        div.appendChild(bubble);
+        els.chatFeed.appendChild(div);
+
+        const chars = text.split('');
+        let i = 0;
+        let currentText = "";
+        const interval = setInterval(() => {
+            if(i >= chars.length) {
+                clearInterval(interval);
+                bubble.innerHTML = parseMD(text);
+                return;
+            }
+            currentText += chars[i];
+            bubble.innerHTML = parseMD(currentText);
+            els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+            i++;
+        }, 10);
+    }
+
+    function parseMD(text) {
+        return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+    }
+    
+    renderHistory();
+});
