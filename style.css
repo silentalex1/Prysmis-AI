@@ -28,7 +28,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
     50% { opacity: 1; background-color: rgba(16, 185, 129, 0.03); }
 }
 
-.bg-flash-green { animation: greenFlash 3s ease-in-out infinite; }
+.bg-flash-green { animation: greenFlash 2s ease-in-out infinite; }
 
 .glass-btn { background: rgba(20, 20, 20, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
 .glass-pill { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
@@ -53,12 +53,16 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .history-item:hover { background: rgba(255,255,255,0.05); transform: scale(1.01); }
 .history-item.active { background: linear-gradient(90deg, rgba(124,58,237,0.1), transparent); border-left: 3px solid #8b5cf6; }
 
+.code-block { background: #050505; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 12px 0; }
+.code-header { background: rgba(255,255,255,0.03); padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #666; }
+.copy-btn { background: transparent; border: none; color: #888; cursor: pointer; font-size: 0.7rem; transition: 0.2s; }
+.copy-btn:hover { color: #fff; }
+.prose pre { margin: 0; padding: 15px; overflow-x: auto; }
+.prose code { font-family: 'JetBrains Mono', monospace; color: #e879f9; font-size: 0.85em; }
+.prose p { margin-bottom: 0.8em; line-height: 1.7; color: #d1d5db; }
+.prose strong { color: #e2e8f0; }
+
 .msg-anim { animation: msgPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; transform: translateY(20px); }
 .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes msgPop { to { opacity: 1; transform: translateY(0); } }
-
-.prose p { margin-bottom: 0.8em; line-height: 1.7; color: #d1d5db; }
-.prose strong { color: #e2e8f0; font-weight: 700; }
-.prose code { font-family: 'JetBrains Mono', monospace; color: #e879f9; font-size: 0.85em; background: rgba(255,255,255,0.05); padding: 2px 5px; border-radius: 4px; }
-.prose pre { background: #050505; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; margin: 10px 0; }
