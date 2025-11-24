@@ -55,8 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isCodeDumperUnlocked = false;
     let currentLang = 'Lua';
     
-    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
-    const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
     const BOT_API_URL = "/verify-key"; 
 
     const loadKey = () => {
@@ -172,17 +171,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const setLanguage = (lang, btns) => {
+        currentLang = lang;
+        if(btns) {
+            btns.forEach(b => {
+                if(b.getAttribute('data-lang') === lang) {
+                    b.classList.add('bg-emerald-500', 'text-black');
+                    b.classList.remove('text-gray-400', 'bg-white/5');
+                } else {
+                    b.classList.remove('bg-emerald-500', 'text-black');
+                    b.classList.add('text-gray-400', 'bg-white/5');
+                }
+            });
+        }
+    };
+
     if(els.dumperUploadZone) {
         const langBtns = els.dumperUploadZone.querySelectorAll('.lang-chip');
         langBtns.forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            langBtns.forEach(b => {
-                b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
-                b.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
-            });
-            btn.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
-            btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
-            currentLang = btn.innerText;
+            setLanguage(btn.getAttribute('data-lang'), langBtns);
         }));
 
         els.dumperUploadZone.addEventListener('click', () => els.dumperFileInput.click());
@@ -224,12 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if(response.status === 404) response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -324,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.runCmd = (cmd) => {
         if(cmd === '/clear') startNewChat();
         else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null, false);
-        else if(cmd === '/features') appendMsg('ai', "**Features:**\n- Smart Modes\n- Code Dumper (Obfuscator)\n- Rizz Tool\n- History System", null, false);
+        else if(cmd === '/features') appendMsg('ai', "**Features:**\n- Smart Modes\n- Code Dumper (Obfuscator)\n- Rizz Tool", null, false);
         else if(cmd === '/invisible tab') {
              document.title = "Google";
              const link = document.querySelector("link[rel~='icon']");
@@ -387,15 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const mode = els.modeTxt.innerText;
             let sysPrompt = `You are Prysmis. Mode: ${mode}.`;
-            
-            if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic and cool. Keep it short, edgy, and effective.";
-            if(mode === 'Geometry') sysPrompt = "You are a strict Geometry Professor. Solve the problem step-by-step. Always list theorems, formulas, and proofs used. Be precise.";
-            if(mode === 'Biology') sysPrompt = "You are a Biology expert. Explain concepts using biological terms, cellular processes, and organism functions. Use bullet points for clarity.";
-            if(mode === 'Physics') sysPrompt = "You are a Physics expert. Break down forces, energy, and motion. Use standard SI units and show your math clearly.";
-            if(mode === 'English') sysPrompt = "You are a Literature & Grammar expert. Analyze tone, structure, and themes. Correct grammar without changing the user's voice.";
-            if(mode === 'Coding') sysPrompt = "You are a Senior Software Engineer. Provide clean, modern, and efficient code. Explain the 'why' behind your logic. Use comments in code blocks.";
-            if(mode === 'History') sysPrompt = "You are a Historian. Connect events to their causes and effects. Remain objective. Provide dates and key figures.";
-            if(mode === 'Philosophy') sysPrompt = "You are a Philosopher. Engage in Socratic questioning. Explore ethical implications and reference major philosophical schools of thought.";
+            if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic and cool.";
 
             const payload = { contents: [{ parts: [{ text: sysPrompt + "\nUser: " + text }] }] };
             if(uploadedFile.data) payload.contents[0].parts.push({ inline_data: { mime_type: uploadedFile.type, data: uploadedFile.data } });
@@ -405,14 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
-            if(response.status === 404 || response.status === 400) {
-                response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            }
 
             const data = await response.json();
             document.getElementById(loaderId).remove();
@@ -467,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.innerHTML = parseMD(currentText);
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             i++;
-        }, 2);
+        }, 5);
     }
 
     function parseMD(text) {
@@ -486,30 +472,4 @@ document.addEventListener('DOMContentLoaded', () => {
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
         return html;
     }
-    
-    renderHistory();
-    
-    const renderHistoryModal = () => {
-        if(!els.historyList) return;
-        els.historyList.innerHTML = '';
-        const query = els.searchInput ? els.searchInput.value.toLowerCase() : '';
-        const filtered = chatHistory.filter(c => c.title.toLowerCase().includes(query));
-        
-        filtered.forEach(chat => {
-            const div = document.createElement('div');
-            div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
-            div.innerHTML = `<div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div><div class="text-[10px] text-gray-500 font-mono">${new Date(chat.id).toLocaleDateString()}</div>`;
-            div.onclick = () => {
-                loadChat(chat.id);
-                toggleHistory(false);
-            };
-            els.historyList.appendChild(div);
-        });
-    };
-
-    if(els.searchInput) els.searchInput.addEventListener('input', renderHistoryModal);
-    if(els.historyTrigger) els.historyTrigger.addEventListener('click', () => {
-        toggleHistory(true);
-        renderHistoryModal();
-    });
 });
