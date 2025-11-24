@@ -1,475 +1,207 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const els = {
-        settingsTriggers: [document.getElementById('settings-trigger')],
-        settingsOverlay: document.getElementById('settings-overlay'),
-        settingsBox: document.getElementById('settings-box'),
-        closeSettings: document.getElementById('close-settings'),
-        saveSettings: document.getElementById('save-settings-btn'),
-        apiKey: document.getElementById('api-key-field'),
-        modeBtn: document.getElementById('mode-btn'),
-        modeDrop: document.getElementById('mode-dropdown'),
-        modeTxt: document.getElementById('current-mode-txt'),
-        modeItems: document.querySelectorAll('.mode-item'),
-        input: document.getElementById('prompt-input'),
-        fileInput: document.getElementById('file-input'),
-        mediaPreview: document.getElementById('media-preview'),
-        cmdPopup: document.getElementById('cmd-popup'),
-        submitBtn: document.getElementById('submit-btn'),
-        chatFeed: document.getElementById('chat-feed'),
-        heroSection: document.getElementById('hero-section'),
-        flashOverlay: document.getElementById('flash-overlay'),
-        historyModal: document.getElementById('history-modal'),
-        historyTrigger: document.getElementById('history-trigger'),
-        closeHistory: document.getElementById('close-history'),
-        historyList: document.getElementById('history-list'),
-        searchInput: document.getElementById('search-input'),
-        newChatBtn: document.getElementById('new-chat-btn'),
-        dumperKeyModal: document.getElementById('code-dumper-key-modal'),
-        closeDumperKey: document.getElementById('close-dumper-key'),
-        dumperKeyInput: document.getElementById('dumper-key-input'),
-        verifyKeyBtn: document.getElementById('verify-key-btn'),
-        codeDumperUI: document.getElementById('code-dumper-ui'),
-        standardUI: document.getElementById('standard-ui'),
-        dumperUploadState: document.getElementById('dumper-upload-state'),
-        dumperEditorView: document.getElementById('dumper-editor-view'),
-        dumperUploadZone: document.getElementById('dumper-upload-zone'),
-        dumperFileInput: document.getElementById('dumper-file-input'),
-        dumperSkipBtn: document.getElementById('dumper-skip-btn'),
-        dumperInputArea: document.getElementById('dumper-input-area'),
-        dumperOutputArea: document.getElementById('dumper-output-area'),
-        dumperAdviceArea: document.getElementById('dumper-advice-area'),
-        btnObfuscate: document.getElementById('btn-obfuscate'),
-        btnDeobfuscate: document.getElementById('btn-deobfuscate'),
-        terminalLog: document.getElementById('terminal-log'),
-        terminalTime: document.getElementById('terminal-time'),
-        getStartedBtn: document.getElementById('get-started-btn'),
-        mobileMenuBtn: document.getElementById('mobile-menu-btn'),
-        homeBtn: document.getElementById('home-btn'),
-        sidebar: document.getElementById('sidebar'),
-        mobileOverlay: document.getElementById('mobile-overlay')
-    };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prysmis - Your Personal Learning Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#020204] text-white h-screen w-screen overflow-hidden flex font-sans selection:bg-violet-500 selection:text-white">
 
-    let uploadedFile = { data: null, type: null };
-    let chatHistory = JSON.parse(localStorage.getItem('prysmis_history')) || [];
-    let currentChatId = null;
-    let isCodeDumperUnlocked = false;
-    let currentLang = 'Lua';
-    
-    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
-    const BOT_API_URL = "/verify-key"; 
+    <div class="glow-bg"></div>
+    <div id="flash-overlay" class="pointer-events-none fixed inset-0 z-0 opacity-0 transition-opacity duration-500 mix-blend-screen"></div>
 
-    const loadKey = () => {
-        const key = localStorage.getItem('prysmis_key');
-        if(key && els.apiKey) els.apiKey.value = key;
-    };
-    loadKey();
-
-    setInterval(() => {
-        if(els.terminalTime) els.terminalTime.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
-    }, 1000);
-
-    const logTerminal = (msg) => { if(els.terminalLog) els.terminalLog.textContent = msg; };
-
-    const toggleMobileMenu = () => {
-        if(els.sidebar.classList.contains('-translate-x-full')) {
-            els.sidebar.classList.remove('-translate-x-full');
-            els.mobileOverlay.classList.remove('hidden');
-        } else {
-            els.sidebar.classList.add('-translate-x-full');
-            els.mobileOverlay.classList.add('hidden');
-        }
-    };
-
-    if(els.mobileMenuBtn) els.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
-    if(els.mobileOverlay) els.mobileOverlay.addEventListener('click', toggleMobileMenu);
-
-    const switchToStandard = () => {
-        els.standardUI.classList.remove('hidden');
-        els.codeDumperUI.classList.add('hidden');
-        els.modeTxt.innerText = "AI Assistant";
-    };
-
-    if(els.homeBtn) els.homeBtn.addEventListener('click', switchToStandard);
-
-    const toggleSettings = (show) => {
-        if(show) {
-            els.settingsOverlay.classList.remove('hidden');
-            requestAnimationFrame(() => {
-                els.settingsOverlay.classList.remove('opacity-0');
-                els.settingsBox.classList.remove('scale-95');
-                els.settingsBox.classList.add('scale-100');
-            });
-        } else {
-            els.settingsOverlay.classList.add('opacity-0');
-            els.settingsBox.classList.remove('scale-100');
-            els.settingsBox.classList.add('scale-95');
-            setTimeout(() => els.settingsOverlay.classList.add('hidden'), 300);
-        }
-    };
-
-    if(els.settingsTriggers) els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
-    if(els.closeSettings) els.closeSettings.addEventListener('click', () => toggleSettings(false));
-    if(els.getStartedBtn) els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
-    
-    if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
-        if(els.apiKey.value.trim()) {
-            localStorage.setItem('prysmis_key', els.apiKey.value.trim());
-            els.saveSettings.textContent = "Saved";
-            els.saveSettings.classList.add('bg-green-500', 'text-white');
-            setTimeout(() => {
-                toggleSettings(false);
-                els.saveSettings.textContent = "Save Changes";
-                els.saveSettings.classList.remove('bg-green-500', 'text-white');
-            }, 800);
-        }
-    });
-
-    const toggleDumperKey = (show) => {
-        if(show) {
-            els.dumperKeyModal.classList.remove('hidden');
-            requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
-        } else {
-            els.dumperKeyModal.classList.add('opacity-0');
-            setTimeout(() => els.dumperKeyModal.classList.add('hidden'), 300);
-        }
-    };
-
-    const activateCodeDumperMode = () => {
-        els.modeTxt.innerText = "Code Dumper";
-        els.standardUI.classList.add('hidden');
-        els.codeDumperUI.classList.remove('hidden');
-        els.dumperUploadState.classList.remove('hidden');
-        els.dumperEditorView.classList.add('hidden');
-        logTerminal("Obliterator initialized.");
-    };
-
-    if(els.closeDumperKey) els.closeDumperKey.addEventListener('click', () => toggleDumperKey(false));
-    if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
-        const key = els.dumperKeyInput.value.trim();
-        if(!key) return;
-        els.verifyKeyBtn.textContent = "Verifying...";
-        try {
-            const req = await fetch(BOT_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: key })
-            });
-            const res = await req.json();
-            if(res.valid) {
-                isCodeDumperUnlocked = true;
-                toggleDumperKey(false);
-                activateCodeDumperMode();
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-                els.dumperKeyInput.value = "";
-            } else {
-                alert(res.reason || "Invalid Key");
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-            }
-        } catch(e) {
-            alert("Connection failed.");
-            els.verifyKeyBtn.textContent = "Verify Key Access";
-        }
-    });
-
-    const setLanguage = (lang, btns) => {
-        currentLang = lang;
-        if(btns) {
-            btns.forEach(b => {
-                if(b.getAttribute('data-lang') === lang) {
-                    b.classList.add('bg-emerald-500', 'text-black');
-                    b.classList.remove('text-gray-400', 'bg-white/5');
-                } else {
-                    b.classList.remove('bg-emerald-500', 'text-black');
-                    b.classList.add('text-gray-400', 'bg-white/5');
-                }
-            });
-        }
-    };
-
-    if(els.dumperUploadZone) {
-        const langBtns = els.dumperUploadZone.querySelectorAll('.lang-chip');
-        langBtns.forEach(btn => btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setLanguage(btn.getAttribute('data-lang'), langBtns);
-        }));
-
-        els.dumperUploadZone.addEventListener('click', () => els.dumperFileInput.click());
-        els.dumperFileInput.addEventListener('change', (e) => {
-            if(e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    els.dumperInputArea.value = ev.target.result;
-                    els.dumperUploadState.classList.add('hidden');
-                    els.dumperEditorView.classList.remove('hidden');
-                    logTerminal(`Loaded ${e.target.files[0].name} (${currentLang})`);
-                };
-                reader.readAsText(e.target.files[0]);
-            }
-        });
-    }
-
-    if(els.dumperSkipBtn) els.dumperSkipBtn.addEventListener('click', () => {
-        els.dumperUploadState.classList.add('hidden');
-        els.dumperEditorView.classList.remove('hidden');
-    });
-
-    const processCode = async (action) => {
-        const code = els.dumperInputArea.value;
-        if(!code) return;
-        if(!localStorage.getItem('prysmis_key')) return toggleSettings(true);
-
-        els.dumperOutputArea.value = "Processing...";
-        els.dumperAdviceArea.innerHTML = "Analyzing structure...";
-        logTerminal(`Running ${action} on ${currentLang}...`);
-
-        try {
-            let prompt;
-            if(action === 'Obfuscate') {
-                prompt = `Task: Highly Obfuscate this ${currentLang} code. Use control flow flattening, dead code injection, variable renaming to random strings, and string encryption. Make it readable only to the machine. Return ONLY the raw code.\n\nCode:\n${code}`;
-            } else {
-                prompt = `Task: Deobfuscate this ${currentLang} code. Rename variables to meaningful names based on logic. Remove dead code. Simplify control flow. Return ONLY the clean, raw code.\n\nCode:\n${code}`;
-            }
-
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-            let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            if(data.candidates) {
-                const txt = data.candidates[0].content.parts[0].text;
-                const cleanTxt = txt.replace(/```[a-z]*\n/g, '').replace(/```/g, '');
-                els.dumperOutputArea.value = cleanTxt; 
-                els.dumperAdviceArea.innerHTML = "Operation successful. Review the output for changes.";
-                logTerminal(`${action} complete.`);
-            }
-        } catch(e) {
-            logTerminal("Error processing.");
-            els.dumperOutputArea.value = "Error.";
-        }
-    };
-
-    if(els.btnObfuscate) els.btnObfuscate.addEventListener('click', () => processCode('Obfuscate'));
-    if(els.btnDeobfuscate) els.btnDeobfuscate.addEventListener('click', () => processCode('Deobfuscate'));
-
-    const toggleDropdown = (e) => {
-        e.stopPropagation();
-        if(els.modeDrop.classList.contains('hidden')) {
-            els.modeDrop.classList.remove('hidden');
-            els.modeDrop.classList.add('flex');
-        } else {
-            els.modeDrop.classList.add('hidden');
-            els.modeDrop.classList.remove('flex');
-        }
-    };
-
-    if(els.modeBtn) els.modeBtn.addEventListener('click', toggleDropdown);
-    document.addEventListener('click', (e) => {
-        if(els.modeDrop && !els.modeDrop.classList.contains('hidden') && !els.modeBtn.contains(e.target)) {
-            els.modeDrop.classList.add('hidden');
-            els.modeDrop.classList.remove('flex');
-        }
-    });
-
-    els.modeItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const val = item.getAttribute('data-val');
-            if(val === 'Code Dumper') {
-                if(!isCodeDumperUnlocked) toggleDumperKey(true);
-                else activateCodeDumperMode();
-            } else {
-                els.modeTxt.innerText = val;
-                switchToStandard();
-            }
-        });
-    });
-
-    els.input.addEventListener('input', () => {
-        els.input.style.height = 'auto';
-        els.input.style.height = els.input.scrollHeight + 'px';
-        if(els.input.value.trim().startsWith('/')) {
-            els.cmdPopup.classList.remove('hidden');
-            els.cmdPopup.classList.add('flex');
-        } else {
-            els.cmdPopup.classList.add('hidden');
-            els.cmdPopup.classList.remove('flex');
-        }
-    });
-
-    els.input.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    });
-
-    els.fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            uploadedFile.data = ev.target.result.split(',')[1];
-            uploadedFile.type = file.type;
-            els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group"><img src="${ev.target.result}" class="w-full h-full object-cover"><button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
-        };
-        reader.readAsDataURL(file);
-    });
-
-    window.clearMedia = () => {
-        uploadedFile = { data: null, type: null };
-        els.mediaPreview.innerHTML = '';
-        els.fileInput.value = '';
-    };
-
-    window.runCmd = (cmd) => {
-        if(cmd === '/clear') startNewChat();
-        else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null, false);
-        else if(cmd === '/features') appendMsg('ai', "**Features:**\n- Smart Modes\n- Code Dumper (Obfuscator)\n- Rizz Tool", null, false);
-        else if(cmd === '/invisible tab') {
-             document.title = "Google";
-             const link = document.querySelector("link[rel~='icon']");
-             if (link) link.href = 'https://www.google.com/favicon.ico';
-        }
-        els.cmdPopup.classList.add('hidden');
-        els.cmdPopup.classList.remove('flex');
-        els.input.value = '';
-        els.input.focus();
-    };
-
-    window.setInput = (txt) => {
-        els.input.value = txt;
-        els.input.focus();
-    };
-
-    window.copyCode = (btn) => {
-        const code = btn.parentElement.nextElementSibling.innerText;
-        navigator.clipboard.writeText(code);
-        btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = "Copy", 2000);
-    };
-
-    els.submitBtn.addEventListener('click', handleSend);
-
-    async function handleSend() {
-        const text = els.input.value.trim();
-        if(!text && !uploadedFile.data) return;
-
-        if(!localStorage.getItem('prysmis_key')) return toggleSettings(true);
-
-        if(!currentChatId) {
-            currentChatId = Date.now();
-            chatHistory.unshift({ id: currentChatId, title: text.substring(0, 30) || "New Chat", messages: [] });
-        }
-
-        const chatIndex = chatHistory.findIndex(c => c.id === currentChatId);
-        chatHistory[chatIndex].messages.push({ role: 'user', text: text, img: uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null });
-        saveChatToStorage();
-
-        els.heroSection.style.display = 'none';
-        appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null, false);
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-[#050505]/95 backdrop-blur-2xl border-r border-white/5 transform -translate-x-full md:translate-x-0 md:static md:w-20 md:bg-transparent md:border-r-0 transition-transform duration-300 z-50 flex flex-col items-center py-8">
         
-        els.input.value = '';
-        els.input.style.height = 'auto';
-        els.cmdPopup.classList.add('hidden');
-        clearMedia();
+        <div id="home-btn" class="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-900 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.2)] mb-auto cursor-pointer hover:scale-105 transition duration-300 group relative shrink-0 pointer-events-auto">
+            <i class="fa-solid fa-bolt text-white text-xl"></i>
+            <span class="tooltip-right md:block hidden">Home</span>
+        </div>
+
+        <div class="flex flex-col gap-6 mb-auto mt-8 w-full items-center">
+            <button id="history-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-gray-200 group relative pointer-events-auto">
+                <i class="fa-solid fa-clock-rotate-left text-xl"></i>
+                <span class="tooltip-right md:block hidden">History</span>
+            </button>
+        </div>
         
-        els.flashOverlay.classList.remove('opacity-0');
-        els.flashOverlay.classList.add('bg-flash-green');
+        <button id="settings-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-white group relative mb-4 pointer-events-auto">
+            <i class="fa-solid fa-gear text-xl group-hover:rotate-90 transition-transform duration-700"></i>
+            <span class="tooltip-right md:block hidden">Settings</span>
+        </button>
+    </aside>
 
-        const loaderId = 'loader-' + Date.now();
-        const loaderDiv = document.createElement('div');
-        loaderDiv.id = loaderId;
-        loaderDiv.className = "flex w-full justify-start msg-anim mb-4";
-        loaderDiv.innerHTML = `<div class="bg-[#18181b] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
-        els.chatFeed.appendChild(loaderDiv);
-        els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+    <div id="mobile-overlay" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden backdrop-blur-sm"></div>
 
-        try {
-            const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}.`;
-            if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic and cool.";
-
-            const payload = { contents: [{ parts: [{ text: sysPrompt + "\nUser: " + text }] }] };
-            if(uploadedFile.data) payload.contents[0].parts.push({ inline_data: { mime_type: uploadedFile.type, data: uploadedFile.data } });
-
-            let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            document.getElementById(loaderId).remove();
-            els.flashOverlay.classList.add('opacity-0');
-            els.flashOverlay.classList.remove('bg-flash-green');
-
-            if(data.candidates && data.candidates[0].content) {
-                const aiText = data.candidates[0].content.parts[0].text;
-                chatHistory[chatIndex].messages.push({ role: 'ai', text: aiText, img: null });
-                saveChatToStorage();
-                streamResponse(aiText);
-            } else {
-                appendMsg('ai', "Error generating response.", null, false);
-            }
-
-        } catch(err) {
-            document.getElementById(loaderId)?.remove();
-            els.flashOverlay.classList.add('opacity-0');
-            els.flashOverlay.classList.remove('bg-flash-green');
-            appendMsg('ai', "Connection failed.", null, false);
-        }
-    }
-
-    function appendMsg(role, text, img, save) {
-        const div = document.createElement('div');
-        div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6`;
-        let content = text.replace(/\n/g, '<br>');
-        if(img) content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
-        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none' : 'ai-msg text-gray-200 rounded-bl-none'}">${content}</div>`;
-        els.chatFeed.appendChild(div);
-        els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-    }
-
-    function streamResponse(text) {
-        const div = document.createElement('div');
-        div.className = `flex w-full justify-start msg-anim mb-6`;
-        const bubble = document.createElement('div');
-        bubble.className = "max-w-[90%] md:max-w-[75%] p-5 rounded-[20px] rounded-bl-none shadow-lg prose ai-msg text-gray-200";
-        div.appendChild(bubble);
-        els.chatFeed.appendChild(div);
-
-        const chars = text.split('');
-        let i = 0;
-        let currentText = "";
-        const interval = setInterval(() => {
-            if(i >= chars.length) {
-                clearInterval(interval);
-                bubble.innerHTML = parseMD(text);
-                return;
-            }
-            currentText += chars[i];
-            bubble.innerHTML = parseMD(currentText);
-            els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-            i++;
-        }, 5);
-    }
-
-    function parseMD(text) {
-        let html = text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
-
-        html = html.replace(/```(\w+)?<br>([\s\S]*?)```/g, (match, lang, code) => {
-            const cleanCode = code.replace(/<br>/g, '\n');
-            return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${cleanCode}</code></pre></div>`;
-        });
+    <main class="flex-1 flex flex-col relative z-10 h-full min-w-0">
         
-        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-        return html;
-    }
-});
+        <header class="absolute top-0 left-0 w-full p-4 md:p-6 flex flex-col items-center z-40 pointer-events-none">
+            <button id="mobile-menu-btn" class="md:hidden pointer-events-auto absolute top-5 left-5 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 cursor-pointer hover:bg-white/20 transition z-50 active:scale-95">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <div class="text-center animate-slide-in mt-2 md:mt-0">
+                <h1 class="majestic-text text-3xl md:text-5xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-gray-300 to-gray-500 drop-shadow-2xl">
+                    Prysmis
+                </h1>
+                <p class="text-gray-600 text-[9px] md:text-[10px] font-bold tracking-[0.3em] uppercase mt-2">Personal Learning Tool</p>
+            </div>
+            
+            <div class="pointer-events-auto mt-6 relative z-50">
+                <button id="mode-btn" class="glass-pill px-6 py-2 rounded-full text-xs font-medium flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 hover:border-violet-500/50 shadow-lg hover:shadow-violet-900/20 cursor-pointer">
+                    <span id="current-mode-txt">AI Assistant</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] opacity-50"></i>
+                </button>
+                
+                <div id="mode-dropdown" class="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden flex-col z-50 py-1 max-h-64 overflow-y-auto custom-scrollbar">
+                    <div class="mode-item" data-val="AI Assistant"><i class="fa-solid fa-sparkles text-violet-400 w-5"></i> General</div>
+                    <div class="mode-item" data-val="Code Dumper"><i class="fa-solid fa-terminal text-emerald-500 w-5"></i> Code Dumper</div>
+                    <div class="mode-item" data-val="Rizz tool"><i class="fa-solid fa-heart text-rose-500 w-5"></i> Rizz tool</div>
+                    <div class="mode-item" data-val="Geometry"><i class="fa-solid fa-shapes text-blue-400 w-5"></i> Geometry</div>
+                    <div class="mode-item" data-val="English"><i class="fa-solid fa-feather text-pink-400 w-5"></i> English</div>
+                    <div class="mode-item" data-val="Biology"><i class="fa-solid fa-dna text-green-400 w-5"></i> Biology</div>
+                    <div class="mode-item" data-val="Physics"><i class="fa-solid fa-atom text-orange-400 w-5"></i> Physics</div>
+                    <div class="mode-item" data-val="Coding"><i class="fa-solid fa-code text-cyan-400 w-5"></i> Coding</div>
+                </div>
+            </div>
+        </header>
+
+        <div id="standard-ui" class="flex-1 flex flex-col h-full relative">
+            <div id="chat-feed" class="flex-1 overflow-y-auto px-4 md:px-[18%] pt-36 pb-40 flex flex-col gap-6 scroll-smooth z-10 custom-scrollbar">
+                
+                <div id="hero-section" class="h-full flex flex-col items-center justify-center animate-fade-in pb-20 px-4">
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-tr from-violet-600/20 to-indigo-600/20 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-[0_0_50px_rgba(124,58,237,0.1)]">
+                        <i class="fa-solid fa-wand-magic-sparkles text-2xl md:text-3xl text-violet-200"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-white mb-3 text-center">Ready to Learn?</h2>
+                    
+                    <div class="flex flex-wrap gap-2 md:gap-3 justify-center max-w-xl mt-4">
+                        <button class="suggestion-chip" onclick="setInput('Explain Quantum Entanglement simply')">⚛️ Physics</button>
+                        <button class="suggestion-chip" onclick="setInput('Solve: 2x^2 + 5x - 3 = 0')">📐 Math</button>
+                        <button class="suggestion-chip" onclick="setInput('Give me a smooth pickup line')">💘 Rizz</button>
+                    </div>
+
+                    <button id="get-started-btn" class="mt-10 px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform shadow-lg cursor-pointer z-40 pointer-events-auto text-sm tracking-wide">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 left-0 w-full pb-4 md:pb-8 flex flex-col items-center bg-gradient-to-t from-[#020204] via-[#020204]/95 to-transparent pt-32 px-4 z-[40]">
+                <div class="relative w-full max-w-3xl" id="input-container">
+                    
+                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2"></div>
+
+                    <div id="cmd-popup" class="absolute bottom-full left-0 mb-3 w-full md:w-64 glass-popup rounded-2xl overflow-hidden hidden flex-col z-50 p-1">
+                        <div class="cmd-row rounded-xl" onclick="runCmd('/features')"><span class="text-violet-400 font-bold">/features</span></div>
+                        <div class="cmd-row rounded-xl" onclick="runCmd('/roleplay')"><span class="text-pink-400 font-bold">/roleplay</span></div>
+                        <div class="cmd-row rounded-xl" onclick="runCmd('/invisible tab')"><span class="text-emerald-400 font-bold">/invisible tab</span></div>
+                        <div class="cmd-row rounded-xl" onclick="runCmd('/clear')"><span class="text-red-400 font-bold">/clear</span></div>
+                    </div>
+
+                    <div id="input-bar" class="flex items-end bg-[#0a0a0a] border border-white/10 rounded-[24px] p-2 pl-4 shadow-2xl transition-all duration-300 focus-within:border-violet-500/30 focus-within:ring-1 focus-within:ring-violet-500/10 hover:border-white/20">
+                        <input type="file" id="file-input" class="hidden" accept="image/*">
+                        <button onclick="document.getElementById('file-input').click()" class="mb-1 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition cursor-pointer shrink-0 pointer-events-auto">
+                            <i class="fa-solid fa-paperclip text-lg"></i>
+                        </button>
+
+                        <textarea id="prompt-input" rows="1" class="flex-1 bg-transparent border-none outline-none text-gray-100 px-4 py-3 resize-none placeholder-gray-600 font-medium text-[15px] leading-relaxed max-h-32" placeholder="Ask PrysmisAI anything or use '/' commands"></textarea>
+
+                        <button id="submit-btn" class="mb-1 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer shrink-0 pointer-events-auto">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <p class="text-[9px] text-gray-700 font-bold tracking-widest uppercase">Powered by Gemini AI</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="code-dumper-ui" class="hidden flex-1 flex-col h-full relative bg-[#020204] z-50">
+            <div id="dumper-upload-state" class="absolute inset-0 flex flex-col items-center justify-center z-20 p-6">
+                <div class="border border-dashed border-white/10 rounded-[2rem] p-8 md:p-16 text-center hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group cursor-pointer w-full max-w-lg" id="dumper-upload-zone">
+                    <div class="w-16 h-16 bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 group-hover:scale-110 transition shadow-2xl shadow-emerald-900/20">
+                        <i class="fa-solid fa-file-code text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2">Upload Script</h3>
+                    <p class="text-gray-500 text-sm mb-6">Drag & drop or click to select</p>
+                    <input type="file" id="dumper-file-input" class="hidden">
+                    <div class="flex gap-2 justify-center">
+                        <button class="lang-chip active text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-mono border border-emerald-500/30 pointer-events-auto" data-lang="Lua">Lua</button>
+                        <button class="lang-chip text-[10px] bg-white/5 text-gray-400 px-3 py-1 rounded-full font-mono border border-white/10 hover:bg-white/10 pointer-events-auto" data-lang="JavaScript">JS</button>
+                    </div>
+                </div>
+                <button id="dumper-skip-btn" class="mt-8 text-gray-600 hover:text-white text-xs tracking-widest uppercase hover:underline cursor-pointer pointer-events-auto">Skip to Editor</button>
+            </div>
+
+            <div id="dumper-editor-view" class="hidden flex-1 flex-col p-4 md:p-6 pt-24 gap-4 md:gap-6 h-full max-w-[1600px] mx-auto w-full">
+                <div class="flex flex-col md:flex-row flex-1 gap-4 md:gap-6 min-h-0">
+                    <div class="flex-1 flex flex-col bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden shadow-2xl min-h-[300px]">
+                        <div class="bg-[#0f0f0f] p-3 md:p-4 border-b border-white/5 flex justify-between items-center">
+                            <span class="text-xs font-mono text-gray-400">INPUT</span>
+                            <div class="flex gap-2">
+                                <button id="btn-obfuscate" class="px-3 py-1 bg-purple-600/20 text-purple-400 text-[10px] md:text-xs rounded hover:bg-purple-600 hover:text-white transition font-bold cursor-pointer pointer-events-auto">OBFUSCATE</button>
+                                <button id="btn-deobfuscate" class="px-3 py-1 bg-emerald-600/20 text-emerald-400 text-[10px] md:text-xs rounded hover:bg-emerald-600 hover:text-white transition font-bold cursor-pointer pointer-events-auto">DEOBFUSCATE</button>
+                            </div>
+                        </div>
+                        <textarea id="dumper-input-area" class="flex-1 bg-transparent p-4 md:p-6 font-mono text-xs text-gray-400 resize-none focus:outline-none custom-scrollbar leading-relaxed" placeholder="// Paste your code here..."></textarea>
+                    </div>
+
+                    <div class="flex-1 flex flex-col bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden shadow-2xl min-h-[300px]">
+                        <div class="bg-[#0f0f0f] p-3 md:p-4 border-b border-white/5 flex justify-between items-center">
+                            <span class="text-xs font-mono text-gray-400">OUTPUT</span>
+                            <button id="dumper-copy-btn" class="text-gray-500 hover:text-white transition cursor-pointer pointer-events-auto"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                        <textarea id="dumper-output-area" class="flex-1 bg-transparent p-4 md:p-6 font-mono text-xs text-emerald-400/90 resize-none focus:outline-none custom-scrollbar leading-relaxed" readonly placeholder="// Result..."></textarea>
+                    </div>
+                </div>
+
+                <div class="h-10 bg-[#050505] border-t border-white/5 flex items-center px-4 gap-3 font-mono text-[10px] text-gray-600 select-none shrink-0">
+                    <span class="text-emerald-500 animate-pulse">➜</span>
+                    <span id="terminal-log">Obliterator initialized.</span>
+                    <span class="ml-auto opacity-30" id="terminal-time">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="settings-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-[#0a0a0a] border border-white/10 w-full max-w-lg rounded-[2rem] shadow-2xl transform scale-95 transition-all duration-300 relative mx-4" id="settings-box">
+            <button id="close-settings" class="absolute top-6 right-6 text-gray-500 hover:text-white transition cursor-pointer pointer-events-auto text-xl"><i class="fa-solid fa-xmark"></i></button>
+            <div class="p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Configuration</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Gemini API Key</label>
+                        <input type="password" id="api-key-field" class="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-4 text-white focus:border-violet-500/50 focus:outline-none transition tracking-widest placeholder-gray-800 text-xs font-mono" placeholder="••••••••••••••••">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-400 text-[10px] mt-3 inline-block hover:underline font-bold pointer-events-auto">GENERATE KEY</a>
+                    </div>
+                </div>
+                <button id="save-settings-btn" class="w-full mt-8 bg-white text-black font-bold py-4 rounded-xl hover:scale-[1.01] transition shadow-xl active:scale-[0.99] cursor-pointer pointer-events-auto">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="code-dumper-key-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-[#0a0a0a] border border-emerald-500/20 w-full max-w-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.1)] transform scale-95 transition-all duration-300 relative mx-4">
+            <button id="close-dumper-key" class="absolute top-6 right-6 text-gray-500 hover:text-white transition cursor-pointer pointer-events-auto"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="p-10 text-center">
+                <div class="w-16 h-16 bg-emerald-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-unlock-keyhole text-2xl"></i></div>
+                <h2 class="text-2xl font-bold text-white mb-2">Access Required</h2>
+                <p class="text-sm text-gray-500 mb-8">Enter your verified key.</p>
+                <input type="text" id="dumper-key-input" class="w-full bg-[#111] border border-white/10 rounded-xl px-6 py-4 text-white focus:border-emerald-500/50 focus:outline-none transition text-sm text-center tracking-[0.2em] mb-6 font-mono" placeholder="XXXX-XXXX-XXXX">
+                <button id="verify-key-btn" class="w-full bg-white text-black font-bold py-4 rounded-xl transition hover:bg-emerald-50 cursor-pointer shadow-lg pointer-events-auto">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
