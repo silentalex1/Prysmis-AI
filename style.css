@@ -1,40 +1,45 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 
-body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #050505; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 99px; }
+::-webkit-scrollbar { width: 0px; background: transparent; }
 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #0a0a0a; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
 
 .glow-bg {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: 
-        radial-gradient(circle at 15% 15%, rgba(124, 58, 237, 0.08), transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.08), transparent 40%);
+        radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.05), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05), transparent 50%);
     pointer-events: none;
     z-index: 0;
 }
 
 @keyframes greenFlash {
-    0%, 100% { background-color: transparent; }
-    50% { background-color: rgba(16, 185, 129, 0.1); }
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; background-color: rgba(16, 185, 129, 0.03); }
 }
 
 .bg-flash-green {
-    animation: greenFlash 2s ease-in-out infinite;
+    animation: greenFlash 3s ease-in-out infinite;
+}
+
+.majestic-text {
+    font-family: 'Cinzel', serif;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
 }
 
 .glass-btn {
-    background: rgba(20, 20, 20, 0.8);
+    background: rgba(20, 20, 20, 0.4);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-pill {
@@ -44,97 +49,92 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #050505; 
 }
 
 .glass-popup {
-    background: rgba(15, 15, 15, 0.98);
+    background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 -10px 50px rgba(0,0,0,0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -20px 60px rgba(0,0,0,0.8);
 }
 
 .mode-item {
-    padding: 10px 20px;
+    padding: 12px 20px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #9ca3af;
     display: flex;
     align-items: center;
+    gap: 12px;
     transition: 0.2s;
+    font-weight: 500;
 }
-.mode-item:hover { background: rgba(255,255,255,0.08); color: white; }
+.mode-item:hover { background: rgba(255,255,255,0.05); color: white; }
 
 .cmd-row {
     padding: 14px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
     transition: 0.2s;
 }
-.cmd-row:hover { background: rgba(139, 92, 246, 0.1); }
-.cmd-row:last-child { border-bottom: none; }
+.cmd-row:hover { background: rgba(255,255,255,0.05); }
 
 .suggestion-chip {
-    padding: 8px 16px;
-    background: rgba(255,255,255,0.05);
+    padding: 10px 18px;
+    background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 100px;
-    font-size: 0.8rem;
-    color: #d1d5db;
-    transition: 0.3s;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    font-weight: 500;
 }
-.suggestion-chip:hover { background: rgba(255,255,255,0.1); border-color: rgba(139, 92, 246, 0.4); color: white; transform: translateY(-2px); }
+.suggestion-chip:hover { background: rgba(255,255,255,0.08); border-color: rgba(139, 92, 246, 0.3); color: white; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
 
 .tooltip-right {
     position: absolute;
-    left: 110%;
+    left: 130%;
     top: 50%;
-    transform: translateY(-50%);
-    background: #333;
-    color: white;
+    transform: translateY(-50%) translateX(-10px);
+    background: #111;
+    color: #eee;
     font-size: 10px;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
     pointer-events: none;
     opacity: 0;
-    transition: 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     font-weight: 600;
     z-index: 100;
+    border: 1px solid rgba(255,255,255,0.1);
 }
-.group:hover .tooltip-right { opacity: 1; }
+.group:hover .tooltip-right { opacity: 1; transform: translateY(-50%) translateX(0); }
 
 .user-msg {
-    background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
-    box-shadow: 0 4px 15px rgba(109, 40, 217, 0.3);
+    background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
+    box-shadow: 0 8px 30px -5px rgba(109, 40, 217, 0.3);
 }
 .ai-msg {
-    background: #18181b;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.05);
 }
 
 .history-item {
-    padding: 12px 16px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 12px;
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 16px;
     cursor: pointer;
     transition: all 0.2s;
-    color: #9ca3af;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     margin-bottom: 8px;
 }
-.history-item:hover { background: rgba(255,255,255,0.08); color: white; transform: translateX(4px); }
-.history-item.active { background: rgba(139, 92, 246, 0.1); color: white; border: 1px solid rgba(139, 92, 246, 0.3); }
+.history-item:hover { background: rgba(255,255,255,0.05); transform: scale(1.01); }
+.history-item.active { background: linear-gradient(90deg, rgba(124,58,237,0.1), transparent); border-left: 3px solid #8b5cf6; }
 
-.msg-anim { animation: msgPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: translateY(10px); }
-.animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+.msg-anim { animation: msgPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; transform: translateY(20px); }
+.animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes msgPop { to { opacity: 1; transform: translateY(0); } }
 
-.prose p { margin-bottom: 0.6em; line-height: 1.6; color: #e4e4e7; }
-.prose strong { color: #d8b4fe; font-weight: 700; }
-.prose code { font-family: 'JetBrains Mono', monospace; color: #e879f9; font-size: 0.9em; }
+.prose p { margin-bottom: 0.8em; line-height: 1.7; color: #d1d5db; }
+.prose strong { color: #e2e8f0; font-weight: 700; }
+.prose code { font-family: 'JetBrains Mono', monospace; color: #e879f9; font-size: 0.85em; background: rgba(255,255,255,0.05); padding: 2px 5px; border-radius: 4px; }
+.prose pre { background: #050505; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; margin: 10px 0; }
