@@ -9,26 +9,20 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
 
 .glow-bg {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: 
-        radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.05), transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05), transparent 50%);
-    pointer-events: none;
-    z-index: 0;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.05), transparent 50%), radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05), transparent 50%);
+    pointer-events: none; z-index: 0;
 }
 
 .majestic-text { font-family: 'Cinzel', serif; text-shadow: 0 0 30px rgba(255, 255, 255, 0.1); }
 
 @keyframes greenFlash {
     0%, 100% { opacity: 0; }
-    50% { opacity: 1; background-color: rgba(16, 185, 129, 0.03); }
+    50% { opacity: 1; background-color: rgba(16, 185, 129, 0.05); }
 }
-
-.bg-flash-green { animation: greenFlash 2s ease-in-out infinite; }
+.bg-flash-green { animation: greenFlash 2.5s ease-in-out infinite; }
 
 .glass-btn { background: rgba(20, 20, 20, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
 .glass-pill { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
@@ -40,22 +34,18 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .cmd-row { padding: 14px 20px; cursor: pointer; transition: 0.2s; }
 .cmd-row:hover { background: rgba(255,255,255,0.05); }
 
-.suggestion-chip { padding: 10px 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 100px; font-size: 0.75rem; color: #9ca3af; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; font-weight: 500; }
-.suggestion-chip:hover { background: rgba(255,255,255,0.08); border-color: rgba(139, 92, 246, 0.3); color: white; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.suggestion-chip { padding: 10px 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 100px; font-size: 0.75rem; color: #9ca3af; transition: all 0.3s; cursor: pointer; white-space: nowrap; pointer-events: auto; }
+.suggestion-chip:hover { background: rgba(255,255,255,0.08); border-color: rgba(139, 92, 246, 0.3); color: white; transform: translateY(-2px); }
 
-.tooltip-right { position: absolute; left: 130%; top: 50%; transform: translateY(-50%) translateX(-10px); background: #111; color: #eee; font-size: 10px; padding: 6px 10px; border-radius: 6px; pointer-events: none; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; font-weight: 600; z-index: 100; border: 1px solid rgba(255,255,255,0.1); }
+.tooltip-right { position: absolute; left: 130%; top: 50%; transform: translateY(-50%) translateX(-10px); background: #111; color: #eee; font-size: 10px; padding: 6px 10px; border-radius: 6px; pointer-events: none; opacity: 0; transition: all 0.3s; white-space: nowrap; font-weight: 600; z-index: 100; border: 1px solid rgba(255,255,255,0.1); }
 .group:hover .tooltip-right { opacity: 1; transform: translateY(-50%) translateX(0); }
 
 .user-msg { background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%); box-shadow: 0 8px 30px -5px rgba(109, 40, 217, 0.3); }
 .ai-msg { background: #111; border: 1px solid rgba(255,255,255,0.05); }
 
-.history-item { padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; }
-.history-item:hover { background: rgba(255,255,255,0.05); transform: scale(1.01); }
-.history-item.active { background: linear-gradient(90deg, rgba(124,58,237,0.1), transparent); border-left: 3px solid #8b5cf6; }
-
 .code-block { background: #050505; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 12px 0; }
 .code-header { background: rgba(255,255,255,0.03); padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #666; }
-.copy-btn { background: transparent; border: none; color: #888; cursor: pointer; font-size: 0.7rem; transition: 0.2s; }
+.copy-btn { background: transparent; border: none; color: #888; cursor: pointer; font-size: 0.7rem; transition: 0.2s; pointer-events: auto; }
 .copy-btn:hover { color: #fff; }
 .prose pre { margin: 0; padding: 15px; overflow-x: auto; }
 .prose code { font-family: 'JetBrains Mono', monospace; color: #e879f9; font-size: 0.85em; }
