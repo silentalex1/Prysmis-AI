@@ -99,6 +99,14 @@
                 <div class="relative w-full max-w-3xl pointer-events-auto" id="input-container">
                     
                     <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2"></div>
+                    
+                    <!-- Floating Format Toolbar -->
+                    <div id="format-toolbar" class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-[#111] border border-white/10 rounded-lg p-1 flex gap-1 hidden z-50 shadow-xl">
+                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white font-bold text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('**')">B</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white italic text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('*')">I</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white line-through text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('~~')">S</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white font-mono text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('`')"><></button>
+                    </div>
 
                     <div id="cmd-popup" class="absolute bottom-full left-0 mb-3 w-full md:w-64 glass-popup rounded-2xl overflow-hidden hidden flex-col z-50 p-1">
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/features')"><span class="text-violet-400 font-bold">/features</span></div>
@@ -121,7 +129,7 @@
                     </div>
                     
                     <div class="text-center mt-3">
-                        <p class="text-[9px] text-gray-700 font-bold tracking-widest uppercase">Powered by Gemini AI</p>
+                        <p class="text-[9px] text-gray-700 font-bold tracking-widest uppercase">Powered by Gemini so enjoy.</p>
                     </div>
                 </div>
             </div>
@@ -192,6 +200,17 @@
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Gemini API Key</label>
                         <input type="password" id="api-key-field" class="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-4 text-white focus:border-violet-500/50 focus:outline-none transition tracking-widest placeholder-gray-800 text-xs font-mono pointer-events-auto" placeholder="••••••••••••••••">
                         <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-400 text-[10px] mt-3 inline-block hover:underline font-bold pointer-events-auto">GENERATE KEY</a>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 bg-[#111] rounded-xl border border-white/10">
+                        <div>
+                            <span class="text-sm font-bold text-gray-200 block">Fast Response Speed</span>
+                            <span class="text-xs text-gray-500">Turbo output mode</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer pointer-events-auto">
+                            <input type="checkbox" id="fast-mode-toggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                        </label>
                     </div>
                 </div>
                 <button id="save-settings-btn" class="w-full mt-8 bg-white text-black font-bold py-4 rounded-xl hover:scale-[1.01] transition shadow-xl active:scale-[0.99] cursor-pointer pointer-events-auto">Save</button>
