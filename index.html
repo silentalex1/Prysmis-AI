@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#020204] text-white h-screen overflow-hidden flex font-sans selection:bg-violet-500 selection:text-white">
+<body class="bg-[#020204] text-white h-screen w-screen overflow-hidden flex font-sans selection:bg-violet-500 selection:text-white">
 
     <div class="glow-bg"></div>
     <div id="flash-overlay" class="pointer-events-none fixed inset-0 z-0 opacity-0 transition-opacity duration-500 mix-blend-screen"></div>
@@ -52,9 +52,9 @@
             </div>
             
             <div class="pointer-events-auto mt-6 relative z-50">
-                <button id="mode-btn" class="glass-pill px-6 py-2 rounded-full text-xs font-medium flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 hover:border-violet-500/50 shadow-lg hover:shadow-violet-900/20 cursor-pointer">
+                <button id="mode-btn" class="glass-pill px-6 py-2 rounded-full text-xs font-medium flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 hover:border-violet-500/50 shadow-lg hover:shadow-violet-900/20 cursor-pointer min-w-[140px] justify-center">
                     <span id="current-mode-txt">AI Assistant</span>
-                    <i class="fa-solid fa-chevron-down text-[10px] opacity-50 pointer-events-none"></i>
+                    <i class="fa-solid fa-chevron-down text-[10px] opacity-50 pointer-events-none ml-auto"></i>
                 </button>
                 
                 <div id="mode-dropdown" class="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden flex-col z-50 py-1 max-h-64 overflow-y-auto custom-scrollbar">
@@ -96,11 +96,15 @@
             </div>
 
             <div class="absolute bottom-0 left-0 w-full pb-4 md:pb-8 flex flex-col items-center bg-gradient-to-t from-[#020204] via-[#020204]/95 to-transparent pt-32 px-4 z-[50]">
+                
+                <button id="stop-ai-btn" class="absolute bottom-full mb-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 opacity-0 pointer-events-none transition-all transform translate-y-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Stop Generation
+                </button>
+
                 <div class="relative w-full max-w-3xl pointer-events-auto" id="input-container">
                     
                     <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2"></div>
                     
-                    <!-- Formatting Toolbar -->
                     <div id="text-toolbar" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-[#1a1a1a] border border-white/10 rounded-lg p-1 flex gap-1 shadow-xl hidden transform transition-all z-[60]">
                         <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-bold w-8" onclick="window.insertFormat('**', '**')">B</button>
                         <button class="p-2 hover:bg-white/10 rounded text-xs text-white italic w-8" onclick="window.insertFormat('*', '*')">I</button>
