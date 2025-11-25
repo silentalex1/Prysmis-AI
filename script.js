@@ -55,47 +55,115 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentChatId = null;
     let isCodeDumperUnlocked = false;
     let currentLang = 'Lua';
-    let fastMode = localStorage.getItem('prysmis_fast_mode') === 'true';
     
     const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
     const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-    const BOT_API_URL = "http://localhost:3000/verify-key"; 
+    const BOT_API_URL = "http://localhost:3000/verify-key";
 
-    const loadKey = () => {
+    function loadKey() {
         const key = localStorage.getItem('prysmis_key');
+        const fast = localStorage.getItem('prysmis_fast') === 'true';
         if(key && els.apiKey) els.apiKey.value = key;
-        if(els.fastModeToggle) els.fastModeToggle.checked = fastMode;
-    };
-    loadKey();
+        if(els.fastModeToggle) els.fastModeToggle.checked = fast;
+    }
 
-    setInterval(() => {
-        if(els.terminalTime) els.terminalTime.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
-    }, 1000);
+    function saveChatToStorage() {
+        localStorage.setItem('prysmis_history', JSON.stringify(chatHistory));
+        renderHistory();
+    }
 
-    const logTerminal = (msg) => { if(els.terminalLog) els.terminalLog.textContent = msg; };
+    function renderHistory() {
+        if(!els.historyList) return;
+        els.historyList.innerHTML = '';
+        const query = els.searchInput ? els.searchInput.value.toLowerCase() : '';
+        const filtered = chatHistory.filter(c => c.title.toLowerCase().includes(query));
+        
+        filtered.forEach(chat => {
+            const div = document.createElement('div');
+            div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
+            div.innerHTML = `<div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div><div class="history-date">${new Date(chat.id).toLocaleDateString()}</div>`;
+            div.onclick = () => {
+                loadChat(chat.id);
+                toggleHistory(false);
+                if(window.innerWidth < 768) toggleMobileMenu();
+            };
+            els.historyList.appendChild(div);
+        });
+    }
 
-    const toggleMobileMenu = () => {
-        if(els.sidebar.classList.contains('-translate-x-full')) {
-            els.sidebar.classList.remove('-translate-x-full');
-            els.mobileOverlay.classList.remove('hidden');
-        } else {
-            els.sidebar.classList.add('-translate-x-full');
-            els.mobileOverlay.classList.add('hidden');
-        }
-    };
+    function loadChat(id) {
+        const chat = chatHistory.find(c => c.id === id);
+        if(!chat) return;
+        currentChatId = id;
+        els.heroSection.style.display = 'none';
+        els.chatFeed.innerHTML = '';
+        chat.messages.forEach(msg => {
+            appendMsg(msg.role, msg.text, msg.img);
+        });
+        renderHistory();
+        switchToStandard();
+    }
 
-    if(els.mobileMenuBtn) els.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
-    if(els.mobileOverlay) els.mobileOverlay.addEventListener('click', toggleMobileMenu);
+    function appendMsg(role, text, img) {
+        const div = document.createElement('div');
+        div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6`;
+        let content = parseMD(text);
+        if(img) content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
+        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none' : 'ai-msg text-gray-200 rounded-bl-none'}">${content}</div>`;
+        els.chatFeed.appendChild(div);
+        els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+    }
 
-    const switchToStandard = () => {
-        els.standardUI.classList.remove('hidden');
-        els.codeDumperUI.classList.add('hidden');
-        els.modeTxt.innerText = "AI Assistant";
-    };
+    function parseMD(text) {
+        if (!text) return "";
+        let html = text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/~~(.*?)~~/g, '<del>$1</del>')
+            .replace(/^\+ (.*)/gm, '• $1')
+            .replace(/^\* (.*)/gm, '• $1')
+            .replace(/\n/g, '<br>');
 
-    if(els.homeBtn) els.homeBtn.addEventListener('click', switchToStandard);
+        html = html.replace(/```(\w+)?<br>([\s\S]*?)```/g, (match, lang, code) => {
+            const cleanCode = code.replace(/<br>/g, '\n');
+            return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${cleanCode}</code></pre></div>`;
+        });
+        
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        return html;
+    }
 
-    const toggleSettings = (show) => {
+    function streamResponse(text) {
+        const div = document.createElement('div');
+        div.className = `flex w-full justify-start msg-anim mb-6`;
+        const bubble = document.createElement('div');
+        bubble.className = "max-w-[90%] md:max-w-[75%] p-5 rounded-[20px] rounded-bl-none shadow-lg prose ai-msg text-gray-200";
+        div.appendChild(bubble);
+        els.chatFeed.appendChild(div);
+
+        const chars = text.split('');
+        let i = 0;
+        let currentText = "";
+        const isFast = els.fastModeToggle.checked;
+        const delay = isFast ? 1 : 15;
+        
+        const interval = setInterval(() => {
+            if(i >= chars.length) {
+                clearInterval(interval);
+                bubble.innerHTML = parseMD(text);
+                return;
+            }
+            currentText += chars[i];
+            bubble.innerHTML = parseMD(currentText);
+            els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+            i++;
+        }, delay); 
+    }
+
+    function toggleSettings(show) {
         if(show) {
             els.settingsOverlay.classList.remove('hidden');
             requestAnimationFrame(() => {
@@ -109,194 +177,119 @@ document.addEventListener('DOMContentLoaded', () => {
             els.settingsBox.classList.add('scale-95');
             setTimeout(() => els.settingsOverlay.classList.add('hidden'), 300);
         }
-    };
-
-    if(els.settingsTriggers) els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
-    if(els.closeSettings) els.closeSettings.addEventListener('click', () => toggleSettings(false));
-    if(els.getStartedBtn) els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
-    
-    if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
-        if(els.apiKey.value.trim()) localStorage.setItem('prysmis_key', els.apiKey.value.trim());
-        if(els.fastModeToggle) {
-            fastMode = els.fastModeToggle.checked;
-            localStorage.setItem('prysmis_fast_mode', fastMode);
-        }
-        els.saveSettings.textContent = "Saved";
-        els.saveSettings.classList.add('bg-green-500', 'text-white');
-        setTimeout(() => {
-            toggleSettings(false);
-            els.saveSettings.textContent = "Save Changes";
-            els.saveSettings.classList.remove('bg-green-500', 'text-white');
-        }, 800);
-    });
-
-    const toggleDumperKey = (show) => {
-        if(show) {
-            els.dumperKeyModal.classList.remove('hidden');
-            requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
-        } else {
-            els.dumperKeyModal.classList.add('opacity-0');
-            setTimeout(() => els.dumperKeyModal.classList.add('hidden'), 300);
-        }
-    };
-
-    const activateCodeDumperMode = () => {
-        els.modeTxt.innerText = "Code Dumper";
-        els.standardUI.classList.add('hidden');
-        els.codeDumperUI.classList.remove('hidden');
-        els.dumperUploadState.classList.remove('hidden');
-        els.dumperEditorView.classList.add('hidden');
-        logTerminal("Obliterator initialized.");
-    };
-
-    if(els.closeDumperKey) els.closeDumperKey.addEventListener('click', () => toggleDumperKey(false));
-    if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
-        const key = els.dumperKeyInput.value.trim();
-        if(!key) return;
-        els.verifyKeyBtn.textContent = "Verifying...";
-        try {
-            const req = await fetch(BOT_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: key })
-            });
-            const res = await req.json();
-            if(res.valid) {
-                isCodeDumperUnlocked = true;
-                toggleDumperKey(false);
-                activateCodeDumperMode();
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-                els.dumperKeyInput.value = "";
-            } else {
-                alert(res.reason || "Invalid Key");
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-            }
-        } catch(e) {
-            alert("Connection failed.");
-            els.verifyKeyBtn.textContent = "Verify Key Access";
-        }
-    });
-
-    if(els.dumperUploadZone) {
-        const langBtns = els.dumperUploadZone.querySelectorAll('.lang-chip');
-        langBtns.forEach(btn => btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            langBtns.forEach(b => {
-                b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
-                b.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
-            });
-            btn.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
-            btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
-            currentLang = btn.innerText;
-        }));
-
-        els.dumperUploadZone.addEventListener('click', () => els.dumperFileInput.click());
-        els.dumperFileInput.addEventListener('change', (e) => {
-            if(e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    els.dumperInputArea.value = ev.target.result;
-                    els.dumperUploadState.classList.add('hidden');
-                    els.dumperEditorView.classList.remove('hidden');
-                    logTerminal(`Loaded ${e.target.files[0].name} (${currentLang})`);
-                };
-                reader.readAsText(e.target.files[0]);
-            }
-        });
     }
 
-    if(els.dumperSkipBtn) els.dumperSkipBtn.addEventListener('click', () => {
-        els.dumperUploadState.classList.add('hidden');
-        els.dumperEditorView.classList.remove('hidden');
-    });
-
-    const processCode = async (action) => {
-        const code = els.dumperInputArea.value;
-        if(!code) return;
-        if(!localStorage.getItem('prysmis_key')) return toggleSettings(true);
-
-        els.dumperOutputArea.value = "Processing...";
-        logTerminal(`Running ${action} on ${currentLang}...`);
-
-        try {
-            let prompt;
-            if(action === 'Obfuscate') {
-                prompt = `Task: Highly Obfuscate this ${currentLang} code. Return ONLY raw code.\n\nCode:\n${code}`;
-            } else {
-                prompt = `Task: Deobfuscate this ${currentLang} code. Return ONLY raw code.\n\nCode:\n${code}`;
-            }
-
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-            let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if(response.status === 404) response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            if(data.candidates) {
-                const txt = data.candidates[0].content.parts[0].text;
-                const cleanTxt = txt.replace(/```[a-z]*\n/g, '').replace(/```/g, '');
-                els.dumperOutputArea.value = cleanTxt; 
-                logTerminal(`${action} complete.`);
-            }
-        } catch(e) {
-            logTerminal("Error processing.");
-            els.dumperOutputArea.value = "Error.";
-        }
-    };
-
-    if(els.btnObfuscate) els.btnObfuscate.addEventListener('click', () => processCode('Obfuscate'));
-    if(els.btnDeobfuscate) els.btnDeobfuscate.addEventListener('click', () => processCode('Deobfuscate'));
-
-    const toggleDropdown = (e) => {
-        e.stopPropagation();
-        if(els.modeDrop.classList.contains('hidden')) {
-            els.modeDrop.classList.remove('hidden');
-            els.modeDrop.classList.add('flex');
+    function toggleHistory(show) {
+        if(show) {
+            els.historyModal.classList.remove('hidden');
+            requestAnimationFrame(() => els.historyModal.classList.remove('opacity-0'));
+            renderHistory();
         } else {
-            els.modeDrop.classList.add('hidden');
-            els.modeDrop.classList.remove('flex');
+            els.historyModal.classList.add('opacity-0');
+            setTimeout(() => els.historyModal.classList.add('hidden'), 300);
         }
+    }
+
+    function switchToStandard() {
+        els.standardUI.classList.remove('hidden');
+        els.codeDumperUI.classList.add('hidden');
+        els.modeTxt.innerText = "AI Assistant";
+    }
+
+    function detectYouTube(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    loadKey();
+    renderHistory();
+
+    window.setInput = (txt) => {
+        els.input.value = txt;
+        els.input.focus();
     };
 
-    if(els.modeBtn) els.modeBtn.addEventListener('click', toggleDropdown);
-    document.addEventListener('click', (e) => {
-        if(els.modeDrop && !els.modeDrop.classList.contains('hidden') && !els.modeBtn.contains(e.target)) {
-            els.modeDrop.classList.add('hidden');
-            els.modeDrop.classList.remove('flex');
+    window.runCmd = (cmd) => {
+        if(cmd === '/clear') {
+            currentChatId = null;
+            els.chatFeed.innerHTML = '';
+            els.chatFeed.appendChild(els.heroSection);
+            els.heroSection.style.display = 'flex';
+        }
+        else if(cmd === '/features') {
+            const featuresMsg = `
+                <strong>PrysmisAI features -- still in beta.</strong>
+                <hr class="my-2 border-white/10">
+                <ul>
+                    <li>Youtube analysis</li>
+                    <li>Domain external viewer</li>
+                    <li>Modes</li>
+                    <li>Roleplay</li>
+                    <li>Invisble tab</li>
+                </ul>
+            `;
+            appendMsg('ai', featuresMsg, null);
+        }
+        else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null);
+        else if(cmd === '/invisible tab') {
+             document.title = "Google";
+             const link = document.querySelector("link[rel~='icon']");
+             if (link) link.href = 'https://www.google.com/favicon.ico';
+        }
+        
+        els.cmdPopup.classList.add('hidden');
+        els.cmdPopup.classList.remove('flex');
+        els.input.value = '';
+        els.input.focus();
+    };
+
+    window.copyCode = (btn) => {
+        const code = btn.parentElement.nextElementSibling.innerText;
+        navigator.clipboard.writeText(code);
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = "Copy", 2000);
+    };
+
+    // Text Formatting Toolbar Logic
+    els.input.addEventListener('select', () => {
+        const start = els.input.selectionStart;
+        const end = els.input.selectionEnd;
+        if (start !== end) {
+            els.formatToolbar.classList.remove('hidden');
+            els.formatToolbar.classList.remove('opacity-0');
+        } else {
+            els.formatToolbar.classList.add('opacity-0');
+            setTimeout(() => els.formatToolbar.classList.add('hidden'), 200);
         }
     });
 
-    els.modeItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const val = item.getAttribute('data-val');
-            if(val === 'Code Dumper') {
-                if(!isCodeDumperUnlocked) toggleDumperKey(true);
-                else activateCodeDumperMode();
-            } else {
-                els.modeTxt.innerText = val;
-                switchToStandard();
-            }
+    document.querySelectorAll('.fmt-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const fmt = btn.getAttribute('data-fmt');
+            const start = els.input.selectionStart;
+            const end = els.input.selectionEnd;
+            const text = els.input.value;
+            const selected = text.substring(start, end);
+            
+            let replacement = "";
+            if (fmt === '`') replacement = `\`\`\`\n${selected}\n\`\`\``;
+            else replacement = `${fmt}${selected}${fmt}`;
+            
+            els.input.setRangeText(replacement);
+            els.formatToolbar.classList.add('opacity-0');
+            setTimeout(() => els.formatToolbar.classList.add('hidden'), 200);
         });
     });
 
-    els.input.addEventListener('input', () => {
+    els.input.addEventListener('input', (e) => {
         els.input.style.height = 'auto';
         els.input.style.height = els.input.scrollHeight + 'px';
         
         const val = els.input.value;
-        
-        if(val.startsWith('* ') || val.startsWith('+ ')) {
-             if(!val.includes('•')) {
-                 els.input.value = '• ' + val.substring(2);
-             }
+        if (val.startsWith('* ') || val.startsWith('+ ')) {
+            els.input.value = '• ' + val.substring(2);
         }
 
         if(val.trim().startsWith('/')) {
@@ -315,94 +308,114 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    els.fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            uploadedFile.data = ev.target.result.split(',')[1];
-            uploadedFile.type = file.type;
-            els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group"><img src="${ev.target.result}" class="w-full h-full object-cover"><button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
-        };
-        reader.readAsDataURL(file);
+    els.submitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleSend();
     });
 
-    window.clearMedia = () => {
-        uploadedFile = { data: null, type: null };
-        els.mediaPreview.innerHTML = '';
-        els.fileInput.value = '';
-    };
+    els.mobileMenuBtn.addEventListener('click', () => {
+        els.sidebar.classList.remove('-translate-x-full');
+        els.mobileOverlay.classList.remove('hidden');
+    });
 
-    window.runCmd = (cmd) => {
-        if(cmd === '/clear') {
-            currentChatId = null;
-            els.chatFeed.innerHTML = '';
-            els.chatFeed.appendChild(els.heroSection);
-            els.heroSection.style.display = 'flex';
+    els.mobileOverlay.addEventListener('click', () => {
+        els.sidebar.classList.add('-translate-x-full');
+        els.mobileOverlay.classList.add('hidden');
+    });
+
+    els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
+    els.closeSettings.addEventListener('click', () => toggleSettings(false));
+    els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
+    
+    els.saveSettings.addEventListener('click', () => {
+        if(els.apiKey.value.trim()) {
+            localStorage.setItem('prysmis_key', els.apiKey.value.trim());
+            localStorage.setItem('prysmis_fast', els.fastModeToggle.checked);
+            els.saveSettings.textContent = "Saved";
+            els.saveSettings.classList.add('bg-green-500', 'text-white');
+            setTimeout(() => {
+                toggleSettings(false);
+                els.saveSettings.textContent = "Save Changes";
+                els.saveSettings.classList.remove('bg-green-500', 'text-white');
+            }, 800);
         }
-        else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null, false);
-        else if(cmd === '/features') {
-            const featureHTML = `
-            <div class="font-bold text-lg mb-2 text-violet-300">PrysmisAI features</div>
-            <div class="h-px bg-white/20 w-full my-2"></div>
-            <div class="text-[10px] text-gray-400 uppercase tracking-widest mb-3">-- STILL IN BETA --</div>
-            <ul class="list-disc pl-5 text-sm text-gray-300 space-y-1">
-                <li>YouTube Analysis</li>
-                <li>Domain External Viewer</li>
-                <li>Smart Modes</li>
-                <li>Roleplay</li>
-                <li>Invisible Tab</li>
-            </ul>`;
-            appendMsg('ai', featureHTML, null, false, true); 
+    });
+
+    els.historyTrigger.addEventListener('click', () => toggleHistory(true));
+    els.closeHistory.addEventListener('click', () => toggleHistory(false));
+    els.newChatBtn.addEventListener('click', () => {
+        currentChatId = null;
+        els.chatFeed.innerHTML = '';
+        els.chatFeed.appendChild(els.heroSection);
+        els.heroSection.style.display = 'flex';
+        toggleHistory(false);
+    });
+
+    const activateCodeDumperMode = () => {
+        els.modeTxt.innerText = "Code Dumper";
+        els.standardUI.classList.add('hidden');
+        els.codeDumperUI.classList.remove('hidden');
+    };
+
+    if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
+        const key = els.dumperKeyInput.value.trim();
+        if(!key) return;
+        els.verifyKeyBtn.textContent = "Verifying...";
+        try {
+            const req = await fetch(BOT_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: key })
+            });
+            const res = await req.json();
+            if(res.valid) {
+                isCodeDumperUnlocked = true;
+                els.dumperKeyModal.classList.add('hidden');
+                activateCodeDumperMode();
+                els.verifyKeyBtn.textContent = "Verify Key Access";
+                els.dumperKeyInput.value = "";
+            } else {
+                alert(res.reason || "Invalid Key");
+                els.verifyKeyBtn.textContent = "Verify Key Access";
+            }
+        } catch(e) {
+            alert("Connection failed. Run the bot.");
+            els.verifyKeyBtn.textContent = "Verify Key Access";
         }
-        else if(cmd === '/invisible tab') {
-             document.title = "Google";
-             const link = document.querySelector("link[rel~='icon']");
-             if (link) link.href = 'https://www.google.com/favicon.ico';
+    });
+
+    els.closeDumperKey.addEventListener('click', () => els.dumperKeyModal.classList.add('hidden'));
+
+    els.modeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        els.modeDrop.classList.toggle('hidden');
+        els.modeDrop.classList.toggle('flex');
+    });
+
+    document.addEventListener('click', (e) => {
+        if(!els.modeBtn.contains(e.target)) {
+            els.modeDrop.classList.add('hidden');
+            els.modeDrop.classList.remove('flex');
         }
-        els.cmdPopup.classList.add('hidden');
-        els.cmdPopup.classList.remove('flex');
-        els.input.value = '';
-        els.input.focus();
-    };
+    });
 
-    window.setInput = (txt) => {
-        els.input.value = txt;
-        els.input.focus();
-    };
-
-    window.copyCode = (btn) => {
-        const code = btn.parentElement.nextElementSibling.innerText;
-        navigator.clipboard.writeText(code);
-        btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = "Copy", 2000);
-    };
-
-    els.submitBtn.addEventListener('click', handleSend);
-
-    const historyModal = document.getElementById('history-modal');
-    const historyTrigger = document.getElementById('history-trigger');
-    const closeHistory = document.getElementById('close-history');
-
-    const toggleHistory = (show) => {
-        if(show) {
-            historyModal.classList.remove('hidden');
-            requestAnimationFrame(() => historyModal.classList.remove('opacity-0'));
-            renderHistory();
-        } else {
-            historyModal.classList.add('opacity-0');
-            setTimeout(() => historyModal.classList.add('hidden'), 300);
-        }
-    };
-
-    if(historyTrigger) historyTrigger.addEventListener('click', () => toggleHistory(true));
-    if(closeHistory) closeHistory.addEventListener('click', () => toggleHistory(false));
-
-    const detectYouTube = (url) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
+    els.modeItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const val = item.getAttribute('data-val');
+            if(val === 'Code Dumper') {
+                if(!isCodeDumperUnlocked) {
+                    els.dumperKeyModal.classList.remove('hidden');
+                    requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
+                } else {
+                    activateCodeDumperMode();
+                }
+            } else {
+                els.modeTxt.innerText = val;
+                els.modeTxt.style.fontFamily = getComputedStyle(item).fontFamily;
+                switchToStandard();
+            }
+        });
+    });
 
     async function handleSend() {
         const text = els.input.value.trim();
@@ -420,12 +433,11 @@ document.addEventListener('DOMContentLoaded', () => {
         saveChatToStorage();
 
         els.heroSection.style.display = 'none';
-        appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null, false);
+        appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null);
         
         els.input.value = '';
         els.input.style.height = 'auto';
         els.cmdPopup.classList.add('hidden');
-        clearMedia();
         
         els.flashOverlay.classList.remove('opacity-0');
         els.flashOverlay.classList.add('bg-flash-green');
@@ -440,13 +452,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use clear, simple words.`;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use simple words.`;
             
             if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
             if(mode === 'Roleplay') sysPrompt = "Act exactly as the character described. Stay in character 100%.";
-            if(mode === 'Geometry') sysPrompt = "You are a Geometry Teacher. Explain theorems clearly.";
-            if(mode === 'Debate') sysPrompt = "You are a Master Debater. Find flaws in logic and counter-argue effectively.";
-
+            
             const youtubeID = detectYouTube(text);
             let finalUserText = text;
             let extraParts = [];
@@ -471,14 +481,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 ] 
             };
 
+            // TRY GEMINI 2.5 PRO FIRST
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
+            // IF 404 (Model not found) -> TRY GEMINI 1.5 FLASH
             if(response.status === 404 || response.status === 400) {
-                 response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
+                console.warn("Gemini 2.5 not found, switching to 1.5 Flash");
+                response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -496,96 +509,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveChatToStorage();
                 streamResponse(aiText);
             } else {
-                appendMsg('ai', "Error generating response.", null, false);
+                const errMsg = data.error ? data.error.message : "Unknown error";
+                appendMsg('ai', `Error: ${errMsg}`);
             }
 
         } catch(err) {
-            document.getElementById(loaderId)?.remove();
+            if(document.getElementById(loaderId)) document.getElementById(loaderId).remove();
             els.flashOverlay.classList.add('opacity-0');
             els.flashOverlay.classList.remove('bg-flash-green');
-            appendMsg('ai', "Connection failed.", null, false);
+            appendMsg('ai', "Connection failed. Check your API Key.");
         }
+        uploadedFile = { data: null, type: null };
     }
-
-    function appendMsg(role, text, img, save, isHtml = false) {
-        const div = document.createElement('div');
-        div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6`;
-        let content = isHtml ? text : parseMD(text);
-        if(img) content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
-        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none' : 'ai-msg text-gray-200 rounded-bl-none'}">${content}</div>`;
-        els.chatFeed.appendChild(div);
-        els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-    }
-
-    function streamResponse(text) {
-        const div = document.createElement('div');
-        div.className = `flex w-full justify-start msg-anim mb-6`;
-        const bubble = document.createElement('div');
-        bubble.className = "max-w-[90%] md:max-w-[75%] p-5 rounded-[20px] rounded-bl-none shadow-lg prose ai-msg text-gray-200";
-        div.appendChild(bubble);
-        els.chatFeed.appendChild(div);
-
-        const chars = text.split('');
-        let i = 0;
-        let currentText = "";
-        const intervalTime = fastMode ? 1 : 30;
-        
-        const interval = setInterval(() => {
-            if(i >= chars.length) {
-                clearInterval(interval);
-                bubble.innerHTML = parseMD(text);
-                return;
-            }
-            currentText += chars[i];
-            bubble.innerHTML = parseMD(currentText);
-            els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-            i++;
-        }, intervalTime);
-    }
-
-    function parseMD(text) {
-        let html = text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/~~(.*?)~~/g, '<span style="text-decoration: line-through; opacity: 0.6;">$1</span>')
-            .replace(/\n/g, '<br>');
-
-        html = html.replace(/```(\w+)?<br>([\s\S]*?)```/g, (match, lang, code) => {
-            const cleanCode = code.replace(/<br>/g, '\n');
-            return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${cleanCode}</code></pre></div>`;
-        });
-        
-        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-        return html;
-    }
-    
-    window.applyFormat = (tag) => {
-        const start = els.input.selectionStart;
-        const end = els.input.selectionEnd;
-        const val = els.input.value;
-        const selected = val.substring(start, end);
-        if(!selected) return;
-        
-        let formatted;
-        if(tag === '`') formatted = `\`${selected}\``; 
-        else formatted = `${tag}${selected}${tag}`;
-        
-        els.input.value = val.substring(0, start) + formatted + val.substring(end);
-        els.formatToolbar.classList.add('hidden');
-    };
-
-    document.addEventListener('selectionchange', () => {
-        if (document.activeElement === els.input) {
-            const start = els.input.selectionStart;
-            const end = els.input.selectionEnd;
-            if (start !== end) {
-                els.formatToolbar.classList.remove('hidden');
-            } else {
-                els.formatToolbar.classList.add('hidden');
-            }
-        }
-    });
 });
