@@ -7,13 +7,17 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
 .glow-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.05), transparent 50%), radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05), transparent 50%); pointer-events: none; z-index: 0; }
 .majestic-text { font-family: 'Cinzel', serif; text-shadow: 0 0 30px rgba(255, 255, 255, 0.1); }
+
 @keyframes greenFlash { 0%, 100% { opacity: 0; } 50% { opacity: 1; background-color: rgba(16, 185, 129, 0.05); } }
 .bg-flash-green { animation: greenFlash 2.5s ease-in-out infinite; }
+
 .glass-btn { background: rgba(20, 20, 20, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
 .glass-pill { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
 .glass-popup { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 -20px 60px rgba(0,0,0,0.8); }
+
 .mode-item { padding: 12px 20px; cursor: pointer; font-size: 0.85rem; color: #9ca3af; display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; pointer-events: auto; }
 .mode-item:hover { background: rgba(255,255,255,0.05); color: white; }
 .cmd-row { padding: 14px 20px; cursor: pointer; transition: 0.2s; pointer-events: auto; }
@@ -22,6 +26,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .suggestion-chip:hover { background: rgba(255,255,255,0.08); border-color: rgba(139, 92, 246, 0.3); color: white; transform: translateY(-2px); }
 .tooltip-right { position: absolute; left: 130%; top: 50%; transform: translateY(-50%) translateX(-10px); background: #111; color: #eee; font-size: 10px; padding: 6px 10px; border-radius: 6px; pointer-events: none; opacity: 0; transition: all 0.3s; white-space: nowrap; font-weight: 600; z-index: 100; border: 1px solid rgba(255,255,255,0.1); }
 .group:hover .tooltip-right { opacity: 1; transform: translateY(-50%) translateX(0); }
+
 .user-msg { background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%); box-shadow: 0 8px 30px -5px rgba(109, 40, 217, 0.3); }
 .ai-msg { background: #111; border: 1px solid rgba(255,255,255,0.05); }
 .code-block { background: #050505; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 12px 0; }
@@ -36,6 +41,14 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes msgPop { to { opacity: 1; transform: translateY(0); } }
-.history-item { padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; pointer-events: auto; display: flex; flex-direction: column; }
+.history-item { padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; pointer-events: auto; }
 .history-item:hover { background: rgba(255,255,255,0.05); transform: scale(1.01); }
 .history-item.active { background: linear-gradient(90deg, rgba(124,58,237,0.1), transparent); border-left: 3px solid #8b5cf6; }
+.history-date { font-size: 10px; color: #888; margin-top: 4px; }
+
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #8b5cf6; }
+input:checked + .slider:before { transform: translateX(20px); }
