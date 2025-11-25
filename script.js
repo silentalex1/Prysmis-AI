@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSettings: document.getElementById('close-settings'),
         saveSettings: document.getElementById('save-settings-btn'),
         apiKey: document.getElementById('api-key-field'),
-        fastModeToggle: document.getElementById('fast-mode-toggle'),
         modeBtn: document.getElementById('mode-btn'),
         modeDrop: document.getElementById('mode-dropdown'),
         modeTxt: document.getElementById('current-mode-txt'),
@@ -47,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
         homeBtn: document.getElementById('home-btn'),
         sidebar: document.getElementById('sidebar'),
         mobileOverlay: document.getElementById('mobile-overlay'),
-        formatToolbar: document.getElementById('format-toolbar')
+        fastSpeedToggle: document.getElementById('fast-speed-toggle'),
+        textToolbar: document.getElementById('text-toolbar')
     };
 
     let uploadedFile = { data: null, type: null };
@@ -55,16 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentChatId = null;
     let isCodeDumperUnlocked = false;
     let currentLang = 'Lua';
-    
+    let isRoleplayActive = false;
+
     const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
     const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
     const BOT_API_URL = "http://localhost:3000/verify-key";
 
     function loadKey() {
         const key = localStorage.getItem('prysmis_key');
-        const fast = localStorage.getItem('prysmis_fast') === 'true';
         if(key && els.apiKey) els.apiKey.value = key;
-        if(els.fastModeToggle) els.fastModeToggle.checked = fast;
+        const fastSpeed = localStorage.getItem('prysmis_fast_speed');
+        if(fastSpeed === 'true' && els.fastSpeedToggle) els.fastSpeedToggle.checked = true;
     }
 
     function saveChatToStorage() {
@@ -81,12 +82,30 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach(chat => {
             const div = document.createElement('div');
             div.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
-            div.innerHTML = `<div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div><div class="history-date">${new Date(chat.id).toLocaleDateString()}</div>`;
-            div.onclick = () => {
+            div.innerHTML = `
+                <div class="flex-1 overflow-hidden">
+                    <div class="font-bold text-white text-sm mb-1 truncate">${chat.title}</div>
+                    <div class="history-date">${new Date(chat.id).toLocaleDateString()}</div>
+                </div>
+                <button class="delete-history-btn"><i class="fa-solid fa-trash"></i></button>
+            `;
+            
+            div.onclick = (e) => {
                 loadChat(chat.id);
                 toggleHistory(false);
                 if(window.innerWidth < 768) toggleMobileMenu();
             };
+
+            const delBtn = div.querySelector('.delete-history-btn');
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                if(confirm("Delete this conversation?")) {
+                    chatHistory = chatHistory.filter(c => c.id !== chat.id);
+                    if(currentChatId === chat.id) startNewChat();
+                    saveChatToStorage();
+                }
+            };
+
             els.historyList.appendChild(div);
         });
     }
@@ -123,8 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/~~(.*?)~~/g, '<del>$1</del>')
-            .replace(/^\+ (.*)/gm, '• $1')
-            .replace(/^\* (.*)/gm, '• $1')
             .replace(/\n/g, '<br>');
 
         html = html.replace(/```(\w+)?<br>([\s\S]*?)```/g, (match, lang, code) => {
@@ -133,6 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // Auto bullet points visual logic if needed
+        html = html.replace(/^(\*|\+) (.*)/gm, '<ul><li>$2</li></ul>');
+        
         return html;
     }
 
@@ -147,8 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const chars = text.split('');
         let i = 0;
         let currentText = "";
-        const isFast = els.fastModeToggle.checked;
-        const delay = isFast ? 1 : 15;
+        const isFast = els.fastSpeedToggle && els.fastSpeedToggle.checked;
+        const delay = isFast ? 1 : 30;
         
         const interval = setInterval(() => {
             if(i >= chars.length) {
@@ -160,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.innerHTML = parseMD(currentText);
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             i++;
-        }, delay); 
+        }, delay);
     }
 
     function toggleSettings(show) {
@@ -218,20 +239,29 @@ document.addEventListener('DOMContentLoaded', () => {
             els.heroSection.style.display = 'flex';
         }
         else if(cmd === '/features') {
-            const featuresMsg = `
-                <strong>PrysmisAI features -- still in beta.</strong>
-                <hr class="my-2 border-white/10">
-                <ul>
-                    <li>Youtube analysis</li>
+            const featureHTML = `
+                <div style="font-family: 'Cinzel', serif; font-size: 1.1em; margin-bottom: 10px; color: #a78bfa;">PrysmisAI features -- still in beta</div>
+                <hr class="visual-line">
+                <ul class="feature-list list-disc pl-5">
+                    <li>YouTube analysis</li>
                     <li>Domain external viewer</li>
                     <li>Modes</li>
                     <li>Roleplay</li>
-                    <li>Invisble tab</li>
+                    <li>Invisible tab</li>
                 </ul>
             `;
-            appendMsg('ai', featuresMsg, null);
+            const div = document.createElement('div');
+            div.className = `flex w-full justify-start msg-anim mb-6`;
+            div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ai-msg text-gray-200 rounded-bl-none">${featureHTML}</div>`;
+            els.chatFeed.appendChild(div);
+            els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+            els.heroSection.style.display = 'none';
         }
-        else if(cmd === '/roleplay') appendMsg('ai', "Roleplay active. Who should I be?", null);
+        else if(cmd === '/roleplay') {
+            isRoleplayActive = true;
+            appendMsg('ai', "**Roleplay Mode Activated.** I will now act exactly as the character you describe, without filters.", null);
+            els.heroSection.style.display = 'none';
+        }
         else if(cmd === '/invisible tab') {
              document.title = "Google";
              const link = document.querySelector("link[rel~='icon']");
@@ -244,6 +274,18 @@ document.addEventListener('DOMContentLoaded', () => {
         els.input.focus();
     };
 
+    window.insertFormat = (startTag, endTag) => {
+        const start = els.input.selectionStart;
+        const end = els.input.selectionEnd;
+        const text = els.input.value;
+        const selectedText = text.substring(start, end);
+        const replacement = startTag + selectedText + endTag;
+        els.input.value = text.substring(0, start) + replacement + text.substring(end);
+        els.input.focus();
+        els.input.setSelectionRange(start + startTag.length, end + startTag.length);
+        els.textToolbar.classList.add('hidden');
+    };
+
     window.copyCode = (btn) => {
         const code = btn.parentElement.nextElementSibling.innerText;
         navigator.clipboard.writeText(code);
@@ -251,48 +293,18 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => btn.innerText = "Copy", 2000);
     };
 
-    // Text Formatting Toolbar Logic
-    els.input.addEventListener('select', () => {
-        const start = els.input.selectionStart;
-        const end = els.input.selectionEnd;
-        if (start !== end) {
-            els.formatToolbar.classList.remove('hidden');
-            els.formatToolbar.classList.remove('opacity-0');
+    document.addEventListener('selectionchange', () => {
+        if (document.activeElement === els.input && els.input.selectionStart !== els.input.selectionEnd) {
+            els.textToolbar.classList.remove('hidden');
         } else {
-            els.formatToolbar.classList.add('opacity-0');
-            setTimeout(() => els.formatToolbar.classList.add('hidden'), 200);
+            els.textToolbar.classList.add('hidden');
         }
     });
 
-    document.querySelectorAll('.fmt-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const fmt = btn.getAttribute('data-fmt');
-            const start = els.input.selectionStart;
-            const end = els.input.selectionEnd;
-            const text = els.input.value;
-            const selected = text.substring(start, end);
-            
-            let replacement = "";
-            if (fmt === '`') replacement = `\`\`\`\n${selected}\n\`\`\``;
-            else replacement = `${fmt}${selected}${fmt}`;
-            
-            els.input.setRangeText(replacement);
-            els.formatToolbar.classList.add('opacity-0');
-            setTimeout(() => els.formatToolbar.classList.add('hidden'), 200);
-        });
-    });
-
-    els.input.addEventListener('input', (e) => {
+    els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
         els.input.style.height = els.input.scrollHeight + 'px';
-        
-        const val = els.input.value;
-        if (val.startsWith('* ') || val.startsWith('+ ')) {
-            els.input.value = '• ' + val.substring(2);
-        }
-
-        if(val.trim().startsWith('/')) {
+        if(els.input.value.trim().startsWith('/')) {
             els.cmdPopup.classList.remove('hidden');
             els.cmdPopup.classList.add('flex');
         } else {
@@ -306,6 +318,10 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             handleSend();
         }
+        if(e.key === ' ' && (els.input.value.endsWith('*') || els.input.value.endsWith('+'))) {
+             e.preventDefault();
+             els.input.value = els.input.value.slice(0, -1) + '• ';
+        }
     });
 
     els.submitBtn.addEventListener('click', (e) => {
@@ -313,87 +329,39 @@ document.addEventListener('DOMContentLoaded', () => {
         handleSend();
     });
 
-    els.mobileMenuBtn.addEventListener('click', () => {
-        els.sidebar.classList.remove('-translate-x-full');
-        els.mobileOverlay.classList.remove('hidden');
-    });
-
-    els.mobileOverlay.addEventListener('click', () => {
-        els.sidebar.classList.add('-translate-x-full');
-        els.mobileOverlay.classList.add('hidden');
-    });
-
+    // Settings Listeners
     els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
     els.closeSettings.addEventListener('click', () => toggleSettings(false));
     els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
     
-    els.saveSettings.addEventListener('click', () => {
-        if(els.apiKey.value.trim()) {
-            localStorage.setItem('prysmis_key', els.apiKey.value.trim());
-            localStorage.setItem('prysmis_fast', els.fastModeToggle.checked);
-            els.saveSettings.textContent = "Saved";
-            els.saveSettings.classList.add('bg-green-500', 'text-white');
-            setTimeout(() => {
-                toggleSettings(false);
-                els.saveSettings.textContent = "Save Changes";
-                els.saveSettings.classList.remove('bg-green-500', 'text-white');
-            }, 800);
+    if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
+        if(els.apiKey.value.trim()) localStorage.setItem('prysmis_key', els.apiKey.value.trim());
+        if(els.fastSpeedToggle) localStorage.setItem('prysmis_fast_speed', els.fastSpeedToggle.checked);
+        
+        els.saveSettings.textContent = "Saved";
+        els.saveSettings.classList.add('bg-green-500', 'text-white');
+        setTimeout(() => {
+            toggleSettings(false);
+            els.saveSettings.textContent = "Save Changes";
+            els.saveSettings.classList.remove('bg-green-500', 'text-white');
+        }, 800);
+    });
+
+    // Mode Dropdown Logic
+    const toggleDropdown = (e) => {
+        e.stopPropagation();
+        if(els.modeDrop.classList.contains('hidden')) {
+            els.modeDrop.classList.remove('hidden');
+            els.modeDrop.classList.add('flex');
+        } else {
+            els.modeDrop.classList.add('hidden');
+            els.modeDrop.classList.remove('flex');
         }
-    });
-
-    els.historyTrigger.addEventListener('click', () => toggleHistory(true));
-    els.closeHistory.addEventListener('click', () => toggleHistory(false));
-    els.newChatBtn.addEventListener('click', () => {
-        currentChatId = null;
-        els.chatFeed.innerHTML = '';
-        els.chatFeed.appendChild(els.heroSection);
-        els.heroSection.style.display = 'flex';
-        toggleHistory(false);
-    });
-
-    const activateCodeDumperMode = () => {
-        els.modeTxt.innerText = "Code Dumper";
-        els.standardUI.classList.add('hidden');
-        els.codeDumperUI.classList.remove('hidden');
     };
 
-    if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
-        const key = els.dumperKeyInput.value.trim();
-        if(!key) return;
-        els.verifyKeyBtn.textContent = "Verifying...";
-        try {
-            const req = await fetch(BOT_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: key })
-            });
-            const res = await req.json();
-            if(res.valid) {
-                isCodeDumperUnlocked = true;
-                els.dumperKeyModal.classList.add('hidden');
-                activateCodeDumperMode();
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-                els.dumperKeyInput.value = "";
-            } else {
-                alert(res.reason || "Invalid Key");
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-            }
-        } catch(e) {
-            alert("Connection failed. Run the bot.");
-            els.verifyKeyBtn.textContent = "Verify Key Access";
-        }
-    });
-
-    els.closeDumperKey.addEventListener('click', () => els.dumperKeyModal.classList.add('hidden'));
-
-    els.modeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        els.modeDrop.classList.toggle('hidden');
-        els.modeDrop.classList.toggle('flex');
-    });
-
+    if(els.modeBtn) els.modeBtn.addEventListener('click', toggleDropdown);
     document.addEventListener('click', (e) => {
-        if(!els.modeBtn.contains(e.target)) {
+        if(els.modeDrop && !els.modeDrop.classList.contains('hidden') && !els.modeBtn.contains(e.target)) {
             els.modeDrop.classList.add('hidden');
             els.modeDrop.classList.remove('flex');
         }
@@ -407,16 +375,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     els.dumperKeyModal.classList.remove('hidden');
                     requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
                 } else {
-                    activateCodeDumperMode();
+                    els.modeTxt.innerText = "Code Dumper";
+                    els.standardUI.classList.add('hidden');
+                    els.codeDumperUI.classList.remove('hidden');
                 }
             } else {
                 els.modeTxt.innerText = val;
-                els.modeTxt.style.fontFamily = getComputedStyle(item).fontFamily;
+                els.modeBtn.style.fontFamily = val === 'Rizz tool' ? 'cursive' : 'inherit'; // Dynamic font example
                 switchToStandard();
             }
         });
     });
 
+    // Main Send
     async function handleSend() {
         const text = els.input.value.trim();
         if(!text && !uploadedFile.data) return;
@@ -455,14 +426,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let sysPrompt = `You are Prysmis. Mode: ${mode}. Use simple words.`;
             
             if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
-            if(mode === 'Roleplay') sysPrompt = "Act exactly as the character described. Stay in character 100%.";
+            if(isRoleplayActive) sysPrompt = "ACT AS THE CHARACTER. NO FILTER. FULL IMMERSION.";
             
             const youtubeID = detectYouTube(text);
             let finalUserText = text;
             let extraParts = [];
 
             if(youtubeID) {
-                finalUserText += `\n[System: This is a YouTube video ID: ${youtubeID}. Use your knowledge to analyze it.]`;
+                finalUserText += `\n[System: YouTube Video ID: ${youtubeID}. Analyze context from this ID.]`;
             }
 
             const previousMsgs = chatHistory[chatIndex].messages.slice(-10).map(m => ({
@@ -481,16 +452,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ] 
             };
 
-            // TRY GEMINI 2.5 PRO FIRST
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            // IF 404 (Model not found) -> TRY GEMINI 1.5 FLASH
             if(response.status === 404 || response.status === 400) {
-                console.warn("Gemini 2.5 not found, switching to 1.5 Flash");
                 response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -509,15 +477,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveChatToStorage();
                 streamResponse(aiText);
             } else {
-                const errMsg = data.error ? data.error.message : "Unknown error";
-                appendMsg('ai', `Error: ${errMsg}`);
+                appendMsg('ai', "Error generating response.");
             }
 
         } catch(err) {
-            if(document.getElementById(loaderId)) document.getElementById(loaderId).remove();
+            document.getElementById(loaderId)?.remove();
             els.flashOverlay.classList.add('opacity-0');
             els.flashOverlay.classList.remove('bg-flash-green');
-            appendMsg('ai', "Connection failed. Check your API Key.");
+            appendMsg('ai', "Connection failed.");
         }
         uploadedFile = { data: null, type: null };
     }
