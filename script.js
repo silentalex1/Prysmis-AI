@@ -54,7 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let isCodeDumperUnlocked = false;
     let currentLang = 'Lua';
     
-    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+    // --- ENDPOINTS UPDATED ---
+    // Primary: 2.5 Pro (As requested)
+    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
+    // Fallback: 1.5 Flash (Most stable, fixes 404 issues)
+    const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
     const BOT_API_URL = "http://localhost:3000/verify-key";
 
     function loadKey() {
@@ -110,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parseMD(text) {
+        if (!text) return "";
         let html = text
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -117,8 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n/g, '<br>');
 
-        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-            return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${code}</code></pre></div>`;
+        html = html.replace(/```(\w+)?<br>([\s\S]*?)```/g, (match, lang, code) => {
+            const cleanCode = code.replace(/<br>/g, '\n');
+            return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${cleanCode}</code></pre></div>`;
         });
         
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -147,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.innerHTML = parseMD(currentText);
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             i++;
-        }, 1);
+        }, 1); 
     }
 
     function toggleSettings(show) {
@@ -380,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use clear, simple words.`;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use simple words.`;
             
             if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
             if(mode === 'Roleplay') sysPrompt = "Act exactly as the character described. Stay in character 100%.";
@@ -391,9 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if(youtubeID) {
                 finalUserText += `\n[System: This is a YouTube video ID: ${youtubeID}. Use your knowledge to analyze it.]`;
-                try {
-                   
-                } catch(e) {}
             }
 
             const previousMsgs = chatHistory[chatIndex].messages.slice(-10).map(m => ({
@@ -412,11 +415,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 ] 
             };
 
+            // TRY GEMINI 2.5 PRO FIRST
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
+            // IF 404 (Model not found) -> TRY GEMINI 1.5 FLASH
+            if(response.status === 404 || response.status === 400) {
+                console.warn("Gemini 2.5 not found, switching to 1.5 Flash");
+                response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
 
             const data = await response.json();
             document.getElementById(loaderId).remove();
@@ -429,15 +443,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveChatToStorage();
                 streamResponse(aiText);
             } else {
-                appendMsg('ai', "Error generating response.");
+                const errMsg = data.error ? data.error.message : "Unknown error";
+                appendMsg('ai', `Error: ${errMsg}`);
             }
 
         } catch(err) {
-            document.getElementById(loaderId)?.remove();
+            if(document.getElementById(loaderId)) document.getElementById(loaderId).remove();
             els.flashOverlay.classList.add('opacity-0');
             els.flashOverlay.classList.remove('bg-flash-green');
-            appendMsg('ai', "Connection failed.");
+            appendMsg('ai', "Connection failed. Check your API Key.");
         }
-        uploadedFile = { data: null, type: null }; 
+        uploadedFile = { data: null, type: null };
     }
 });
