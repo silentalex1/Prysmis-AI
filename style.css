@@ -36,6 +36,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes msgPop { to { opacity: 1; transform: translateY(0); } }
-.history-item { padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; pointer-events: auto; }
+.history-item { padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; pointer-events: auto; display: flex; flex-direction: column; }
 .history-item:hover { background: rgba(255,255,255,0.05); transform: scale(1.01); }
 .history-item.active { background: linear-gradient(90deg, rgba(124,58,237,0.1), transparent); border-left: 3px solid #8b5cf6; }
