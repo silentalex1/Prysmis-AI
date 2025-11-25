@@ -17,19 +17,19 @@
     <div id="flash-overlay" class="pointer-events-none fixed inset-0 z-0 opacity-0 transition-opacity duration-500 mix-blend-screen"></div>
 
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-[#050505]/95 backdrop-blur-2xl border-r border-white/5 transform -translate-x-full md:translate-x-0 md:static md:w-20 md:bg-transparent md:border-r-0 transition-transform duration-300 z-50 flex flex-col items-center py-8">
-        <div class="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-900 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.2)] mb-auto cursor-pointer hover:scale-105 transition duration-300 group relative shrink-0 z-50" id="home-btn">
+        <div class="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-900 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.2)] mb-auto cursor-pointer hover:scale-105 transition duration-300 group relative shrink-0 pointer-events-auto" id="home-btn">
             <i class="fa-solid fa-bolt text-white text-xl pointer-events-none"></i>
             <span class="tooltip-right md:block hidden">Home</span>
         </div>
 
         <div class="flex flex-col gap-6 mb-auto mt-8 w-full items-center">
-            <button id="history-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-gray-200 group relative cursor-pointer z-50">
+            <button id="history-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-gray-200 group relative cursor-pointer pointer-events-auto">
                 <i class="fa-solid fa-clock-rotate-left text-xl pointer-events-none"></i>
                 <span class="tooltip-right md:block hidden">History</span>
             </button>
         </div>
         
-        <button id="settings-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-white group relative mb-4 cursor-pointer z-50">
+        <button id="settings-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-white group relative mb-4 cursor-pointer pointer-events-auto">
             <i class="fa-solid fa-gear text-xl group-hover:rotate-90 transition-transform duration-700 pointer-events-none"></i>
             <span class="tooltip-right md:block hidden">Settings</span>
         </button>
@@ -98,15 +98,14 @@
             <div class="absolute bottom-0 left-0 w-full pb-4 md:pb-8 flex flex-col items-center bg-gradient-to-t from-[#020204] via-[#020204]/95 to-transparent pt-32 px-4 z-[50]">
                 <div class="relative w-full max-w-3xl pointer-events-auto" id="input-container">
                     
-                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2"></div>
-                    
-                    <!-- Floating Format Toolbar -->
-                    <div id="format-toolbar" class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-[#111] border border-white/10 rounded-lg p-1 flex gap-1 hidden z-50 shadow-xl">
-                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white font-bold text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('**')">B</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white italic text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('*')">I</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white line-through text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('~~')">S</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-gray-300 hover:text-white font-mono text-xs w-8 h-8 flex items-center justify-center" onclick="window.applyFormat('`')"><></button>
+                    <div id="format-toolbar" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-[#1a1a1a] border border-white/10 rounded-lg p-1 flex gap-1 hidden opacity-0 transition-opacity duration-200 shadow-xl z-[60]">
+                        <button class="fmt-btn font-bold px-3 py-1 hover:bg-white/10 rounded text-white" data-fmt="**">B</button>
+                        <button class="fmt-btn italic px-3 py-1 hover:bg-white/10 rounded text-white" data-fmt="*">I</button>
+                        <button class="fmt-btn line-through px-3 py-1 hover:bg-white/10 rounded text-white" data-fmt="~~">S</button>
+                        <button class="fmt-btn font-mono text-xs px-3 py-1 hover:bg-white/10 rounded text-white" data-fmt="`">&lt;&gt;</button>
                     </div>
+
+                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2"></div>
 
                     <div id="cmd-popup" class="absolute bottom-full left-0 mb-3 w-full md:w-64 glass-popup rounded-2xl overflow-hidden hidden flex-col z-50 p-1">
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/features')"><span class="text-violet-400 font-bold">/features</span></div>
@@ -201,15 +200,14 @@
                         <input type="password" id="api-key-field" class="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-4 text-white focus:border-violet-500/50 focus:outline-none transition tracking-widest placeholder-gray-800 text-xs font-mono pointer-events-auto" placeholder="••••••••••••••••">
                         <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-400 text-[10px] mt-3 inline-block hover:underline font-bold pointer-events-auto">GENERATE KEY</a>
                     </div>
-                    
-                    <div class="flex items-center justify-between p-4 bg-[#111] rounded-xl border border-white/10">
+                    <div class="flex items-center justify-between bg-[#111] border border-white/10 rounded-xl p-4">
                         <div>
-                            <span class="text-sm font-bold text-gray-200 block">Fast Response Speed</span>
-                            <span class="text-xs text-gray-500">Turbo output mode</span>
+                            <div class="text-xs font-bold text-white">Fast AI Response Speed</div>
+                            <div class="text-[10px] text-gray-500">Enables faster streaming token rate</div>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer pointer-events-auto">
-                            <input type="checkbox" id="fast-mode-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                        <label class="switch pointer-events-auto">
+                            <input type="checkbox" id="fast-mode-toggle">
+                            <span class="slider round"></span>
                         </label>
                     </div>
                 </div>
