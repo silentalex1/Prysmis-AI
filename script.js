@@ -1,74 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const els = {
-        settingsTriggers: [document.getElementById('settings-trigger')],
-        settingsOverlay: document.getElementById('settings-overlay'),
-        settingsBox: document.getElementById('settings-box'),
-        closeSettings: document.getElementById('close-settings'),
-        saveSettings: document.getElementById('save-settings-btn'),
-        apiKey: document.getElementById('api-key-field'),
-        modeBtn: document.getElementById('mode-btn'),
-        modeDrop: document.getElementById('mode-dropdown'),
-        modeTxt: document.getElementById('current-mode-txt'),
-        modeIcon: document.getElementById('mode-icon'),
-        modeItems: document.querySelectorAll('.mode-item'),
-        input: document.getElementById('prompt-input'),
-        fileInput: document.getElementById('file-input'),
-        mediaPreview: document.getElementById('media-preview'),
-        cmdPopup: document.getElementById('cmd-popup'),
-        submitBtn: document.getElementById('submit-btn'),
-        chatFeed: document.getElementById('chat-feed'),
-        heroSection: document.getElementById('hero-section'),
-        flashOverlay: document.getElementById('flash-overlay'),
-        historyModal: document.getElementById('history-modal'),
-        historyTrigger: document.getElementById('history-trigger'),
-        closeHistory: document.getElementById('close-history'),
-        historyList: document.getElementById('history-list'),
-        searchInput: document.getElementById('search-input'),
-        newChatBtn: document.getElementById('new-chat-btn'),
-        quickNewChatBtn: document.getElementById('quick-new-chat-btn'),
-        dumperKeyModal: document.getElementById('code-dumper-key-modal'),
-        closeDumperKey: document.getElementById('close-dumper-key'),
-        dumperKeyInput: document.getElementById('dumper-key-input'),
-        verifyKeyBtn: document.getElementById('verify-key-btn'),
-        codeDumperUI: document.getElementById('code-dumper-ui'),
-        standardUI: document.getElementById('standard-ui'),
-        btnObfuscate: document.getElementById('btn-obfuscate'),
-        btnDeobfuscate: document.getElementById('btn-deobfuscate'),
-        terminalLog: document.getElementById('terminal-log'),
-        terminalTime: document.getElementById('terminal-time'),
-        getStartedBtn: document.getElementById('get-started-btn'),
-        mobileMenuBtn: document.getElementById('mobile-menu-btn'),
-        homeBtn: document.getElementById('home-btn'),
-        sidebar: document.getElementById('sidebar'),
-        mobileOverlay: document.getElementById('mobile-overlay'),
-        fastSpeedToggle: document.getElementById('fast-speed-toggle'),
-        textToolbar: document.getElementById('text-toolbar'),
-        stopAiBtn: document.getElementById('stop-ai-btn'),
-        notificationArea: document.getElementById('notification-area'),
-        dumperUploadZone: document.getElementById('dumper-upload-zone'),
-        dumperFileInput: document.getElementById('dumper-file-input'),
-        dumperSkipBtn: document.getElementById('dumper-skip-btn'),
-        dumperInputArea: document.getElementById('dumper-input-area'),
-        dumperOutputArea: document.getElementById('dumper-output-area'),
-        dumperAdviceArea: document.getElementById('dumper-advice-area'),
-        dumperUploadState: document.getElementById('dumper-upload-state'),
-        dumperEditorView: document.getElementById('dumper-editor-view'),
-        globalDropZone: document.getElementById('global-drop-zone')
-    };
-
-    let uploadedFile = { data: null, type: null, name: null };
-    let chatHistory = JSON.parse(localStorage.getItem('prysmis_history')) || [];
-    let currentChatId = null;
-    let isCodeDumperUnlocked = false;
-    let isRoleplayActive = false;
-    let currentInterval = null;
-    let stopGeneration = false;
-    let abortController = null;
-    
-    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
-    const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-    const BOT_API_URL = "http://localhost:3000/verify-key";
-
+    // --- DEFINE FUNCTIONS FIRST (HOISTING) ---
     function loadKey() {
         const key = localStorage.getItem('prysmis_key');
         if(key && els.apiKey) els.apiKey.value = key;
@@ -97,11 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <button class="delete-history-btn"><i class="fa-solid fa-trash"></i></button>
             `;
+            
             div.onclick = (e) => {
                 loadChat(chat.id);
                 toggleHistory(false);
                 if(window.innerWidth < 768) toggleMobileMenu();
             };
+
             const delBtn = div.querySelector('.delete-history-btn');
             delBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -111,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveChatToStorage();
                 }
             };
+
             els.historyList.appendChild(div);
         });
     }
@@ -242,13 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, delay);
     }
 
-    if(els.stopAiBtn) els.stopAiBtn.addEventListener('click', () => {
-        stopGeneration = true;
-        if(abortController) abortController.abort();
-        if(currentInterval) clearInterval(currentInterval);
-        els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
-    });
-
     function showNotification(msg) {
         const notif = document.createElement('div');
         notif.className = 'notification';
@@ -260,9 +187,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    function switchToStandard() {
-        els.standardUI.classList.remove('hidden');
-        els.codeDumperUI.classList.add('hidden');
+    function detectMode(text) {
+        const lower = text.toLowerCase();
+        let detectedMode = null;
+        
+        if(lower.includes('code') || lower.includes('function') || lower.includes('script')) detectedMode = 'Coding';
+        else if(lower.includes('solve') || lower.includes('calc') || lower.includes('equation')) detectedMode = 'Geometry';
+        else if(lower.includes('physics') || lower.includes('gravity') || lower.includes('force')) detectedMode = 'Physics';
+        else if(lower.includes('date') || lower.includes('flirt') || lower.includes('pickup')) detectedMode = 'Rizz tool';
+        
+        if(detectedMode) {
+            els.modeTxt.innerText = detectedMode;
+            updateDropdownUI(detectedMode);
+        }
     }
 
     function updateDropdownUI(val) {
@@ -276,84 +213,58 @@ document.addEventListener('DOMContentLoaded', () => {
         els.modeTxt.innerText = val;
     }
 
-    // --- INITIALIZATION ---
-    loadKey();
-    renderHistory();
-
-    // --- EVENT LISTENERS ---
-    window.setInput = (txt) => { els.input.value = txt; els.input.focus(); };
-
-    window.runCmd = (cmd) => {
-        if(cmd === '/clear') { startNewChat(); }
-        else if(cmd === '/features') {
-            const featureHTML = `<div style="font-family: 'Cinzel', serif; font-size: 1.1em; margin-bottom: 10px; color: #a78bfa;">PrysmisAI features -- still in beta</div><hr class="visual-line"><ul class="feature-list list-disc pl-5"><li>Scan Analysis: Say "Analysis or scan this file and ___"</li><li>YouTube analysis</li><li>Domain external viewer</li><li>Modes</li><li>Roleplay</li><li>Invisible tab</li></ul>`;
-            const div = document.createElement('div');
-            div.className = `flex w-full justify-start msg-anim mb-6`;
-            div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ai-msg text-gray-200 rounded-bl-none">${featureHTML}</div>`;
-            els.chatFeed.appendChild(div);
-            els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-            els.heroSection.style.display = 'none';
-        } else if(cmd === '/roleplay') {
-            isRoleplayActive = !isRoleplayActive;
-            const status = isRoleplayActive ? "Activated" : "Deactivated";
-            appendMsg('ai', `**Roleplay Mode ${status}.** ${isRoleplayActive ? "Unfiltered persona enabled." : "Back to normal."}`, null);
-            els.heroSection.style.display = 'none';
-        } else if(cmd === '/discord-invite') {
-            navigator.clipboard.writeText("https://discord.gg/eKC5CgEZbT");
-            showNotification("Discord server link copied onto your clipboard!");
-        } else if(cmd === '/invisible tab') {
-            document.title = "Google";
-            const link = document.querySelector("link[rel~='icon']");
-            if (link) link.href = 'https://www.google.com/favicon.ico';
+    function toggleSettings(show) {
+        if(show) {
+            els.settingsOverlay.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                els.settingsOverlay.classList.remove('opacity-0');
+                els.settingsBox.classList.remove('scale-95');
+                els.settingsBox.classList.add('scale-100');
+            });
+        } else {
+            els.settingsOverlay.classList.add('opacity-0');
+            els.settingsBox.classList.remove('scale-100');
+            els.settingsBox.classList.add('scale-95');
+            setTimeout(() => els.settingsOverlay.classList.add('hidden'), 300);
         }
-        els.cmdPopup.classList.add('hidden');
-        els.cmdPopup.classList.remove('flex');
-        els.input.value = '';
-        els.input.focus();
-    };
+    }
 
-    window.insertFormat = (s, e) => {
-        const start = els.input.selectionStart;
-        const end = els.input.selectionEnd;
-        const txt = els.input.value;
-        els.input.value = txt.substring(0, start) + s + txt.substring(start, end) + e + txt.substring(end);
-        els.input.focus();
-        els.textToolbar.classList.add('hidden');
-    };
-
-    window.copyCode = (btn) => {
-        navigator.clipboard.writeText(btn.parentElement.nextElementSibling.innerText);
-        btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = "Copy", 2000);
-    };
-
-    window.clearMedia = () => {
-        uploadedFile = { data: null, type: null, name: null };
-        els.mediaPreview.innerHTML = '';
-        els.fileInput.value = '';
-    };
-
-    // Global Drag & Drop
-    document.addEventListener('dragover', (e) => { 
-        e.preventDefault(); 
-        els.globalDropZone.classList.remove('hidden');
-        els.globalDropZone.classList.add('flex');
-    });
-
-    els.globalDropZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        if (e.relatedTarget === null) {
-            els.globalDropZone.classList.add('hidden');
-            els.globalDropZone.classList.remove('flex');
+    function toggleHistory(show) {
+        if(show) {
+            els.historyModal.classList.remove('hidden');
+            requestAnimationFrame(() => els.historyModal.classList.remove('opacity-0'));
+            renderHistory();
+        } else {
+            els.historyModal.classList.add('opacity-0');
+            setTimeout(() => els.historyModal.classList.add('hidden'), 300);
         }
-    });
+    }
 
-    els.globalDropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        els.globalDropZone.classList.add('hidden');
-        els.globalDropZone.classList.remove('flex');
-        if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
-    });
+    function toggleDumperKey(show) {
+        if(show) {
+            els.dumperKeyModal.classList.remove('hidden');
+            requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
+        } else {
+            els.dumperKeyModal.classList.add('opacity-0');
+            setTimeout(() => els.dumperKeyModal.classList.add('hidden'), 300);
+        }
+    }
+
+    function toggleMobileMenu() {
+        if(els.sidebar.classList.contains('-translate-x-full')) {
+            els.sidebar.classList.remove('-translate-x-full');
+            els.mobileOverlay.classList.remove('hidden');
+        } else {
+            els.sidebar.classList.add('-translate-x-full');
+            els.mobileOverlay.classList.add('hidden');
+        }
+    }
+
+    function switchToStandard() {
+        els.standardUI.classList.remove('hidden');
+        els.codeDumperUI.classList.add('hidden');
+        els.modeTxt.innerText = "AI Assistant";
+    }
 
     function handleFileSelect(file) {
         const reader = new FileReader();
@@ -361,38 +272,91 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedFile = { data: ev.target.result.split(',')[1], type: file.type, name: file.name };
             let previewContent = file.type.startsWith('image') 
                 ? `<img src="${ev.target.result}" class="w-full h-full object-cover">`
-                : `<div class="flex items-center justify-center h-full bg-white/10 text-xs p-2 text-center text-white">${file.name}</div>`;
+                : `<div class="flex items-center justify-center h-full bg-white/10 text-xs p-2 text-center">${file.name}</div>`;
                 
             els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group">${previewContent}<button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
         };
         reader.readAsDataURL(file);
     }
 
-    els.input.addEventListener('paste', (e) => {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let index in items) {
-            const item = items[index];
-            if (item.kind === 'file') handleFileSelect(item.getAsFile());
-        }
-    });
+    // --- MAIN VARIABLES & CONSTANTS ---
+    const els = {
+        settingsTriggers: [document.getElementById('settings-trigger')],
+        settingsOverlay: document.getElementById('settings-overlay'),
+        settingsBox: document.getElementById('settings-box'),
+        closeSettings: document.getElementById('close-settings'),
+        saveSettings: document.getElementById('save-settings-btn'),
+        apiKey: document.getElementById('api-key-field'),
+        modeBtn: document.getElementById('mode-btn'),
+        modeDrop: document.getElementById('mode-dropdown'),
+        modeTxt: document.getElementById('current-mode-txt'),
+        modeIcon: document.getElementById('mode-icon'),
+        modeItems: document.querySelectorAll('.mode-item'),
+        input: document.getElementById('prompt-input'),
+        fileInput: document.getElementById('file-input'),
+        mediaPreview: document.getElementById('media-preview'),
+        cmdPopup: document.getElementById('cmd-popup'),
+        submitBtn: document.getElementById('submit-btn'),
+        chatFeed: document.getElementById('chat-feed'),
+        heroSection: document.getElementById('hero-section'),
+        flashOverlay: document.getElementById('flash-overlay'),
+        historyModal: document.getElementById('history-modal'),
+        historyTrigger: document.getElementById('history-trigger'),
+        closeHistory: document.getElementById('close-history'),
+        historyList: document.getElementById('history-list'),
+        searchInput: document.getElementById('search-input'),
+        newChatBtn: document.getElementById('new-chat-btn'),
+        quickNewChatBtn: document.getElementById('quick-new-chat-btn'),
+        dumperKeyModal: document.getElementById('code-dumper-key-modal'),
+        closeDumperKey: document.getElementById('close-dumper-key'),
+        dumperKeyInput: document.getElementById('dumper-key-input'),
+        verifyKeyBtn: document.getElementById('verify-key-btn'),
+        codeDumperUI: document.getElementById('code-dumper-ui'),
+        standardUI: document.getElementById('standard-ui'),
+        btnObfuscate: document.getElementById('btn-obfuscate'),
+        btnDeobfuscate: document.getElementById('btn-deobfuscate'),
+        terminalLog: document.getElementById('terminal-log'),
+        terminalTime: document.getElementById('terminal-time'),
+        getStartedBtn: document.getElementById('get-started-btn'),
+        mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+        homeBtn: document.getElementById('home-btn'),
+        sidebar: document.getElementById('sidebar'),
+        mobileOverlay: document.getElementById('mobile-overlay'),
+        fastSpeedToggle: document.getElementById('fast-speed-toggle'),
+        textToolbar: document.getElementById('text-toolbar'),
+        stopAiBtn: document.getElementById('stop-ai-btn'),
+        notificationArea: document.getElementById('notification-area'),
+        dumperUploadZone: document.getElementById('dumper-upload-zone'),
+        dumperFileInput: document.getElementById('dumper-file-input'),
+        dumperSkipBtn: document.getElementById('dumper-skip-btn'),
+        dumperInputArea: document.getElementById('dumper-input-area'),
+        dumperOutputArea: document.getElementById('dumper-output-area'),
+        dumperAdviceArea: document.getElementById('dumper-advice-area'),
+        dumperUploadState: document.getElementById('dumper-upload-state'),
+        dumperEditorView: document.getElementById('dumper-editor-view'),
+        dropOverlay: document.getElementById('drop-overlay')
+    };
 
-    els.fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
+    let uploadedFile = { data: null, type: null, name: null };
+    let chatHistory = JSON.parse(localStorage.getItem('prysmis_history')) || [];
+    let currentChatId = null;
+    let isCodeDumperUnlocked = false;
+    let isRoleplayActive = false;
+    let currentInterval = null;
+    let stopGeneration = false;
+    let abortController = null;
+    
+    const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
+    const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    const BOT_API_URL = "http://localhost:3000/verify-key";
 
-    document.addEventListener('selectionchange', () => {
-        if (document.activeElement === els.input && els.input.selectionStart !== els.input.selectionEnd) {
-            els.textToolbar.classList.remove('hidden');
-        } else {
-            els.textToolbar.classList.add('hidden');
-        }
-    });
+    // --- INIT ---
+    loadKey();
+    renderHistory();
 
-    els.input.addEventListener('input', () => {
-        els.input.style.height = 'auto';
-        els.input.style.height = els.input.scrollHeight + 'px';
-        if(els.input.value.trim().startsWith('/')) { els.cmdPopup.classList.remove('hidden'); els.cmdPopup.classList.add('flex'); } 
-        else { els.cmdPopup.classList.add('hidden'); els.cmdPopup.classList.remove('flex'); }
-    });
-
+    // --- LISTENERS ---
+    els.submitBtn.addEventListener('click', (e) => { e.preventDefault(); handleSend(); });
+    
     els.input.addEventListener('keydown', (e) => {
         if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
         if(e.key === ' ' && (els.input.value.endsWith('*') || els.input.value.endsWith('+'))) {
@@ -400,38 +364,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    els.submitBtn.addEventListener('click', (e) => { e.preventDefault(); handleSend(); });
-    
-    if(els.quickNewChatBtn) els.quickNewChatBtn.addEventListener('click', startNewChat);
-
-    els.mobileMenuBtn.addEventListener('click', () => { els.sidebar.classList.remove('-translate-x-full'); els.mobileOverlay.classList.remove('hidden'); });
-    els.mobileOverlay.addEventListener('click', () => { els.sidebar.classList.add('-translate-x-full'); els.mobileOverlay.classList.add('hidden'); });
-    
-    els.modeBtn.addEventListener('click', (e) => { e.stopPropagation(); els.modeDrop.classList.toggle('hidden'); els.modeDrop.classList.toggle('flex'); });
-    document.addEventListener('click', (e) => { if(!els.modeBtn.contains(e.target)) { els.modeDrop.classList.add('hidden'); els.modeDrop.classList.remove('flex'); } });
-    
-    els.modeItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const val = item.getAttribute('data-val');
-            if(val === 'Code Dumper') {
-                if(!isCodeDumperUnlocked) {
-                    els.dumperKeyModal.classList.remove('hidden');
-                    requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
-                } else {
-                    els.modeTxt.innerText = "Code Dumper";
-                    els.standardUI.classList.add('hidden');
-                    els.codeDumperUI.classList.remove('hidden');
-                }
-            } else {
-                updateDropdownUI(val);
-                switchToStandard();
-            }
-        });
+    els.input.addEventListener('input', () => {
+        els.input.style.height = 'auto';
+        els.input.style.height = els.input.scrollHeight + 'px';
+        detectMode(els.input.value);
+        if(els.input.value.trim().startsWith('/')) { els.cmdPopup.classList.remove('hidden'); els.cmdPopup.classList.add('flex'); } 
+        else { els.cmdPopup.classList.add('hidden'); els.cmdPopup.classList.remove('flex'); }
     });
-    
+
+    if(els.quickNewChatBtn) els.quickNewChatBtn.addEventListener('click', startNewChat);
+    els.newChatBtn.addEventListener('click', startNewChat);
+
+    els.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    els.mobileOverlay.addEventListener('click', toggleMobileMenu);
+
+    els.historyTrigger.addEventListener('click', () => toggleHistory(true));
+    els.closeHistory.addEventListener('click', () => toggleHistory(false));
+
     els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
     els.closeSettings.addEventListener('click', () => toggleSettings(false));
     els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
+
     if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
         if(els.apiKey.value.trim()) localStorage.setItem('prysmis_key', els.apiKey.value.trim());
         if(els.fastSpeedToggle) localStorage.setItem('prysmis_fast_speed', els.fastSpeedToggle.checked);
@@ -440,9 +393,21 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { toggleSettings(false); els.saveSettings.textContent = "Save Changes"; els.saveSettings.classList.remove('bg-green-500', 'text-white'); }, 800);
     });
 
-    els.historyTrigger.addEventListener('click', () => toggleHistory(true));
-    els.closeHistory.addEventListener('click', () => toggleHistory(false));
-    els.newChatBtn.addEventListener('click', startNewChat);
+    els.modeBtn.addEventListener('click', (e) => { e.stopPropagation(); els.modeDrop.classList.toggle('hidden'); els.modeDrop.classList.toggle('flex'); });
+    document.addEventListener('click', (e) => { if(els.modeDrop && !els.modeDrop.classList.contains('hidden') && !els.modeBtn.contains(e.target)) { els.modeDrop.classList.add('hidden'); els.modeDrop.classList.remove('flex'); } });
+
+    els.modeItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const val = item.getAttribute('data-val');
+            if(val === 'Code Dumper') {
+                if(!isCodeDumperUnlocked) toggleDumperKey(true);
+                else activateCodeDumperMode();
+            } else {
+                updateDropdownUI(val);
+                switchToStandard();
+            }
+        });
+    });
 
     if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
         const key = els.dumperKeyInput.value.trim();
@@ -453,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await req.json();
             if(res.valid) {
                 isCodeDumperUnlocked = true;
-                els.dumperKeyModal.classList.add('hidden');
+                toggleDumperKey(false);
                 els.modeTxt.innerText = "Code Dumper";
                 els.standardUI.classList.add('hidden');
                 els.codeDumperUI.classList.remove('hidden');
@@ -462,7 +427,41 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert(res.reason || "Invalid Key"); els.verifyKeyBtn.textContent = "Verify Key Access"; }
         } catch(e) { alert("Connection failed."); els.verifyKeyBtn.textContent = "Verify Key Access"; }
     });
-    els.closeDumperKey.addEventListener('click', () => els.dumperKeyModal.classList.add('hidden'));
+    els.closeDumperKey.addEventListener('click', () => toggleDumperKey(false));
+
+    // Global Drag Drop
+    document.addEventListener('dragover', (e) => { e.preventDefault(); els.dropOverlay.classList.remove('hidden'); els.dropOverlay.classList.add('flex'); els.dropOverlay.classList.remove('opacity-0'); });
+    els.dropOverlay.addEventListener('dragleave', (e) => { e.preventDefault(); els.dropOverlay.classList.add('opacity-0'); setTimeout(() => els.dropOverlay.classList.add('hidden'), 300); });
+    els.dropOverlay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.dropOverlay.classList.add('opacity-0');
+        setTimeout(() => els.dropOverlay.classList.add('hidden'), 300);
+        if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    });
+
+    els.input.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let index in items) {
+            if (items[index].kind === 'file') handleFileSelect(items[index].getAsFile());
+        }
+    });
+
+    els.fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
+    
+    if(els.stopAiBtn) els.stopAiBtn.addEventListener('click', () => {
+        stopGeneration = true;
+        if(abortController) abortController.abort();
+        if(currentInterval) clearInterval(currentInterval);
+        els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
+    });
+
+    document.addEventListener('selectionchange', () => {
+        if (document.activeElement === els.input && els.input.selectionStart !== els.input.selectionEnd) {
+            els.textToolbar.classList.remove('hidden');
+        } else {
+            els.textToolbar.classList.add('hidden');
+        }
+    });
 
     async function handleSend(isEdit = false) {
         const text = els.input.value.trim();
@@ -509,13 +508,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}. Unfiltered. Use simple words. Use **purple** for bold text.`;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}. Unfiltered. Use simple words.`;
             
             if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
             if(isRoleplayActive) sysPrompt = "ACT AS THE CHARACTER DESCRIBED. NO FILTER. FULL IMMERSION.";
             
-            sysPrompt += " If a file is provided with 'analyze' or 'scan', provide a safety analysis (Safe/Harmful). Use 'Safe' (Green) or 'Harmful' (Red) text.";
-            sysPrompt += " If you see a URL, analyze the link context and safety.";
+            sysPrompt += " You are visually aware of your own UI. If a file is provided with 'analyze' or 'scan', provide a detailed safety analysis (Safe/Harmful), explanation, and replication steps. Use 'Safe' (Green) or 'Harmful' (Red) indicators. If user asks to draw or visualize, use ASCII art or Mermaid diagrams.";
 
             const previousMsgs = chatHistory[chatIndex].messages.slice(-10).map(m => ({
                 role: m.role === 'ai' ? 'model' : 'user',
