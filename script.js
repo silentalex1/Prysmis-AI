@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
         attachments: []
     };
 
-    
     const els = {
         promptInput: document.getElementById('prompt-input'),
         submitBtn: document.getElementById('submit-btn'),
@@ -35,11 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         codeDumperUi: document.getElementById('code-dumper-ui')
     };
 
-    
     els.apiKeyField.value = state.apiKey;
     els.fastSpeedToggle.checked = state.fastSpeed;
 
-    
     window.toggleHistory = function() {
         if (els.historyModal.classList.contains('hidden')) {
             renderHistory();
@@ -72,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
         els.heroSection.classList.remove('hidden');
         els.heroSection.classList.add('flex');
         
-        
         if (!els.historyModal.classList.contains('hidden')) {
             window.toggleHistory();
         }
@@ -85,14 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.runCmd = function(cmd) {
-        els.promptInput.value = cmd;
-        els.cmdPopup.classList.add('hidden');
-        els.promptInput.focus();
-        
         if (cmd === '/clear') {
             window.startNewChat();
-            els.promptInput.value = '';
+        } else if (cmd === '/discord-invite') {
+            window.open('https://discord.gg/yourserver', '_blank');
+        } else {
+            notify(`Command ${cmd} executed (Mock)`, 'success');
         }
+        
+        els.promptInput.value = '';
+        els.cmdPopup.classList.add('hidden');
+        els.cmdPopup.classList.remove('flex');
+        els.promptInput.focus();
     };
 
     window.insertFormat = function(start, end) {
@@ -109,11 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
         input.focus();
     };
 
-    
     document.getElementById('history-trigger').addEventListener('click', window.toggleHistory);
     document.getElementById('close-history').addEventListener('click', window.toggleHistory);
     document.getElementById('settings-trigger').addEventListener('click', window.toggleSettings);
     document.getElementById('close-settings').addEventListener('click', window.toggleSettings);
+    
     document.getElementById('save-settings-btn').addEventListener('click', () => {
         state.apiKey = els.apiKeyField.value.trim();
         state.fastSpeed = els.fastSpeedToggle.checked;
@@ -129,7 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
         els.promptInput.focus();
     });
 
-    
     els.modeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         els.modeDropdown.classList.toggle('hidden');
@@ -167,11 +166,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const dropOverlay = document.getElementById('drop-overlay');
     
-    els.fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    window.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dropOverlay.classList.remove('hidden');
+        setTimeout(() => dropOverlay.classList.remove('opacity-0'), 10);
+    });
 
+    dropOverlay.addEventListener('dragover', (e) => e.preventDefault());
+    
+    dropOverlay.addEventListener('dragleave', (e) => {
+        if (e.relatedTarget === null) {
+            dropOverlay.classList.add('opacity-0');
+            setTimeout(() => dropOverlay.classList.add('hidden'), 300);
+        }
+    });
+
+    dropOverlay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropOverlay.classList.add('opacity-0');
+        setTimeout(() => dropOverlay.classList.add('hidden'), 300);
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) handleFileUpload(files[0]);
+    });
+
+    els.fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFileUpload(file);
+        els.fileInput.value = ''; 
+    });
+
+    function handleFileUpload(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const base64Data = e.target.result.split(',')[1];
@@ -183,25 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
             updateMediaPreview();
         };
         reader.readAsDataURL(file);
-        els.fileInput.value = ''; 
-    });
+    }
 
     function updateMediaPreview() {
         els.mediaPreview.innerHTML = '';
         state.attachments.forEach((att, index) => {
             const div = document.createElement('div');
-            div.className = 'relative group';
+            div.className = 'relative group animate-fade-in';
             
             let content = '';
             if (att.mimeType.startsWith('image/')) {
-                content = `<img src="data:${att.mimeType};base64,${att.data}" class="h-16 w-16 object-cover rounded-lg border border-white/10">`;
+                content = `<img src="data:${att.mimeType};base64,${att.data}" class="h-16 w-16 object-cover rounded-lg border border-white/10 shadow-lg">`;
             } else {
-                content = `<div class="h-16 w-16 bg-white/5 flex items-center justify-center rounded-lg border border-white/10"><i class="fa-solid fa-file text-violet-400"></i></div>`;
+                content = `<div class="h-16 w-16 bg-white/5 flex items-center justify-center rounded-lg border border-white/10 shadow-lg"><i class="fa-solid fa-file text-violet-400"></i></div>`;
             }
 
             div.innerHTML = `
                 ${content}
-                <button onclick="removeAttachment(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="window.removeAttachment(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md"><i class="fa-solid fa-xmark"></i></button>
             `;
             els.mediaPreview.appendChild(div);
         });
@@ -211,11 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.attachments.splice(index, 1);
         updateMediaPreview();
     };
-
     
     els.promptInput.addEventListener('input', () => {
         adjustTextareaHeight();
         const val = els.promptInput.value;
+        
         if (val.startsWith('/')) {
             els.cmdPopup.classList.remove('hidden');
             els.cmdPopup.classList.add('flex');
@@ -223,11 +249,18 @@ document.addEventListener('DOMContentLoaded', () => {
             els.cmdPopup.classList.add('hidden');
             els.cmdPopup.classList.remove('flex');
         }
-        
-        if (els.promptInput.selectionStart > 0) {
-            els.textToolbar.classList.remove('hidden');
-        } else {
-            els.textToolbar.classList.add('hidden');
+    });
+    
+    document.addEventListener('selectionchange', () => {
+        if (document.activeElement === els.promptInput) {
+            const start = els.promptInput.selectionStart;
+            const end = els.promptInput.selectionEnd;
+            
+            if (start !== end) {
+                els.textToolbar.classList.remove('hidden');
+            } else {
+                els.textToolbar.classList.add('hidden');
+            }
         }
     });
 
@@ -256,6 +289,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleSubmission() {
         const text = els.promptInput.value.trim();
+        
+        if (text.startsWith('/')) {
+            window.runCmd(text);
+            return;
+        }
+
         if ((!text && state.attachments.length === 0) || state.isGenerating) return;
 
         if (!state.apiKey) {
@@ -264,11 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        
         els.heroSection.classList.add('hidden');
         els.heroSection.classList.remove('flex');
+        els.cmdPopup.classList.add('hidden');
 
-        
         appendUserMessage(text, state.attachments);
         
         els.promptInput.value = '';
@@ -302,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             ];
 
-            
             currentAttachments.forEach(att => {
                 contents[0].parts.push({
                     inline_data: {
@@ -312,8 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${state.apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?key=${state.apiKey}`;
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -322,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 signal: state.controller.signal
             });
 
-            if (!response.ok) throw new Error('API Error');
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -333,8 +369,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (done) break;
                 
                 const chunk = decoder.decode(value, { stream: true });
-                
-                
                 const lines = chunk.split('\n');
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
@@ -357,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             if (err.name !== 'AbortError') {
-                aiContainer.innerHTML = `<span class="text-red-400">Error: ${err.message}</span>`;
+                aiContainer.innerHTML = `<span class="text-red-400">Error: ${err.message}. Ensure your API key is valid.</span>`;
             }
         } finally {
             endGenerationState();
@@ -409,7 +443,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parseMarkdown(text) {
-        
         let html = text
             .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
                 return `<div class="code-block"><div class="code-header"><span>${lang || 'CODE'}</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)"><i class="fa-regular fa-copy"></i> Copy</button></div><pre><code class="language-${lang}">${code.replace(/</g, '&lt;')}</code></pre></div>`;
@@ -436,12 +469,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveChatToHistory(prompt, response) {
+        const timestamp = new Date().toLocaleString(); 
+        
         if (!state.currentChatId) {
             state.currentChatId = Date.now();
             const newChat = {
                 id: state.currentChatId,
                 title: prompt.substring(0, 30) + '...',
-                date: new Date().toLocaleDateString(),
+                date: timestamp,
                 msgs: []
             };
             state.history.unshift(newChat);
@@ -449,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const chat = state.history.find(c => c.id === state.currentChatId);
         if (chat) {
+            chat.date = timestamp; 
             chat.msgs.push({ role: 'user', text: prompt });
             chat.msgs.push({ role: 'ai', text: response });
             localStorage.setItem('prysmis_history', JSON.stringify(state.history));
@@ -463,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
             div.innerHTML = `
                 <div>
                     <div class="font-bold text-gray-300 text-sm truncate w-48">${chat.title}</div>
-                    <div class="history-date">${chat.date}</div>
+                    <div class="history-date">${chat.date || 'Just now'}</div>
                 </div>
                 <button class="delete-history-btn" onclick="deleteChat(${chat.id}, event)"><i class="fa-solid fa-trash"></i></button>
             `;
@@ -486,6 +522,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.currentChatId = id;
         els.chatFeed.innerHTML = '';
+        
+        els.heroSection.classList.add('hidden'); 
+        els.heroSection.classList.remove('flex');
+
         chat.msgs.forEach(msg => {
             if (msg.role === 'user') appendUserMessage(msg.text, []);
             else {
@@ -496,8 +536,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.toggleHistory();
     };
 
-    
-    
     function checkDumperAccess() {
         const keyModal = document.getElementById('code-dumper-key-modal');
         const verifyBtn = document.getElementById('verify-key-btn');
@@ -525,7 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!key) return notify('Enter a key', 'error');
 
             try {
-                
                 const res = await fetch('/verify-key', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -545,8 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     notify(data.reason || 'Invalid Key', 'error');
                 }
             } catch (err) {
-                
-                if (key === 'dev-override') {
+                if (key === 'dev-override') { 
                     keyModal.classList.add('opacity-0');
                     setTimeout(() => keyModal.classList.add('hidden'), 300);
                     els.standardUi.classList.add('hidden');
@@ -559,8 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    
-    const dumperZone = document.getElementById('dumper-upload-zone');
     const dumperEditor = document.getElementById('dumper-editor-view');
     const dumperSkip = document.getElementById('dumper-skip-btn');
     const dumperUploadState = document.getElementById('dumper-upload-state');
@@ -571,7 +605,6 @@ document.addEventListener('DOMContentLoaded', () => {
         dumperEditor.classList.add('flex');
     };
 
-    
     document.getElementById('btn-obfuscate').onclick = () => {
         const input = document.getElementById('dumper-input-area').value;
         document.getElementById('dumper-output-area').value = "-- Obfuscated by Prysmis \n" + btoa(input).split('').reverse().join('');
