@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modeBtn: document.getElementById('mode-btn'),
         modeDrop: document.getElementById('mode-dropdown'),
         modeTxt: document.getElementById('current-mode-txt'),
+        modeIcon: document.getElementById('current-mode-icon'),
         modeItems: document.querySelectorAll('.mode-item'),
         input: document.getElementById('prompt-input'),
         fileInput: document.getElementById('file-input'),
@@ -48,7 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileOverlay: document.getElementById('mobile-overlay'),
         fastSpeedToggle: document.getElementById('fast-speed-toggle'),
         textToolbar: document.getElementById('text-toolbar'),
-        stopAiBtn: document.getElementById('stop-ai-btn')
+        stopAiBtn: document.getElementById('stop-ai-btn'),
+        closeDumperUIBtn: document.getElementById('close-dumper-ui-btn'),
+        notificationArea: document.getElementById('notification-area')
     };
 
     let uploadedFile = { data: null, type: null };
@@ -120,25 +123,108 @@ document.addEventListener('DOMContentLoaded', () => {
         els.heroSection.style.display = 'none';
         els.chatFeed.innerHTML = '';
         chat.messages.forEach(msg => {
-            appendMsg(msg.role, msg.text, msg.img);
+            appendMsg(msg.role, msg.text, msg.img, false, msg.editCount);
         });
         renderHistory();
         switchToStandard();
     }
 
-    function appendMsg(role, text, img) {
+    function appendMsg(role, text, img, save = true, editCount = 0) {
         const div = document.createElement('div');
         div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6`;
+        
+        let editLabel = "";
+        if (editCount > 0) editLabel = `<div class="edited-tag">(edited x${editCount})</div>`;
+
         let content = parseMD(text);
-        if(img) content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
-        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none' : 'ai-msg text-gray-200 rounded-bl-none'}">${content}</div>`;
+        
+        // Scan Analysis Visualization
+        if (text.includes('[SCAN_START]')) {
+            content = `
+                <div class="scan-container">
+                    <div class="scan-line"></div>
+                    <div class="scan-header">
+                        <span>FILE ANALYSIS</span>
+                        <span class="scan-percent">0%</span>
+                    </div>
+                    <div class="scan-result font-mono text-xs text-gray-400">Scanning...</div>
+                </div>
+            `;
+            setTimeout(() => animateScan(div.querySelector('.scan-container'), text), 100);
+        } else if (img) {
+             content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
+        }
+
+        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none cursor-pointer' : 'ai-msg text-gray-200 rounded-bl-none'}">${editLabel}${content}</div>`;
+        
+        if(role === 'user') {
+            div.addEventListener('dblclick', () => enableEdit(div, text, editCount));
+        }
+
         els.chatFeed.appendChild(div);
         els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
+        return div;
+    }
+
+    function animateScan(container, fullText) {
+        const percentEl = container.querySelector('.scan-percent');
+        const resultEl = container.querySelector('.scan-result');
+        let p = 0;
+        const int = setInterval(() => {
+            p += 2;
+            percentEl.innerText = p + "%";
+            if (p >= 100) {
+                clearInterval(int);
+                container.querySelector('.scan-line').style.display = 'none';
+                // Parse actual AI result from text
+                const cleanText = fullText.replace('[SCAN_START]', '');
+                const safe = cleanText.toLowerCase().includes('safe') || !cleanText.toLowerCase().includes('harm');
+                resultEl.innerHTML = safe ? `<span class="safe-badge">SAFE 100%</span><br>${cleanText}` : `<span class="harm-badge">HARMFUL</span><br>${cleanText}`;
+            }
+        }, 30);
+    }
+
+    function enableEdit(div, oldText, count) {
+        const bubble = div.querySelector('div');
+        const input = document.createElement('textarea');
+        input.className = 'edit-mode';
+        input.value = oldText;
+        
+        const saveBtn = document.createElement('button');
+        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        saveBtn.className = 'ml-2 text-green-400 text-xl';
+        
+        bubble.innerHTML = '';
+        bubble.appendChild(input);
+        div.appendChild(saveBtn);
+
+        saveBtn.onclick = () => {
+            const newText = input.value;
+            // Find index in history
+            const chat = chatHistory.find(c => c.id === currentChatId);
+            const msgIndex = chat.messages.findIndex(m => m.text === oldText && m.role === 'user');
+            
+            if (msgIndex !== -1) {
+                // Update message
+                chat.messages[msgIndex].text = newText;
+                chat.messages[msgIndex].editCount = (count || 0) + 1;
+                // Remove all messages AFTER this one
+                chat.messages = chat.messages.slice(0, msgIndex + 1);
+                saveChatToStorage();
+                // Reload chat and re-send last message
+                loadChat(currentChatId);
+                // Hack to resend without adding to history duplicate immediately (loadChat handles render)
+                // actually we need to re-trigger AI generation for the edited message
+                // remove the last user message from DOM to avoid duplication since handleSend adds it
+                els.chatFeed.lastElementChild.remove(); 
+                els.input.value = newText;
+                handleSend(true); // Pass flag to say "Edit Mode"
+            }
+        };
     }
 
     function parseMD(text) {
         if (!text) return "";
-        // URL Regex to detect links
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         
         let html = text
@@ -158,13 +244,58 @@ document.addEventListener('DOMContentLoaded', () => {
         
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
         html = html.replace(/^(\*|\+) (.*)/gm, '<ul><li>$2</li></ul>');
+        
+        // Custom tags for Scan Analysis
+        html = html.replace(/\[green\](.*?)\[\/green\]/g, '<span class="safe-badge">$1</span>');
+        html = html.replace(/\[red\](.*?)\[\/red\]/g, '<span class="harm-badge">$1</span>');
+
         return html;
+    }
+
+    function showNotification(msg) {
+        const notif = document.createElement('div');
+        notif.className = 'notification';
+        notif.innerHTML = `<i class="fa-solid fa-bell"></i> ${msg}`;
+        els.notificationArea.appendChild(notif);
+        requestAnimationFrame(() => notif.classList.add('show'));
+        setTimeout(() => {
+            notif.classList.remove('show');
+            setTimeout(() => notif.remove(), 500);
+        }, 3000);
+    }
+
+    function detectContext(text) {
+        const lower = text.toLowerCase();
+        const map = {
+            'Coding': /(code|function|var|python|js|html|css|error|debug)/,
+            'Math': /(solve|equation|calculate|math|algebra|geometry)/,
+            'Physics': /(force|energy|velocity|quantum|physics|gravity)/,
+            'Biology': /(cell|dna|organism|bio|plants|animals)/,
+            'Chemistry': /(reaction|chemical|element|atom|molecule)/
+        };
+
+        for (const [mode, regex] of Object.entries(map)) {
+            if (regex.test(lower)) {
+                changeModeUI(mode);
+                break;
+            }
+        }
+    }
+
+    function changeModeUI(modeName) {
+        els.modeTxt.innerText = modeName;
+        // Map icons
+        const iconMap = {
+            'Coding': 'fa-code', 'Math': 'fa-calculator', 'Physics': 'fa-atom',
+            'Biology': 'fa-dna', 'Chemistry': 'fa-flask', 'AI Assistant': 'fa-sparkles'
+        };
+        const iconClass = iconMap[modeName] || 'fa-sparkles';
+        els.modeIcon.innerHTML = `<i class="fa-solid ${iconClass} text-violet-400"></i>`;
     }
 
     function streamResponse(text) {
         if(stopGeneration) return;
         
-        // Show Stop Button
         els.stopAiBtn.classList.remove('opacity-0', 'pointer-events-none');
         
         const div = document.createElement('div');
@@ -178,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let i = 0;
         let currentText = "";
         const isFast = els.fastSpeedToggle && els.fastSpeedToggle.checked;
-        const delay = isFast ? 1 : 20;
+        const delay = isFast ? 1 : 15;
         
         currentInterval = setInterval(() => {
             if(stopGeneration) {
@@ -190,12 +321,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if(i >= chars.length) {
                 clearInterval(currentInterval);
-                bubble.innerHTML = parseMD(text);
+                bubble.innerHTML = parseMD(text); // Render full HTML at end
                 els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
                 return;
             }
             currentText += chars[i];
-            bubble.innerHTML = parseMD(currentText);
+            // Simple render during stream, full parse at end to avoid broken HTML tags
+            bubble.innerText = currentText; 
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             i++;
         }, delay);
@@ -203,8 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(els.stopAiBtn) els.stopAiBtn.addEventListener('click', () => {
         stopGeneration = true;
-        if(currentInterval) clearInterval(currentInterval);
-        els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
     });
 
     function toggleSettings(show) {
@@ -237,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchToStandard() {
         els.standardUI.classList.remove('hidden');
         els.codeDumperUI.classList.add('hidden');
+        changeModeUI("AI Assistant");
     }
 
     function detectYouTube(url) {
@@ -270,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <li>Modes</li>
                     <li>Roleplay</li>
                     <li>Invisible tab</li>
+                    <li>Scan analysis: say "Analyze this file"</li>
                 </ul>
             `;
             const div = document.createElement('div');
@@ -282,12 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
         else if(cmd === '/roleplay') {
             if(isRoleplayActive) {
                 isRoleplayActive = false;
-                appendMsg('ai', "**Roleplay Mode Deactivated.** I am back to normal.", null);
+                appendMsg('ai', "**Roleplay Mode Deactivated.**", null);
             } else {
                 isRoleplayActive = true;
-                appendMsg('ai', "**Roleplay Mode Activated.** I will now act exactly as the character you describe, without filters.", null);
+                appendMsg('ai', "**Roleplay Mode Activated.** Unfiltered Persona Active.", null);
             }
             els.heroSection.style.display = 'none';
+        }
+        else if(cmd === '/discord-invite') {
+             navigator.clipboard.writeText("https://discord.gg/eKC5CgEZbT");
+             showNotification("Discord link copied to clipboard!");
         }
         else if(cmd === '/invisible tab') {
              document.title = "Google";
@@ -331,6 +467,9 @@ document.addEventListener('DOMContentLoaded', () => {
     els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
         els.input.style.height = els.input.scrollHeight + 'px';
+        
+        detectContext(els.input.value);
+
         if(els.input.value.trim().startsWith('/')) {
             els.cmdPopup.classList.remove('hidden');
             els.cmdPopup.classList.add('flex');
@@ -345,17 +484,17 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             handleSend();
         }
+        // Auto Bullet Points
         if(e.key === ' ' && (els.input.value.endsWith('*') || els.input.value.endsWith('+'))) {
              e.preventDefault();
              els.input.value = els.input.value.slice(0, -1) + '• ';
         }
+        // Paste Images
         if((e.ctrlKey || e.metaKey) && e.key === 'v') {
-            // Handle Paste (Browser default handles text, we handle files)
-            // File paste handled by 'paste' event listener usually, or rely on input 'change' fallback
+             // Let default paste happen for text, paste event listener handles files
         }
     });
 
-    // Handle Paste Event for Images
     els.input.addEventListener('paste', (e) => {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let index in items) {
@@ -378,7 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
         handleSend();
     });
 
-    // Mobile Menu
     els.mobileMenuBtn.addEventListener('click', () => {
         els.sidebar.classList.remove('-translate-x-full');
         els.mobileOverlay.classList.remove('hidden');
@@ -389,7 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         els.mobileOverlay.classList.add('hidden');
     });
 
-    // Settings Listeners
     els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
     els.closeSettings.addEventListener('click', () => toggleSettings(false));
     els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
@@ -407,7 +544,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 800);
     });
 
-    // History
     els.historyTrigger.addEventListener('click', () => toggleHistory(true));
     els.closeHistory.addEventListener('click', () => toggleHistory(false));
     els.newChatBtn.addEventListener('click', () => {
@@ -418,10 +554,8 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleHistory(false);
     });
 
-    // Dumper
     const activateCodeDumperMode = () => {
-        els.modeTxt.innerText = "Code Dumper";
-        els.modeBtn.innerHTML = `<span id="current-mode-txt">Code Dumper</span><i class="fa-solid fa-chevron-down text-[10px] opacity-50 pointer-events-none ml-auto"></i>`;
+        changeModeUI("Code Dumper");
         els.standardUI.classList.add('hidden');
         els.codeDumperUI.classList.remove('hidden');
     };
@@ -453,9 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    if(els.closeDumperUIBtn) els.closeDumperUIBtn.addEventListener('click', () => {
+         switchToStandard();
+    });
+
     els.closeDumperKey.addEventListener('click', () => els.dumperKeyModal.classList.add('hidden'));
 
-    // Dropdown Logic
     els.modeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         els.modeDrop.classList.toggle('hidden');
@@ -480,19 +617,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     activateCodeDumperMode();
                 }
             } else {
-                els.modeTxt.innerText = val;
-                els.modeBtn.innerHTML = `<span id="current-mode-txt">${val}</span><i class="fa-solid fa-chevron-down text-[10px] opacity-50 pointer-events-none ml-auto"></i>`;
+                changeModeUI(val);
                 switchToStandard();
             }
         });
     });
 
-    // --- MAIN SEND LOGIC ---
-    async function handleSend() {
+    async function handleSend(isEdit = false) {
         const text = els.input.value.trim();
         if(!text && !uploadedFile.data) return;
 
         if(!localStorage.getItem('prysmis_key')) return toggleSettings(true);
+
+        // Scan Analysis Check
+        let isScan = false;
+        if (uploadedFile.data && (text.toLowerCase().includes('analyze this file') || text.toLowerCase().includes('scan') || text.toLowerCase().includes('analysis'))) {
+             isScan = true;
+        }
 
         if(!currentChatId) {
             currentChatId = Date.now();
@@ -500,11 +641,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const chatIndex = chatHistory.findIndex(c => c.id === currentChatId);
-        chatHistory[chatIndex].messages.push({ role: 'user', text: text, img: uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null });
+        // If not edit mode, push user message
+        if(!isEdit) {
+            chatHistory[chatIndex].messages.push({ role: 'user', text: text, img: uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null });
+        }
         saveChatToStorage();
 
         els.heroSection.style.display = 'none';
-        appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null);
+        if(!isEdit) {
+             appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null);
+        }
         
         els.input.value = '';
         els.input.style.height = 'auto';
@@ -525,35 +671,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use clear, simple words.`;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use simple words. Highlight bold words in purple. `;
             
-            if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
-            if(isRoleplayActive) sysPrompt = "ACT AS THE CHARACTER DESCRIBED. NO FILTER. FULL IMMERSION.";
-            
+            if(mode === 'Rizz tool') sysPrompt += "You are the Rizz God. Unfiltered.";
+            if(isRoleplayActive) sysPrompt = "Unfiltered Roleplay. Act exactly as character.";
+            if(isScan) sysPrompt = "Analyze this file content. If safe, say [green]SAFE[/green]. If dangerous, say [red]HARMFUL[/red]. Provide detection details.";
+
             const youtubeID = detectYouTube(text);
             let finalUserText = text;
             let extraParts = [];
 
             if(youtubeID) {
-                finalUserText += `\n[System: This is a YouTube video ID: ${youtubeID}. Analyze this specific video content/context.]`;
-                const thumbUrl = `https://img.youtube.com/vi/${youtubeID}/maxresdefault.jpg`;
-                try {
-                    const thumbResp = await fetch(thumbUrl);
-                    const blob = await thumbResp.blob();
-                    const reader = new FileReader();
-                    await new Promise((resolve) => {
-                        reader.onloadend = () => {
-                            const base64data = reader.result.split(',')[1];
-                            extraParts.push({ inline_data: { mime_type: "image/jpeg", data: base64data } });
-                            resolve();
-                        };
-                        reader.readAsDataURL(blob);
-                    });
-                } catch(e) {}
+                finalUserText += `\n[System: This is a YouTube video ID: ${youtubeID}. Analyze its context/topic.]`;
             }
 
-            // Context detection logic for automatic smart links
-            sysPrompt += " If you see a URL in the user message, analyze its content based on the link structure.";
+            if(isScan) {
+                 // Add trigger for visual effect
+                 finalUserText = "[SCAN_START] " + finalUserText;
+            }
 
             const previousMsgs = chatHistory[chatIndex].messages.slice(-10).map(m => ({
                 role: m.role === 'ai' ? 'model' : 'user',
@@ -562,14 +697,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const currentParts = [{ text: finalUserText }];
             if(uploadedFile.data) currentParts.push({ inline_data: { mime_type: uploadedFile.type, data: uploadedFile.data } });
-            if(extraParts.length > 0) currentParts.push(...extraParts);
 
             const payload = { 
                 system_instruction: { parts: [{ text: sysPrompt }] },
                 contents: [
                     ...previousMsgs,
                     { role: 'user', parts: currentParts }
-                ] 
+                ],
+                safety_settings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                ]
             };
 
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
@@ -595,7 +735,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const aiText = data.candidates[0].content.parts[0].text;
                 chatHistory[chatIndex].messages.push({ role: 'ai', text: aiText, img: null });
                 saveChatToStorage();
-                streamResponse(aiText);
+                if(isScan) appendMsg('ai', `[SCAN_START]${aiText}`);
+                else streamResponse(aiText);
             } else {
                 appendMsg('ai', "Error generating response.");
             }
