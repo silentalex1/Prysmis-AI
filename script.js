@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modeBtn: document.getElementById('mode-btn'),
         modeDrop: document.getElementById('mode-dropdown'),
         modeTxt: document.getElementById('current-mode-txt'),
-        modeIcon: document.getElementById('current-mode-icon'),
+        modeIcon: document.getElementById('mode-icon'),
         modeItems: document.querySelectorAll('.mode-item'),
         input: document.getElementById('prompt-input'),
         fileInput: document.getElementById('file-input'),
@@ -31,13 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
         verifyKeyBtn: document.getElementById('verify-key-btn'),
         codeDumperUI: document.getElementById('code-dumper-ui'),
         standardUI: document.getElementById('standard-ui'),
-        dumperUploadState: document.getElementById('dumper-upload-state'),
-        dumperEditorView: document.getElementById('dumper-editor-view'),
-        dumperUploadZone: document.getElementById('dumper-upload-zone'),
-        dumperFileInput: document.getElementById('dumper-file-input'),
-        dumperSkipBtn: document.getElementById('dumper-skip-btn'),
-        dumperInputArea: document.getElementById('dumper-input-area'),
-        dumperOutputArea: document.getElementById('dumper-output-area'),
         btnObfuscate: document.getElementById('btn-obfuscate'),
         btnDeobfuscate: document.getElementById('btn-deobfuscate'),
         terminalLog: document.getElementById('terminal-log'),
@@ -50,18 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
         fastSpeedToggle: document.getElementById('fast-speed-toggle'),
         textToolbar: document.getElementById('text-toolbar'),
         stopAiBtn: document.getElementById('stop-ai-btn'),
-        closeDumperUIBtn: document.getElementById('close-dumper-ui-btn'),
-        notificationArea: document.getElementById('notification-area')
+        notificationArea: document.getElementById('notification-area'),
+        dropOverlay: document.getElementById('drop-overlay')
     };
 
-    let uploadedFile = { data: null, type: null };
+    let uploadedFile = { data: null, type: null, name: null };
     let chatHistory = JSON.parse(localStorage.getItem('prysmis_history')) || [];
     let currentChatId = null;
     let isCodeDumperUnlocked = false;
-    let currentLang = 'Lua';
     let isRoleplayActive = false;
     let currentInterval = null;
     let stopGeneration = false;
+    let abortController = null;
     
     const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
     const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
@@ -95,13 +88,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <button class="delete-history-btn"><i class="fa-solid fa-trash"></i></button>
             `;
-            
             div.onclick = (e) => {
                 loadChat(chat.id);
                 toggleHistory(false);
                 if(window.innerWidth < 768) toggleMobileMenu();
             };
-
             const delBtn = div.querySelector('.delete-history-btn');
             delBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -111,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveChatToStorage();
                 }
             };
-
             els.historyList.appendChild(div);
         });
     }
@@ -122,111 +112,65 @@ document.addEventListener('DOMContentLoaded', () => {
         currentChatId = id;
         els.heroSection.style.display = 'none';
         els.chatFeed.innerHTML = '';
-        chat.messages.forEach(msg => {
-            appendMsg(msg.role, msg.text, msg.img, false, msg.editCount);
+        chat.messages.forEach((msg, index) => {
+            appendMsg(msg.role, msg.text, msg.img, msg.edits, index);
         });
         renderHistory();
         switchToStandard();
     }
 
-    function appendMsg(role, text, img, save = true, editCount = 0) {
+    function appendMsg(role, text, img, edits = 0, index = -1) {
         const div = document.createElement('div');
-        div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6`;
+        div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} msg-anim mb-6 group relative`;
         
-        let editLabel = "";
-        if (editCount > 0) editLabel = `<div class="edited-tag">(edited x${editCount})</div>`;
-
+        let editLabel = edits > 0 ? `<span class="edited-label">edited x${edits}</span>` : '';
         let content = parseMD(text);
-        
-        // Scan Analysis Visualization
-        if (text.includes('[SCAN_START]')) {
-            content = `
-                <div class="scan-container">
-                    <div class="scan-line"></div>
-                    <div class="scan-header">
-                        <span>FILE ANALYSIS</span>
-                        <span class="scan-percent">0%</span>
-                    </div>
-                    <div class="scan-result font-mono text-xs text-gray-400">Scanning...</div>
-                </div>
-            `;
-            setTimeout(() => animateScan(div.querySelector('.scan-container'), text), 100);
-        } else if (img) {
-             content = `<img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20">` + content;
-        }
+        if(img) content = `<div class="relative"><img src="${img}" class="max-w-[200px] rounded-lg mb-2 border border-white/20"></div>` + content;
 
-        div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none cursor-pointer' : 'ai-msg text-gray-200 rounded-bl-none'}">${editLabel}${content}</div>`;
+        div.innerHTML = `
+            <div class="flex flex-col ${role === 'user' ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]">
+                ${role === 'user' ? editLabel : ''}
+                <div class="p-4 rounded-[20px] shadow-lg prose ${role === 'user' ? 'user-msg text-white rounded-br-none cursor-pointer' : 'ai-msg text-gray-200 rounded-bl-none'}">${content}</div>
+            </div>
+        `;
         
-        if(role === 'user') {
-            div.addEventListener('dblclick', () => enableEdit(div, text, editCount));
+        if (role === 'user' && index !== -1) {
+            div.querySelector('.user-msg').addEventListener('dblclick', () => handleEdit(index, text));
         }
 
         els.chatFeed.appendChild(div);
         els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-        return div;
     }
 
-    function animateScan(container, fullText) {
-        const percentEl = container.querySelector('.scan-percent');
-        const resultEl = container.querySelector('.scan-result');
-        let p = 0;
-        const int = setInterval(() => {
-            p += 2;
-            percentEl.innerText = p + "%";
-            if (p >= 100) {
-                clearInterval(int);
-                container.querySelector('.scan-line').style.display = 'none';
-                // Parse actual AI result from text
-                const cleanText = fullText.replace('[SCAN_START]', '');
-                const safe = cleanText.toLowerCase().includes('safe') || !cleanText.toLowerCase().includes('harm');
-                resultEl.innerHTML = safe ? `<span class="safe-badge">SAFE 100%</span><br>${cleanText}` : `<span class="harm-badge">HARMFUL</span><br>${cleanText}`;
-            }
-        }, 30);
-    }
-
-    function enableEdit(div, oldText, count) {
-        const bubble = div.querySelector('div');
-        const input = document.createElement('textarea');
-        input.className = 'edit-mode';
-        input.value = oldText;
-        
-        const saveBtn = document.createElement('button');
-        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
-        saveBtn.className = 'ml-2 text-green-400 text-xl';
-        
-        bubble.innerHTML = '';
-        bubble.appendChild(input);
-        div.appendChild(saveBtn);
-
-        saveBtn.onclick = () => {
-            const newText = input.value;
-            // Find index in history
+    function handleEdit(index, oldText) {
+        const newText = prompt("Edit your message:", oldText);
+        if (newText !== null && newText !== oldText) {
             const chat = chatHistory.find(c => c.id === currentChatId);
-            const msgIndex = chat.messages.findIndex(m => m.text === oldText && m.role === 'user');
-            
-            if (msgIndex !== -1) {
-                // Update message
-                chat.messages[msgIndex].text = newText;
-                chat.messages[msgIndex].editCount = (count || 0) + 1;
-                // Remove all messages AFTER this one
-                chat.messages = chat.messages.slice(0, msgIndex + 1);
+            if (chat) {
+                chat.messages[index].text = newText;
+                chat.messages[index].edits = (chat.messages[index].edits || 0) + 1;
+                
+                if (chat.messages[index + 1] && chat.messages[index + 1].role === 'ai') {
+                    chat.messages.splice(index + 1, 1);
+                }
+                
+                chatHistory = chatHistory.filter(c => c.id !== currentChatId);
+                chatHistory.unshift(chat); 
+                
                 saveChatToStorage();
-                // Reload chat and re-send last message
                 loadChat(currentChatId);
-                // Hack to resend without adding to history duplicate immediately (loadChat handles render)
-                // actually we need to re-trigger AI generation for the edited message
-                // remove the last user message from DOM to avoid duplication since handleSend adds it
-                els.chatFeed.lastElementChild.remove(); 
-                els.input.value = newText;
-                handleSend(true); // Pass flag to say "Edit Mode"
+                
+                const lastMsg = chat.messages[chat.messages.length - 1];
+                if (lastMsg.role === 'user') {
+                    handleSend(true); 
+                }
             }
-        };
+        }
     }
 
     function parseMD(text) {
         if (!text) return "";
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        
         let html = text
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -244,58 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
         html = html.replace(/^(\*|\+) (.*)/gm, '<ul><li>$2</li></ul>');
-        
-        // Custom tags for Scan Analysis
-        html = html.replace(/\[green\](.*?)\[\/green\]/g, '<span class="safe-badge">$1</span>');
-        html = html.replace(/\[red\](.*?)\[\/red\]/g, '<span class="harm-badge">$1</span>');
-
         return html;
-    }
-
-    function showNotification(msg) {
-        const notif = document.createElement('div');
-        notif.className = 'notification';
-        notif.innerHTML = `<i class="fa-solid fa-bell"></i> ${msg}`;
-        els.notificationArea.appendChild(notif);
-        requestAnimationFrame(() => notif.classList.add('show'));
-        setTimeout(() => {
-            notif.classList.remove('show');
-            setTimeout(() => notif.remove(), 500);
-        }, 3000);
-    }
-
-    function detectContext(text) {
-        const lower = text.toLowerCase();
-        const map = {
-            'Coding': /(code|function|var|python|js|html|css|error|debug)/,
-            'Math': /(solve|equation|calculate|math|algebra|geometry)/,
-            'Physics': /(force|energy|velocity|quantum|physics|gravity)/,
-            'Biology': /(cell|dna|organism|bio|plants|animals)/,
-            'Chemistry': /(reaction|chemical|element|atom|molecule)/
-        };
-
-        for (const [mode, regex] of Object.entries(map)) {
-            if (regex.test(lower)) {
-                changeModeUI(mode);
-                break;
-            }
-        }
-    }
-
-    function changeModeUI(modeName) {
-        els.modeTxt.innerText = modeName;
-        // Map icons
-        const iconMap = {
-            'Coding': 'fa-code', 'Math': 'fa-calculator', 'Physics': 'fa-atom',
-            'Biology': 'fa-dna', 'Chemistry': 'fa-flask', 'AI Assistant': 'fa-sparkles'
-        };
-        const iconClass = iconMap[modeName] || 'fa-sparkles';
-        els.modeIcon.innerHTML = `<i class="fa-solid ${iconClass} text-violet-400"></i>`;
     }
 
     function streamResponse(text) {
         if(stopGeneration) return;
-        
         els.stopAiBtn.classList.remove('opacity-0', 'pointer-events-none');
         
         const div = document.createElement('div');
@@ -318,16 +215,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 stopGeneration = false;
                 return;
             }
-            
             if(i >= chars.length) {
                 clearInterval(currentInterval);
-                bubble.innerHTML = parseMD(text); // Render full HTML at end
+                bubble.innerHTML = parseMD(text);
                 els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
                 return;
             }
             currentText += chars[i];
-            // Simple render during stream, full parse at end to avoid broken HTML tags
-            bubble.innerText = currentText; 
+            bubble.innerHTML = parseMD(currentText);
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             i++;
         }, delay);
@@ -335,54 +230,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(els.stopAiBtn) els.stopAiBtn.addEventListener('click', () => {
         stopGeneration = true;
+        if(abortController) abortController.abort();
+        if(currentInterval) clearInterval(currentInterval);
+        els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
     });
 
-    function toggleSettings(show) {
-        if(show) {
-            els.settingsOverlay.classList.remove('hidden');
-            requestAnimationFrame(() => {
-                els.settingsOverlay.classList.remove('opacity-0');
-                els.settingsBox.classList.remove('scale-95');
-                els.settingsBox.classList.add('scale-100');
-            });
-        } else {
-            els.settingsOverlay.classList.add('opacity-0');
-            els.settingsBox.classList.remove('scale-100');
-            els.settingsBox.classList.add('scale-95');
-            setTimeout(() => els.settingsOverlay.classList.add('hidden'), 300);
+    function showNotification(msg) {
+        const notif = document.createElement('div');
+        notif.className = 'notification';
+        notif.textContent = msg;
+        els.notificationArea.appendChild(notif);
+        setTimeout(() => {
+            notif.style.animation = 'slideOutRight 0.3s forwards';
+            setTimeout(() => notif.remove(), 300);
+        }, 3000);
+    }
+
+    function detectMode(text) {
+        const lower = text.toLowerCase();
+        let detectedMode = null;
+        
+        if(lower.includes('code') || lower.includes('function') || lower.includes('script')) detectedMode = 'Coding';
+        else if(lower.includes('solve') || lower.includes('calc') || lower.includes('equation')) detectedMode = 'Geometry';
+        else if(lower.includes('physics') || lower.includes('gravity') || lower.includes('force')) detectedMode = 'Physics';
+        else if(lower.includes('date') || lower.includes('flirt') || lower.includes('pickup')) detectedMode = 'Rizz tool';
+        
+        if(detectedMode) {
+            els.modeTxt.innerText = detectedMode;
+            updateDropdownUI(detectedMode);
         }
     }
 
-    function toggleHistory(show) {
-        if(show) {
-            els.historyModal.classList.remove('hidden');
-            requestAnimationFrame(() => els.historyModal.classList.remove('opacity-0'));
-            renderHistory();
-        } else {
-            els.historyModal.classList.add('opacity-0');
-            setTimeout(() => els.historyModal.classList.add('hidden'), 300);
-        }
+    function updateDropdownUI(val) {
+        const iconMap = {
+            'AI Assistant': 'fa-sparkles', 'Code Dumper': 'fa-terminal', 'Rizz tool': 'fa-heart',
+            'Geometry': 'fa-shapes', 'English': 'fa-feather', 'Biology': 'fa-dna',
+            'Physics': 'fa-atom', 'Chemistry': 'fa-flask', 'Coding': 'fa-code',
+            'Debate': 'fa-gavel', 'Psychology': 'fa-brain', 'History': 'fa-landmark'
+        };
+        els.modeIcon.innerHTML = `<i class="fa-solid ${iconMap[val] || 'fa-sparkles'} text-violet-400"></i>`;
+        els.modeTxt.innerText = val;
     }
 
-    function switchToStandard() {
-        els.standardUI.classList.remove('hidden');
-        els.codeDumperUI.classList.add('hidden');
-        changeModeUI("AI Assistant");
-    }
-
-    function detectYouTube(url) {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    }
-
+    // --- INITIALIZATION ---
     loadKey();
     renderHistory();
 
-    window.setInput = (txt) => {
-        els.input.value = txt;
-        els.input.focus();
-    };
+    // --- EVENT LISTENERS ---
+    window.setInput = (txt) => { els.input.value = txt; els.input.focus(); };
 
     window.runCmd = (cmd) => {
         if(cmd === '/clear') {
@@ -390,71 +285,82 @@ document.addEventListener('DOMContentLoaded', () => {
             els.chatFeed.innerHTML = '';
             els.chatFeed.appendChild(els.heroSection);
             els.heroSection.style.display = 'flex';
-        }
-        else if(cmd === '/features') {
-            const featureHTML = `
-                <div style="font-family: 'Cinzel', serif; font-size: 1.1em; margin-bottom: 10px; color: #a78bfa;">PrysmisAI features -- still in beta</div>
-                <hr class="visual-line">
-                <ul class="feature-list list-disc pl-5">
-                    <li>YouTube analysis</li>
-                    <li>Domain external viewer</li>
-                    <li>Modes</li>
-                    <li>Roleplay</li>
-                    <li>Invisible tab</li>
-                    <li>Scan analysis: say "Analyze this file"</li>
-                </ul>
-            `;
+        } else if(cmd === '/features') {
+            const featureHTML = `<div style="font-family: 'Cinzel', serif; font-size: 1.1em; margin-bottom: 10px; color: #a78bfa;">PrysmisAI features -- still in beta</div><hr class="visual-line"><ul class="feature-list list-disc pl-5"><li>YouTube analysis</li><li>Domain external viewer</li><li>Modes</li><li>Roleplay</li><li>Invisible tab</li><li>Scan analysis</li></ul>`;
             const div = document.createElement('div');
             div.className = `flex w-full justify-start msg-anim mb-6`;
             div.innerHTML = `<div class="max-w-[85%] md:max-w-[70%] p-4 rounded-[20px] shadow-lg prose ai-msg text-gray-200 rounded-bl-none">${featureHTML}</div>`;
             els.chatFeed.appendChild(div);
             els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
             els.heroSection.style.display = 'none';
-        }
-        else if(cmd === '/roleplay') {
-            if(isRoleplayActive) {
-                isRoleplayActive = false;
-                appendMsg('ai', "**Roleplay Mode Deactivated.**", null);
-            } else {
-                isRoleplayActive = true;
-                appendMsg('ai', "**Roleplay Mode Activated.** Unfiltered Persona Active.", null);
-            }
+        } else if(cmd === '/roleplay') {
+            isRoleplayActive = !isRoleplayActive;
+            const status = isRoleplayActive ? "Activated" : "Deactivated";
+            appendMsg('ai', `**Roleplay Mode ${status}.** ${isRoleplayActive ? "Unfiltered persona enabled." : "Back to normal."}`, null);
             els.heroSection.style.display = 'none';
+        } else if(cmd === '/discord-invite') {
+            navigator.clipboard.writeText("https://discord.gg/eKC5CgEZbT");
+            showNotification("Discord server link copied onto your clipboard!");
         }
-        else if(cmd === '/discord-invite') {
-             navigator.clipboard.writeText("https://discord.gg/eKC5CgEZbT");
-             showNotification("Discord link copied to clipboard!");
-        }
-        else if(cmd === '/invisible tab') {
-             document.title = "Google";
-             const link = document.querySelector("link[rel~='icon']");
-             if (link) link.href = 'https://www.google.com/favicon.ico';
-        }
-        
         els.cmdPopup.classList.add('hidden');
         els.cmdPopup.classList.remove('flex');
         els.input.value = '';
         els.input.focus();
     };
 
-    window.insertFormat = (startTag, endTag) => {
+    window.insertFormat = (s, e) => {
         const start = els.input.selectionStart;
         const end = els.input.selectionEnd;
-        const text = els.input.value;
-        const selectedText = text.substring(start, end);
-        const replacement = startTag + selectedText + endTag;
-        els.input.value = text.substring(0, start) + replacement + text.substring(end);
+        const txt = els.input.value;
+        els.input.value = txt.substring(0, start) + s + txt.substring(start, end) + e + txt.substring(end);
         els.input.focus();
-        els.input.setSelectionRange(start + startTag.length, end + startTag.length);
         els.textToolbar.classList.add('hidden');
     };
 
     window.copyCode = (btn) => {
-        const code = btn.parentElement.nextElementSibling.innerText;
-        navigator.clipboard.writeText(code);
+        navigator.clipboard.writeText(btn.parentElement.nextElementSibling.innerText);
         btn.innerText = "Copied!";
         setTimeout(() => btn.innerText = "Copy", 2000);
     };
+
+    window.clearMedia = () => {
+        uploadedFile = { data: null, type: null, name: null };
+        els.mediaPreview.innerHTML = '';
+        els.fileInput.value = '';
+    };
+
+    // Drag & Drop
+    document.addEventListener('dragover', (e) => { e.preventDefault(); els.dropOverlay.classList.remove('hidden'); els.dropOverlay.classList.add('flex'); els.dropOverlay.classList.remove('opacity-0'); });
+    els.dropOverlay.addEventListener('dragleave', (e) => { e.preventDefault(); els.dropOverlay.classList.add('opacity-0'); setTimeout(() => els.dropOverlay.classList.add('hidden'), 300); });
+    els.dropOverlay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.dropOverlay.classList.add('opacity-0');
+        setTimeout(() => els.dropOverlay.classList.add('hidden'), 300);
+        if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    });
+
+    els.input.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let index in items) {
+            const item = items[index];
+            if (item.kind === 'file') handleFileSelect(item.getAsFile());
+        }
+    });
+
+    function handleFileSelect(file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            uploadedFile = { data: ev.target.result.split(',')[1], type: file.type, name: file.name };
+            let previewContent = file.type.startsWith('image') 
+                ? `<img src="${ev.target.result}" class="w-full h-full object-cover">`
+                : `<div class="flex items-center justify-center h-full bg-white/10 text-xs p-2 text-center">${file.name}</div>`;
+                
+            els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group">${previewContent}<button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    els.fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
 
     document.addEventListener('selectionchange', () => {
         if (document.activeElement === els.input && els.input.selectionStart !== els.input.selectionEnd) {
@@ -467,145 +373,25 @@ document.addEventListener('DOMContentLoaded', () => {
     els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
         els.input.style.height = els.input.scrollHeight + 'px';
-        
-        detectContext(els.input.value);
-
-        if(els.input.value.trim().startsWith('/')) {
-            els.cmdPopup.classList.remove('hidden');
-            els.cmdPopup.classList.add('flex');
-        } else {
-            els.cmdPopup.classList.add('hidden');
-            els.cmdPopup.classList.remove('flex');
-        }
+        detectMode(els.input.value);
+        if(els.input.value.trim().startsWith('/')) { els.cmdPopup.classList.remove('hidden'); els.cmdPopup.classList.add('flex'); } 
+        else { els.cmdPopup.classList.add('hidden'); els.cmdPopup.classList.remove('flex'); }
     });
 
     els.input.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-        // Auto Bullet Points
+        if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
         if(e.key === ' ' && (els.input.value.endsWith('*') || els.input.value.endsWith('+'))) {
-             e.preventDefault();
-             els.input.value = els.input.value.slice(0, -1) + '• ';
-        }
-        // Paste Images
-        if((e.ctrlKey || e.metaKey) && e.key === 'v') {
-             // Let default paste happen for text, paste event listener handles files
+             e.preventDefault(); els.input.value = els.input.value.slice(0, -1) + '• ';
         }
     });
 
-    els.input.addEventListener('paste', (e) => {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let index in items) {
-            const item = items[index];
-            if (item.kind === 'file') {
-                const blob = item.getAsFile();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                     uploadedFile.data = event.target.result.split(',')[1];
-                     uploadedFile.type = blob.type;
-                     els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group"><img src="${event.target.result}" class="w-full h-full object-cover"><button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
-                };
-                reader.readAsDataURL(blob);
-            }
-        }
-    });
-
-    els.submitBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        handleSend();
-    });
-
-    els.mobileMenuBtn.addEventListener('click', () => {
-        els.sidebar.classList.remove('-translate-x-full');
-        els.mobileOverlay.classList.remove('hidden');
-    });
-
-    els.mobileOverlay.addEventListener('click', () => {
-        els.sidebar.classList.add('-translate-x-full');
-        els.mobileOverlay.classList.add('hidden');
-    });
-
-    els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
-    els.closeSettings.addEventListener('click', () => toggleSettings(false));
-    els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
+    els.submitBtn.addEventListener('click', (e) => { e.preventDefault(); handleSend(); });
+    els.mobileMenuBtn.addEventListener('click', () => { els.sidebar.classList.remove('-translate-x-full'); els.mobileOverlay.classList.remove('hidden'); });
+    els.mobileOverlay.addEventListener('click', () => { els.sidebar.classList.add('-translate-x-full'); els.mobileOverlay.classList.add('hidden'); });
     
-    if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
-        if(els.apiKey.value.trim()) localStorage.setItem('prysmis_key', els.apiKey.value.trim());
-        if(els.fastSpeedToggle) localStorage.setItem('prysmis_fast_speed', els.fastSpeedToggle.checked);
-        
-        els.saveSettings.textContent = "Saved";
-        els.saveSettings.classList.add('bg-green-500', 'text-white');
-        setTimeout(() => {
-            toggleSettings(false);
-            els.saveSettings.textContent = "Save Changes";
-            els.saveSettings.classList.remove('bg-green-500', 'text-white');
-        }, 800);
-    });
-
-    els.historyTrigger.addEventListener('click', () => toggleHistory(true));
-    els.closeHistory.addEventListener('click', () => toggleHistory(false));
-    els.newChatBtn.addEventListener('click', () => {
-        currentChatId = null;
-        els.chatFeed.innerHTML = '';
-        els.chatFeed.appendChild(els.heroSection);
-        els.heroSection.style.display = 'flex';
-        toggleHistory(false);
-    });
-
-    const activateCodeDumperMode = () => {
-        changeModeUI("Code Dumper");
-        els.standardUI.classList.add('hidden');
-        els.codeDumperUI.classList.remove('hidden');
-    };
-
-    if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
-        const key = els.dumperKeyInput.value.trim();
-        if(!key) return;
-        els.verifyKeyBtn.textContent = "Verifying...";
-        try {
-            const req = await fetch(BOT_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: key })
-            });
-            const res = await req.json();
-            if(res.valid) {
-                isCodeDumperUnlocked = true;
-                els.dumperKeyModal.classList.add('hidden');
-                activateCodeDumperMode();
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-                els.dumperKeyInput.value = "";
-            } else {
-                alert(res.reason || "Invalid Key");
-                els.verifyKeyBtn.textContent = "Verify Key Access";
-            }
-        } catch(e) {
-            alert("Connection failed. Run the bot.");
-            els.verifyKeyBtn.textContent = "Verify Key Access";
-        }
-    });
-
-    if(els.closeDumperUIBtn) els.closeDumperUIBtn.addEventListener('click', () => {
-         switchToStandard();
-    });
-
-    els.closeDumperKey.addEventListener('click', () => els.dumperKeyModal.classList.add('hidden'));
-
-    els.modeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        els.modeDrop.classList.toggle('hidden');
-        els.modeDrop.classList.toggle('flex');
-    });
-
-    document.addEventListener('click', (e) => {
-        if(!els.modeBtn.contains(e.target)) {
-            els.modeDrop.classList.add('hidden');
-            els.modeDrop.classList.remove('flex');
-        }
-    });
-
+    els.modeBtn.addEventListener('click', (e) => { e.stopPropagation(); els.modeDrop.classList.toggle('hidden'); els.modeDrop.classList.toggle('flex'); });
+    document.addEventListener('click', (e) => { if(!els.modeBtn.contains(e.target)) { els.modeDrop.classList.add('hidden'); els.modeDrop.classList.remove('flex'); } });
+    
     els.modeItems.forEach(item => {
         item.addEventListener('click', () => {
             const val = item.getAttribute('data-val');
@@ -614,26 +400,54 @@ document.addEventListener('DOMContentLoaded', () => {
                     els.dumperKeyModal.classList.remove('hidden');
                     requestAnimationFrame(() => els.dumperKeyModal.classList.remove('opacity-0'));
                 } else {
-                    activateCodeDumperMode();
+                    els.modeTxt.innerText = "Code Dumper";
+                    els.standardUI.classList.add('hidden');
+                    els.codeDumperUI.classList.remove('hidden');
                 }
             } else {
-                changeModeUI(val);
+                updateDropdownUI(val);
                 switchToStandard();
             }
         });
     });
+    
+    // Settings Logic
+    els.settingsTriggers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); }));
+    els.closeSettings.addEventListener('click', () => toggleSettings(false));
+    els.getStartedBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(true); });
+    if(els.saveSettings) els.saveSettings.addEventListener('click', () => {
+        if(els.apiKey.value.trim()) localStorage.setItem('prysmis_key', els.apiKey.value.trim());
+        if(els.fastSpeedToggle) localStorage.setItem('prysmis_fast_speed', els.fastSpeedToggle.checked);
+        els.saveSettings.textContent = "Saved";
+        els.saveSettings.classList.add('bg-green-500', 'text-white');
+        setTimeout(() => { toggleSettings(false); els.saveSettings.textContent = "Save Changes"; els.saveSettings.classList.remove('bg-green-500', 'text-white'); }, 800);
+    });
+
+    // Dumper Logic
+    if(els.verifyKeyBtn) els.verifyKeyBtn.addEventListener('click', async () => {
+        const key = els.dumperKeyInput.value.trim();
+        if(!key) return;
+        els.verifyKeyBtn.textContent = "Verifying...";
+        try {
+            const req = await fetch(BOT_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: key }) });
+            const res = await req.json();
+            if(res.valid) {
+                isCodeDumperUnlocked = true;
+                els.dumperKeyModal.classList.add('hidden');
+                els.modeTxt.innerText = "Code Dumper";
+                els.standardUI.classList.add('hidden');
+                els.codeDumperUI.classList.remove('hidden');
+                els.verifyKeyBtn.textContent = "Verify Key Access";
+                els.dumperKeyInput.value = "";
+            } else { alert(res.reason || "Invalid Key"); els.verifyKeyBtn.textContent = "Verify Key Access"; }
+        } catch(e) { alert("Connection failed."); els.verifyKeyBtn.textContent = "Verify Key Access"; }
+    });
+    els.closeDumperKey.addEventListener('click', () => els.dumperKeyModal.classList.add('hidden'));
 
     async function handleSend(isEdit = false) {
         const text = els.input.value.trim();
         if(!text && !uploadedFile.data) return;
-
         if(!localStorage.getItem('prysmis_key')) return toggleSettings(true);
-
-        // Scan Analysis Check
-        let isScan = false;
-        if (uploadedFile.data && (text.toLowerCase().includes('analyze this file') || text.toLowerCase().includes('scan') || text.toLowerCase().includes('analysis'))) {
-             isScan = true;
-        }
 
         if(!currentChatId) {
             currentChatId = Date.now();
@@ -641,23 +455,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const chatIndex = chatHistory.findIndex(c => c.id === currentChatId);
-        // If not edit mode, push user message
-        if(!isEdit) {
-            chatHistory[chatIndex].messages.push({ role: 'user', text: text, img: uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null });
-        }
+        const userMsgObj = { role: 'user', text: text, img: uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null, edits: 0 };
+        chatHistory[chatIndex].messages.push(userMsgObj);
         saveChatToStorage();
+        const msgIndex = chatHistory[chatIndex].messages.length - 1;
 
         els.heroSection.style.display = 'none';
-        if(!isEdit) {
-             appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null);
-        }
+        appendMsg('user', text, uploadedFile.data ? `data:${uploadedFile.type};base64,${uploadedFile.data}` : null, 0, msgIndex);
         
         els.input.value = '';
         els.input.style.height = 'auto';
         els.cmdPopup.classList.add('hidden');
         
-        els.flashOverlay.classList.remove('opacity-0');
-        els.flashOverlay.classList.add('bg-flash-green');
+        // Simulate Scan Visualization
+        if(text.toLowerCase().includes('analyze this file') || text.toLowerCase().includes('scan')) {
+            const scanDiv = document.createElement('div');
+            scanDiv.className = "border border-violet-500/50 rounded-xl p-4 my-4 bg-violet-500/5 relative overflow-hidden";
+            scanDiv.innerHTML = `<div class="text-xs text-violet-300 font-mono mb-2">SCANNING FILE STRUCTURE...</div><div class="h-1 bg-white/10 rounded overflow-hidden"><div class="h-full bg-violet-500 w-0 transition-all duration-[2000ms]" style="width: 0%"></div></div><div class="text-right text-[10px] text-white mt-1 font-mono" id="scan-pct">0%</div><div class="scanning-line"></div>`;
+            els.chatFeed.appendChild(scanDiv);
+            setTimeout(() => { scanDiv.querySelector('div > div').style.width = "100%"; scanDiv.querySelector('#scan-pct').innerText = "100%"; }, 100);
+            await new Promise(r => setTimeout(r, 2500));
+            scanDiv.remove();
+        }
 
         const loaderId = 'loader-' + Date.now();
         const loaderDiv = document.createElement('div');
@@ -666,92 +485,54 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderDiv.innerHTML = `<div class="bg-[#18181b] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-75"></div><div class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-150"></div></div>`;
         els.chatFeed.appendChild(loaderDiv);
         els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
-
         stopGeneration = false;
+        abortController = new AbortController();
 
         try {
             const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}. Use simple words. Highlight bold words in purple. `;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}. Unfiltered. Use simple words.`;
             
-            if(mode === 'Rizz tool') sysPrompt += "You are the Rizz God. Unfiltered.";
-            if(isRoleplayActive) sysPrompt = "Unfiltered Roleplay. Act exactly as character.";
-            if(isScan) sysPrompt = "Analyze this file content. If safe, say [green]SAFE[/green]. If dangerous, say [red]HARMFUL[/red]. Provide detection details.";
-
-            const youtubeID = detectYouTube(text);
-            let finalUserText = text;
-            let extraParts = [];
-
-            if(youtubeID) {
-                finalUserText += `\n[System: This is a YouTube video ID: ${youtubeID}. Analyze its context/topic.]`;
-            }
-
-            if(isScan) {
-                 // Add trigger for visual effect
-                 finalUserText = "[SCAN_START] " + finalUserText;
-            }
+            if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
+            if(isRoleplayActive) sysPrompt = "ACT AS THE CHARACTER DESCRIBED. NO FILTER. FULL IMMERSION.";
+            
+            sysPrompt += " You are visually aware of your own UI. If a file is provided with 'analyze' or 'scan', provide a detailed safety analysis (Safe/Harmful), explanation, and replication steps. Use 'Safe' (Green) or 'Harmful' (Red) indicators.";
 
             const previousMsgs = chatHistory[chatIndex].messages.slice(-10).map(m => ({
                 role: m.role === 'ai' ? 'model' : 'user',
                 parts: [{ text: m.text }]
             }));
 
-            const currentParts = [{ text: finalUserText }];
+            const currentParts = [{ text: text }];
             if(uploadedFile.data) currentParts.push({ inline_data: { mime_type: uploadedFile.type, data: uploadedFile.data } });
 
             const payload = { 
                 system_instruction: { parts: [{ text: sysPrompt }] },
-                contents: [
-                    ...previousMsgs,
-                    { role: 'user', parts: currentParts }
-                ],
-                safety_settings: [
-                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                ]
+                contents: [...previousMsgs, { role: 'user', parts: currentParts }] 
             };
 
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: abortController.signal
             });
 
-            if(response.status === 404 || response.status === 400) {
-                response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            }
+            if(response.status === 404) response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: abortController.signal });
 
             const data = await response.json();
             document.getElementById(loaderId).remove();
-            els.flashOverlay.classList.add('opacity-0');
-            els.flashOverlay.classList.remove('bg-flash-green');
-
             if(data.candidates && data.candidates[0].content) {
                 const aiText = data.candidates[0].content.parts[0].text;
                 chatHistory[chatIndex].messages.push({ role: 'ai', text: aiText, img: null });
                 saveChatToStorage();
-                if(isScan) appendMsg('ai', `[SCAN_START]${aiText}`);
-                else streamResponse(aiText);
+                streamResponse(aiText);
             } else {
                 appendMsg('ai', "Error generating response.");
             }
-
         } catch(err) {
             if(document.getElementById(loaderId)) document.getElementById(loaderId).remove();
-            els.flashOverlay.classList.add('opacity-0');
-            els.flashOverlay.classList.remove('bg-flash-green');
-            appendMsg('ai', "Connection failed.");
+            if(err.name !== 'AbortError') appendMsg('ai', "Connection failed.");
         }
-        uploadedFile = { data: null, type: null }; 
-        window.clearMedia = () => {
-            uploadedFile = { data: null, type: null };
-            els.mediaPreview.innerHTML = '';
-            els.fileInput.value = '';
-        };
+        window.clearMedia();
     }
 });
