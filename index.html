@@ -114,7 +114,7 @@
 
                 <div class="relative w-full max-w-3xl pointer-events-auto flex gap-2 items-end" id="input-container">
                     
-                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2 flex-wrap w-full z-50 pointer-events-auto"></div>
+                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2 flex-wrap w-full z-[80]"></div>
                     
                     <div id="text-toolbar" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-[#1a1a1a] border border-white/10 rounded-lg p-1 flex gap-1 shadow-xl hidden transform transition-all z-[60]">
                         <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-bold w-8 transition" onmousedown="event.preventDefault();" onclick="window.insertFormat('**', '**')">B</button>
@@ -137,7 +137,7 @@
                             <i class="fa-solid fa-paperclip text-lg pointer-events-none"></i>
                         </button>
 
-                        <textarea id="prompt-input" rows="1" class="flex-1 bg-transparent border-none outline-none text-gray-100 px-4 py-3 resize-none placeholder-gray-600 font-medium text-[15px] leading-relaxed max-h-32 relative z-50 pointer-events-auto" placeholder="Ask PrysmisAI anything or use '/' commands" data-gramm="false" wt-ignore-input="true"></textarea>
+                        <textarea id="prompt-input" rows="1" class="flex-1 bg-transparent border-none outline-none text-gray-100 px-4 py-3 resize-none placeholder-gray-600 font-medium text-[15px] leading-relaxed max-h-32 relative z-50 pointer-events-auto" placeholder="Ask PrysmisAI anything or use '/' commands"></textarea>
 
                         <button id="submit-btn" class="mb-1 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer shrink-0 pointer-events-auto relative z-50">
                             <i class="fa-solid fa-arrow-up pointer-events-none"></i>
@@ -179,7 +179,7 @@
                                 <button id="btn-deobfuscate" class="px-3 py-1 bg-emerald-600/20 text-emerald-400 text-[10px] md:text-xs rounded hover:bg-emerald-600 hover:text-white transition font-bold cursor-pointer pointer-events-auto">DEOBFUSCATE</button>
                             </div>
                         </div>
-                        <textarea id="dumper-input-area" class="flex-1 bg-transparent p-4 md:p-6 font-mono text-xs text-gray-400 resize-none focus:outline-none custom-scrollbar leading-relaxed pointer-events-auto" placeholder="// Paste your code here..." data-gramm="false"></textarea>
+                        <textarea id="dumper-input-area" class="flex-1 bg-transparent p-4 md:p-6 font-mono text-xs text-gray-400 resize-none focus:outline-none custom-scrollbar leading-relaxed pointer-events-auto" placeholder="// Paste your code here..."></textarea>
                     </div>
                     <div class="flex-1 flex flex-col bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden shadow-2xl min-h-[300px]">
                         <div class="bg-[#0f0f0f] p-3 md:p-4 border-b border-white/5 flex justify-between items-center">
@@ -208,6 +208,10 @@
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Gemini API Key</label>
                         <input type="password" id="api-key-field" class="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-4 text-white focus:border-violet-500/50 focus:outline-none transition tracking-widest placeholder-gray-800 text-xs font-mono pointer-events-auto" placeholder="••••••••••••••••">
                         <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-400 text-[10px] mt-3 inline-block hover:underline font-bold pointer-events-auto">GENERATE KEY</a>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Bot Server URL (Optional)</label>
+                         <input type="text" id="bot-url-field" class="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-4 text-white focus:border-violet-500/50 focus:outline-none transition placeholder-gray-800 text-xs font-mono pointer-events-auto" placeholder="https://....ngrok-free.app">
                     </div>
                     <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
                         <div>
