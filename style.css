@@ -7,7 +7,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-
 .glow-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.05), transparent 50%), radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05), transparent 50%); pointer-events: none; z-index: 0; }
 .majestic-text { font-family: 'Cinzel', serif; text-shadow: 0 0 30px rgba(255, 255, 255, 0.1); }
 @keyframes greenFlash { 0%, 100% { opacity: 0; } 50% { opacity: 1; background-color: rgba(16, 185, 129, 0.05); } }
@@ -32,8 +31,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .prose pre { margin: 0; padding: 15px; overflow-x: auto; }
 .prose code { font-family: 'JetBrains Mono', monospace; color: #e879f9; font-size: 0.85em; }
 .prose p { margin-bottom: 0.8em; line-height: 1.7; color: #d1d5db; }
-.prose strong { color: #a78bfa; font-weight: 700; } /* Purple Bold */
-.prose em { color: #e2e8f0; font-style: italic; } /* Intellect words */
+.prose strong { color: #a78bfa; font-weight: 700; }
+.prose em { color: #e2e8f0; font-style: italic; }
 .prose ul { list-style-type: disc; padding-left: 20px; margin-bottom: 10px; }
 .prose li { margin-bottom: 4px; }
 .prose a { color: #a78bfa; text-decoration: underline; cursor: pointer; }
