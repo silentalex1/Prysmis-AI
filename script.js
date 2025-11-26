@@ -52,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dumperOutputArea: document.getElementById('dumper-output-area'),
         dumperAdviceArea: document.getElementById('dumper-advice-area'),
         dumperUploadState: document.getElementById('dumper-upload-state'),
-        dumperEditorView: document.getElementById('dumper-editor-view')
+        dumperEditorView: document.getElementById('dumper-editor-view'),
+        dropOverlay: document.getElementById('drop-overlay')
     };
 
     let uploadedFile = { data: null, type: null, name: null };
@@ -62,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRoleplayActive = false;
     let currentInterval = null;
     let stopGeneration = false;
+    let abortController = null;
     
     const TARGET_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
     const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
@@ -165,13 +167,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chat) {
                 chat.messages[index].text = newText;
                 chat.messages[index].edits = (chat.messages[index].edits || 0) + 1;
+                
                 if (chat.messages[index + 1] && chat.messages[index + 1].role === 'ai') {
                     chat.messages.splice(index + 1, 1);
                 }
+                
                 chatHistory = chatHistory.filter(c => c.id !== currentChatId);
                 chatHistory.unshift(chat); 
+                
                 saveChatToStorage();
                 loadChat(currentChatId);
+                
                 const lastMsg = chat.messages[chat.messages.length - 1];
                 if (lastMsg.role === 'user') {
                     handleSend(true); 
@@ -242,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(els.stopAiBtn) els.stopAiBtn.addEventListener('click', () => {
         stopGeneration = true;
+        if(abortController) abortController.abort();
         if(currentInterval) clearInterval(currentInterval);
         els.stopAiBtn.classList.add('opacity-0', 'pointer-events-none');
     });
@@ -257,6 +264,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
+    function detectMode(text) {
+        const lower = text.toLowerCase();
+        let detectedMode = null;
+        
+        if(lower.includes('code') || lower.includes('function') || lower.includes('script')) detectedMode = 'Coding';
+        else if(lower.includes('solve') || lower.includes('calc') || lower.includes('equation')) detectedMode = 'Geometry';
+        else if(lower.includes('physics') || lower.includes('gravity') || lower.includes('force')) detectedMode = 'Physics';
+        else if(lower.includes('date') || lower.includes('flirt') || lower.includes('pickup')) detectedMode = 'Rizz tool';
+        
+        if(detectedMode) {
+            els.modeTxt.innerText = detectedMode;
+            updateDropdownUI(detectedMode);
+        }
+    }
+
     function updateDropdownUI(val) {
         const iconMap = {
             'AI Assistant': 'fa-sparkles', 'Code Dumper': 'fa-terminal', 'Rizz tool': 'fa-heart',
@@ -264,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'Physics': 'fa-atom', 'Chemistry': 'fa-flask', 'Coding': 'fa-code',
             'Debate': 'fa-gavel', 'Psychology': 'fa-brain', 'History': 'fa-landmark'
         };
+        els.modeIcon.innerHTML = `<i class="fa-solid ${iconMap[val] || 'fa-sparkles'} text-violet-400"></i>`;
         els.modeTxt.innerText = val;
     }
 
@@ -273,8 +296,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setInput = (txt) => { els.input.value = txt; els.input.focus(); };
 
     window.runCmd = (cmd) => {
-        if(cmd === '/clear') { startNewChat(); }
-        else if(cmd === '/features') {
+        if(cmd === '/clear') {
+            currentChatId = null;
+            els.chatFeed.innerHTML = '';
+            els.chatFeed.appendChild(els.heroSection);
+            els.heroSection.style.display = 'flex';
+        } else if(cmd === '/features') {
             const featureHTML = `<div style="font-family: 'Cinzel', serif; font-size: 1.1em; margin-bottom: 10px; color: #a78bfa;">PrysmisAI features -- still in beta</div><hr class="visual-line"><ul class="feature-list list-disc pl-5"><li>Scan Analysis: Say "Analysis or scan this file and ___"</li><li>YouTube analysis</li><li>Domain external viewer</li><li>Modes</li><li>Roleplay</li><li>Invisible tab</li></ul>`;
             const div = document.createElement('div');
             div.className = `flex w-full justify-start msg-anim mb-6`;
@@ -318,35 +345,38 @@ document.addEventListener('DOMContentLoaded', () => {
         els.fileInput.value = '';
     };
 
+    // Drag & Drop Logic
+    document.addEventListener('dragover', (e) => { e.preventDefault(); els.dropOverlay.classList.remove('hidden'); els.dropOverlay.classList.add('flex'); els.dropOverlay.classList.remove('opacity-0'); });
+    els.dropOverlay.addEventListener('dragleave', (e) => { e.preventDefault(); els.dropOverlay.classList.add('opacity-0'); setTimeout(() => els.dropOverlay.classList.add('hidden'), 300); });
+    els.dropOverlay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.dropOverlay.classList.add('opacity-0');
+        setTimeout(() => els.dropOverlay.classList.add('hidden'), 300);
+        if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    });
+
     els.input.addEventListener('paste', (e) => {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let index in items) {
             const item = items[index];
-            if (item.kind === 'file') {
-                const blob = item.getAsFile();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                     uploadedFile.data = event.target.result.split(',')[1];
-                     uploadedFile.type = blob.type;
-                     uploadedFile.name = blob.name;
-                     els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group"><img src="${event.target.result}" class="w-full h-full object-cover"><button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
-                };
-                reader.readAsDataURL(blob);
-            }
+            if (item.kind === 'file') handleFileSelect(item.getAsFile());
         }
     });
 
-    els.fileInput.addEventListener('change', (e) => {
-        if(e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                uploadedFile = { data: ev.target.result.split(',')[1], type: file.type, name: file.name };
-                els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group flex items-center justify-center text-xs text-center p-1 bg-white/10">${file.name}<button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+    function handleFileSelect(file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            uploadedFile = { data: ev.target.result.split(',')[1], type: file.type, name: file.name };
+            let previewContent = file.type.startsWith('image') 
+                ? `<img src="${ev.target.result}" class="w-full h-full object-cover">`
+                : `<div class="flex items-center justify-center h-full bg-white/10 text-xs p-2 text-center">${file.name}</div>`;
+                
+            els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group">${previewContent}<button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    els.fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
 
     document.addEventListener('selectionchange', () => {
         if (document.activeElement === els.input && els.input.selectionStart !== els.input.selectionEnd) {
@@ -359,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
         els.input.style.height = els.input.scrollHeight + 'px';
+        detectMode(els.input.value);
         if(els.input.value.trim().startsWith('/')) { els.cmdPopup.classList.remove('hidden'); els.cmdPopup.classList.add('flex'); } 
         else { els.cmdPopup.classList.add('hidden'); els.cmdPopup.classList.remove('flex'); }
     });
@@ -475,6 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
         els.chatFeed.appendChild(loaderDiv);
         els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
         stopGeneration = false;
+        abortController = new AbortController();
 
         try {
             const mode = els.modeTxt.innerText;
@@ -501,10 +533,11 @@ document.addEventListener('DOMContentLoaded', () => {
             let response = await fetch(`${TARGET_URL}?key=${localStorage.getItem('prysmis_key')}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: abortController.signal
             });
 
-            if(response.status === 404) response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if(response.status === 404) response = await fetch(`${FALLBACK_URL}?key=${localStorage.getItem('prysmis_key')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: abortController.signal });
 
             const data = await response.json();
             document.getElementById(loaderId).remove();
@@ -518,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch(err) {
             if(document.getElementById(loaderId)) document.getElementById(loaderId).remove();
-            appendMsg('ai', "Connection failed.");
+            if(err.name !== 'AbortError') appendMsg('ai', "Connection failed.");
         }
         window.clearMedia();
     }
