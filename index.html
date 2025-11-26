@@ -15,8 +15,13 @@
 
     <div class="glow-bg"></div>
     <div id="flash-overlay" class="pointer-events-none fixed inset-0 z-0 opacity-0 transition-opacity duration-500 mix-blend-screen"></div>
-
-    <div id="notification-area" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
+    <div id="drop-overlay" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm hidden flex-col items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="border-2 border-dashed border-violet-500 rounded-3xl p-20 flex flex-col items-center animate-bounce">
+            <i class="fa-solid fa-file-arrow-up text-6xl text-violet-400 mb-4"></i>
+            <h2 class="text-3xl font-bold text-white">Drop File Here</h2>
+        </div>
+    </div>
+    <div id="notification-area" class="fixed top-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-[#050505]/95 backdrop-blur-2xl border-r border-white/5 transform -translate-x-full md:translate-x-0 md:static md:w-20 md:bg-transparent md:border-r-0 transition-transform duration-300 z-50 flex flex-col items-center py-8">
         <div class="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-900 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.2)] mb-auto cursor-pointer hover:scale-105 transition duration-300 group relative shrink-0 z-50 pointer-events-auto" id="home-btn">
@@ -40,6 +45,7 @@
     <div id="mobile-overlay" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden backdrop-blur-sm"></div>
 
     <main class="flex-1 flex flex-col relative z-10 h-full min-w-0">
+        
         <header class="absolute top-0 left-0 w-full p-4 md:p-6 flex flex-col items-center z-40 pointer-events-none">
             <button id="mobile-menu-btn" class="md:hidden pointer-events-auto absolute top-5 left-5 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 cursor-pointer hover:bg-white/20 transition z-50 active:scale-95">
                 <i class="fa-solid fa-bars pointer-events-none"></i>
@@ -54,7 +60,7 @@
             
             <div class="pointer-events-auto mt-6 relative z-50">
                 <button id="mode-btn" class="glass-pill px-6 py-2 rounded-full text-xs font-medium flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 hover:border-violet-500/50 shadow-lg hover:shadow-violet-900/20 cursor-pointer min-w-[160px] justify-center">
-                    <span id="current-mode-icon" class="mr-1"><i class="fa-solid fa-sparkles text-violet-400"></i></span>
+                    <span id="mode-icon"><i class="fa-solid fa-sparkles text-violet-400"></i></span>
                     <span id="current-mode-txt">AI Assistant</span>
                     <i class="fa-solid fa-chevron-down text-[10px] opacity-50 pointer-events-none ml-auto"></i>
                 </button>
@@ -72,7 +78,6 @@
                     <div class="mode-item" data-val="Debate"><i class="fa-solid fa-gavel text-red-400 w-5"></i> Debate</div>
                     <div class="mode-item" data-val="Psychology"><i class="fa-solid fa-brain text-purple-400 w-5"></i> Psychology</div>
                     <div class="mode-item" data-val="History"><i class="fa-solid fa-landmark text-yellow-600 w-5"></i> History</div>
-                    <div class="mode-item" data-val="Scan analysis"><i class="fa-solid fa-magnifying-glass-chart text-teal-400 w-5"></i> Scan analysis</div>
                 </div>
             </div>
         </header>
@@ -94,42 +99,38 @@
             </div>
 
             <div class="absolute bottom-0 left-0 w-full pb-4 md:pb-8 flex flex-col items-center bg-gradient-to-t from-[#020204] via-[#020204]/95 to-transparent pt-32 px-4 z-[50]">
-                
-                <button id="stop-ai-btn" class="absolute bottom-full mb-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 opacity-0 pointer-events-none transition-all transform translate-y-2 hover:bg-red-500/20 pointer-events-auto cursor-pointer">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Stop AI
+                <button id="stop-ai-btn" class="absolute bottom-full mb-4 bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-2 rounded-full text-xs font-bold flex items-center gap-2 opacity-0 pointer-events-none transition-all transform translate-y-4 cursor-pointer hover:bg-red-500/20 z-[70]">
+                    <i class="fa-solid fa-triangle-exclamation"></i> STOP GENERATION
                 </button>
 
                 <div class="relative w-full max-w-3xl pointer-events-auto" id="input-container">
-                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2 flex-wrap"></div>
+                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2 flex-wrap w-full"></div>
                     
                     <div id="text-toolbar" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-[#1a1a1a] border border-white/10 rounded-lg p-1 flex gap-1 shadow-xl hidden transform transition-all z-[60]">
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-bold w-8" onclick="window.insertFormat('**', '**')">B</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white italic w-8" onclick="window.insertFormat('*', '*')">I</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white line-through w-8" onclick="window.insertFormat('~~', '~~')">S</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-mono w-8" onclick="window.insertFormat('`', '`')">&lt;&gt;</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-bold w-8 transition" onclick="window.insertFormat('**', '**')">B</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white italic w-8 transition" onclick="window.insertFormat('*', '*')">I</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white line-through w-8 transition" onclick="window.insertFormat('~~', '~~')">S</button>
+                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-mono w-8 transition" onclick="window.insertFormat('`', '`')">&lt;&gt;</button>
                     </div>
 
                     <div id="cmd-popup" class="absolute bottom-full left-0 mb-3 w-full md:w-64 glass-popup rounded-2xl overflow-hidden hidden flex-col z-50 p-1">
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/features')"><span class="text-violet-400 font-bold">/features</span></div>
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/roleplay')"><span class="text-pink-400 font-bold">/roleplay</span></div>
-                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/discord-invite')"><span class="text-indigo-400 font-bold">/discord-invite</span></div>
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/invisible tab')"><span class="text-emerald-400 font-bold">/invisible tab</span></div>
+                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/discord-invite')"><span class="text-blue-400 font-bold">/discord-invite</span></div>
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/clear')"><span class="text-red-400 font-bold">/clear</span></div>
                     </div>
 
                     <div id="input-bar" class="flex items-end bg-[#0a0a0a] border border-white/10 rounded-[24px] p-2 pl-4 shadow-2xl transition-all duration-300 focus-within:border-violet-500/30 focus-within:ring-1 focus-within:ring-violet-500/10 hover:border-white/20 relative z-50">
-                        <input type="file" id="file-input" class="hidden" accept="*"> 
+                        <input type="file" id="file-input" class="hidden" accept="*">
                         <button onclick="document.getElementById('file-input').click()" class="mb-1 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition cursor-pointer shrink-0 pointer-events-auto relative z-50">
                             <i class="fa-solid fa-paperclip text-lg pointer-events-none"></i>
                         </button>
-
                         <textarea id="prompt-input" rows="1" class="flex-1 bg-transparent border-none outline-none text-gray-100 px-4 py-3 resize-none placeholder-gray-600 font-medium text-[15px] leading-relaxed max-h-32 relative z-50 pointer-events-auto" placeholder="Ask PrysmisAI anything or use '/' commands"></textarea>
-
                         <button id="submit-btn" class="mb-1 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer shrink-0 pointer-events-auto relative z-50">
                             <i class="fa-solid fa-arrow-up pointer-events-none"></i>
                         </button>
                     </div>
-                    
                     <div class="text-center mt-3">
                         <p class="text-[9px] text-gray-700 font-bold tracking-widest uppercase">Powered by Gemini so enjoy.</p>
                     </div>
@@ -137,13 +138,11 @@
             </div>
         </div>
 
+        <!-- Code Dumper -->
         <div id="code-dumper-ui" class="hidden flex-1 flex-col h-full relative bg-[#020204] z-50">
             <div id="dumper-upload-state" class="absolute inset-0 flex flex-col items-center justify-center z-20 p-6">
-                <button id="close-dumper-ui-btn" class="absolute top-6 right-6 text-gray-500 hover:text-white text-2xl z-50 cursor-pointer pointer-events-auto"><i class="fa-solid fa-xmark"></i></button>
                 <div class="border border-dashed border-white/10 rounded-[2rem] p-8 md:p-16 text-center hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group cursor-pointer w-full max-w-lg" id="dumper-upload-zone">
-                    <div class="w-16 h-16 bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 group-hover:scale-110 transition shadow-2xl shadow-emerald-900/20">
-                        <i class="fa-solid fa-code text-3xl"></i>
-                    </div>
+                    <div class="w-16 h-16 bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 group-hover:scale-110 transition shadow-2xl shadow-emerald-900/20"><i class="fa-solid fa-code text-3xl"></i></div>
                     <h3 class="text-2xl font-bold text-white mb-2">Upload Script</h3>
                     <p class="text-gray-500 text-sm mb-6">Drag & drop or click to select</p>
                     <input type="file" id="dumper-file-input" class="hidden">
@@ -154,7 +153,6 @@
                 </div>
                 <button id="dumper-skip-btn" class="mt-8 text-gray-600 hover:text-white text-xs tracking-widest uppercase hover:underline cursor-pointer pointer-events-auto">Skip to Editor</button>
             </div>
-
             <div id="dumper-editor-view" class="hidden flex-1 flex-col p-4 md:p-6 pt-24 gap-4 md:gap-6 h-full max-w-[1600px] mx-auto w-full">
                 <div class="flex flex-col md:flex-row flex-1 gap-4 md:gap-6 min-h-0">
                     <div class="flex-1 flex flex-col bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden shadow-2xl min-h-[300px]">
@@ -167,7 +165,6 @@
                         </div>
                         <textarea id="dumper-input-area" class="flex-1 bg-transparent p-4 md:p-6 font-mono text-xs text-gray-400 resize-none focus:outline-none custom-scrollbar leading-relaxed pointer-events-auto" placeholder="// Paste your code here..."></textarea>
                     </div>
-
                     <div class="flex-1 flex flex-col bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden shadow-2xl min-h-[300px]">
                         <div class="bg-[#0f0f0f] p-3 md:p-4 border-b border-white/5 flex justify-between items-center">
                             <span class="text-xs font-mono text-gray-400">OUTPUT</span>
@@ -176,24 +173,15 @@
                         <textarea id="dumper-output-area" class="flex-1 bg-transparent p-4 md:p-6 font-mono text-xs text-emerald-400/90 resize-none focus:outline-none custom-scrollbar leading-relaxed" readonly placeholder="// Waiting..."></textarea>
                     </div>
                 </div>
-
                 <div class="h-32 bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden flex flex-col flex-shrink-0 shadow-2xl">
-                    <div class="bg-[#0f0f0f] px-4 py-2 border-b border-white/5">
-                        <span class="text-[10px] font-mono text-blue-400 uppercase tracking-widest">AI Analysis</span>
-                    </div>
+                    <div class="bg-[#0f0f0f] px-4 py-2 border-b border-white/5"><span class="text-[10px] font-mono text-blue-400 uppercase tracking-widest">AI Analysis</span></div>
                     <div id="dumper-advice-area" class="flex-1 p-4 font-mono text-xs text-gray-500 overflow-y-auto custom-scrollbar"></div>
                 </div>
-
-                <div class="h-10 bg-[#050505] border-t border-white/5 flex items-center px-4 gap-3 font-mono text-[10px] text-gray-600 select-none shrink-0">
-                    <span class="text-emerald-500 animate-pulse">➜</span>
-                    <span id="terminal-log">Obliterator initialized.</span>
-                    <span class="ml-auto opacity-30" id="terminal-time">00:00:00</span>
-                </div>
+                <div class="h-10 bg-[#050505] border-t border-white/5 flex items-center px-4 gap-3 font-mono text-[10px] text-gray-600 select-none shrink-0"><span class="text-emerald-500 animate-pulse">➜</span><span id="terminal-log">Obliterator initialized.</span><span class="ml-auto opacity-30" id="terminal-time">00:00:00</span></div>
             </div>
         </div>
     </main>
 
-    <!-- Modals -->
     <div id="settings-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <div class="bg-[#0a0a0a] border border-white/10 w-full max-w-lg rounded-[2rem] shadow-2xl transform scale-95 transition-all duration-300 relative mx-4" id="settings-box">
             <button id="close-settings" class="absolute top-6 right-6 text-gray-500 hover:text-white transition cursor-pointer pointer-events-auto text-xl"><i class="fa-solid fa-xmark"></i></button>
