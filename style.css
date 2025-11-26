@@ -7,6 +7,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020204; 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
 .glow-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.05), transparent 50%), radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05), transparent 50%); pointer-events: none; z-index: 0; }
 .majestic-text { font-family: 'Cinzel', serif; text-shadow: 0 0 30px rgba(255, 255, 255, 0.1); }
 @keyframes greenFlash { 0%, 100% { opacity: 0; } 50% { opacity: 1; background-color: rgba(16, 185, 129, 0.05); } }
