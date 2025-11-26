@@ -16,10 +16,10 @@
     <div class="glow-bg"></div>
     <div id="flash-overlay" class="pointer-events-none fixed inset-0 z-0 opacity-0 transition-opacity duration-500 mix-blend-screen"></div>
     
-    <div id="global-drop-zone" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md hidden flex-col items-center justify-center transition-all duration-300">
-        <div class="border-2 border-dashed border-violet-500 rounded-[3rem] p-20 flex flex-col items-center animate-pulse">
+    <div id="drop-overlay" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md hidden flex-col items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="border-2 border-dashed border-violet-500 rounded-3xl p-16 flex flex-col items-center animate-bounce">
             <i class="fa-solid fa-file-import text-6xl text-violet-400 mb-6"></i>
-            <h2 class="text-3xl font-bold text-white tracking-widest">DROP FILE HERE</h2>
+            <h2 class="text-3xl font-bold text-white">Drop File Here</h2>
         </div>
     </div>
 
@@ -86,17 +86,22 @@
 
         <div id="standard-ui" class="flex-1 flex flex-col h-full relative">
             <div id="chat-feed" class="flex-1 overflow-y-auto px-4 md:px-[18%] pt-36 pb-40 flex flex-col gap-6 scroll-smooth z-10 custom-scrollbar">
+                
                 <div id="hero-section" class="h-full flex flex-col items-center justify-center animate-fade-in pb-20 px-4">
                     <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-tr from-violet-600/20 to-indigo-600/20 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-[0_0_50px_rgba(124,58,237,0.1)]">
                         <i class="fa-solid fa-wand-magic-sparkles text-2xl md:text-3xl text-violet-200"></i>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-bold text-white mb-3 text-center">Ready to Learn?</h2>
+                    
                     <div class="flex flex-wrap gap-2 md:gap-3 justify-center max-w-xl mt-4">
                         <button class="suggestion-chip" onclick="window.setInput('Explain Quantum Entanglement simply')">⚛️ Physics</button>
                         <button class="suggestion-chip" onclick="window.setInput('Solve: 2x^2 + 5x - 3 = 0')">📐 Math</button>
                         <button class="suggestion-chip" onclick="window.setInput('Give me a smooth pickup line')">💘 Rizz</button>
                     </div>
-                    <button id="get-started-btn" class="mt-10 px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform shadow-lg cursor-pointer z-50 pointer-events-auto text-sm tracking-wide">Get Started</button>
+
+                    <button id="get-started-btn" class="mt-10 px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform shadow-lg cursor-pointer z-50 pointer-events-auto text-sm tracking-wide">
+                        Get Started
+                    </button>
                 </div>
             </div>
 
@@ -106,7 +111,8 @@
                     <i class="fa-solid fa-triangle-exclamation"></i> STOP GENERATION
                 </button>
 
-                <div class="relative w-full max-w-3xl pointer-events-auto" id="input-container">
+                <div class="relative w-full max-w-3xl pointer-events-auto flex gap-2 items-end" id="input-container">
+                    
                     <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2 flex-wrap w-full"></div>
                     
                     <div id="text-toolbar" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-[#1a1a1a] border border-white/10 rounded-lg p-1 flex gap-1 shadow-xl hidden transform transition-all z-[60]">
@@ -124,7 +130,7 @@
                         <div class="cmd-row rounded-xl" onclick="window.runCmd('/clear')"><span class="text-red-400 font-bold">/clear</span></div>
                     </div>
 
-                    <div id="input-bar" class="flex items-end bg-[#0a0a0a] border border-white/10 rounded-[24px] p-2 pl-4 pr-16 shadow-2xl transition-all duration-300 focus-within:border-violet-500/30 focus-within:ring-1 focus-within:ring-violet-500/10 hover:border-white/20 relative z-50">
+                    <div id="input-bar" class="flex-1 flex items-end bg-[#0a0a0a] border border-white/10 rounded-[24px] p-2 pl-4 shadow-2xl transition-all duration-300 focus-within:border-violet-500/30 focus-within:ring-1 focus-within:ring-violet-500/10 hover:border-white/20 relative z-50">
                         <input type="file" id="file-input" class="hidden" accept="*">
                         <button onclick="document.getElementById('file-input').click()" class="mb-1 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition cursor-pointer shrink-0 pointer-events-auto relative z-50">
                             <i class="fa-solid fa-paperclip text-lg pointer-events-none"></i>
@@ -135,13 +141,13 @@
                         <button id="submit-btn" class="mb-1 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer shrink-0 pointer-events-auto relative z-50">
                             <i class="fa-solid fa-arrow-up pointer-events-none"></i>
                         </button>
-
-                        <button id="quick-new-chat-btn" class="absolute -right-16 bottom-1 w-10 h-10 rounded-full bg-[#1a1a1a] border border-white/10 text-white flex items-center justify-center shadow-lg hover:bg-[#252525] hover:scale-105 transition cursor-pointer pointer-events-auto" title="New Chat">
-                            <i class="fa-solid fa-plus text-sm pointer-events-none"></i>
-                        </button>
                     </div>
-                    
-                    <div class="text-center mt-3">
+
+                    <button id="quick-new-chat-btn" class="mb-1 w-12 h-12 rounded-full bg-[#1a1a1a] border border-white/10 text-white flex items-center justify-center shadow-lg hover:bg-[#252525] hover:scale-105 transition cursor-pointer shrink-0 pointer-events-auto z-50" title="New Chat">
+                        <i class="fa-solid fa-plus text-lg pointer-events-none"></i>
+                    </button>
+
+                    <div class="text-center mt-3 absolute top-full w-full">
                         <p class="text-[9px] text-gray-700 font-bold tracking-widest uppercase">Powered by Gemini so enjoy.</p>
                     </div>
                 </div>
