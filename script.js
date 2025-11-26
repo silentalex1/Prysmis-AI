@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dumperAdviceArea: document.getElementById('dumper-advice-area'),
         dumperUploadState: document.getElementById('dumper-upload-state'),
         dumperEditorView: document.getElementById('dumper-editor-view'),
-        dropOverlay: document.getElementById('drop-overlay')
+        globalDropZone: document.getElementById('global-drop-zone')
     };
 
     let uploadedFile = { data: null, type: null, name: null };
@@ -167,17 +167,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chat) {
                 chat.messages[index].text = newText;
                 chat.messages[index].edits = (chat.messages[index].edits || 0) + 1;
-                
                 if (chat.messages[index + 1] && chat.messages[index + 1].role === 'ai') {
                     chat.messages.splice(index + 1, 1);
                 }
-                
                 chatHistory = chatHistory.filter(c => c.id !== currentChatId);
                 chatHistory.unshift(chat); 
-                
                 saveChatToStorage();
                 loadChat(currentChatId);
-                
                 const lastMsg = chat.messages[chat.messages.length - 1];
                 if (lastMsg.role === 'user') {
                     handleSend(true); 
@@ -264,19 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    function detectMode(text) {
-        const lower = text.toLowerCase();
-        let detectedMode = null;
-        
-        if(lower.includes('code') || lower.includes('function') || lower.includes('script')) detectedMode = 'Coding';
-        else if(lower.includes('solve') || lower.includes('calc') || lower.includes('equation')) detectedMode = 'Geometry';
-        else if(lower.includes('physics') || lower.includes('gravity') || lower.includes('force')) detectedMode = 'Physics';
-        else if(lower.includes('date') || lower.includes('flirt') || lower.includes('pickup')) detectedMode = 'Rizz tool';
-        
-        if(detectedMode) {
-            els.modeTxt.innerText = detectedMode;
-            updateDropdownUI(detectedMode);
-        }
+    function switchToStandard() {
+        els.standardUI.classList.remove('hidden');
+        els.codeDumperUI.classList.add('hidden');
     }
 
     function updateDropdownUI(val) {
@@ -290,18 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
         els.modeTxt.innerText = val;
     }
 
+    // --- INITIALIZATION ---
     loadKey();
     renderHistory();
 
+    // --- EVENT LISTENERS ---
     window.setInput = (txt) => { els.input.value = txt; els.input.focus(); };
 
     window.runCmd = (cmd) => {
-        if(cmd === '/clear') {
-            currentChatId = null;
-            els.chatFeed.innerHTML = '';
-            els.chatFeed.appendChild(els.heroSection);
-            els.heroSection.style.display = 'flex';
-        } else if(cmd === '/features') {
+        if(cmd === '/clear') { startNewChat(); }
+        else if(cmd === '/features') {
             const featureHTML = `<div style="font-family: 'Cinzel', serif; font-size: 1.1em; margin-bottom: 10px; color: #a78bfa;">PrysmisAI features -- still in beta</div><hr class="visual-line"><ul class="feature-list list-disc pl-5"><li>Scan Analysis: Say "Analysis or scan this file and ___"</li><li>YouTube analysis</li><li>Domain external viewer</li><li>Modes</li><li>Roleplay</li><li>Invisible tab</li></ul>`;
             const div = document.createElement('div');
             div.className = `flex w-full justify-start msg-anim mb-6`;
@@ -317,6 +301,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if(cmd === '/discord-invite') {
             navigator.clipboard.writeText("https://discord.gg/eKC5CgEZbT");
             showNotification("Discord server link copied onto your clipboard!");
+        } else if(cmd === '/invisible tab') {
+            document.title = "Google";
+            const link = document.querySelector("link[rel~='icon']");
+            if (link) link.href = 'https://www.google.com/favicon.ico';
         }
         els.cmdPopup.classList.add('hidden');
         els.cmdPopup.classList.remove('flex');
@@ -345,22 +333,26 @@ document.addEventListener('DOMContentLoaded', () => {
         els.fileInput.value = '';
     };
 
-    // Drag & Drop Logic
-    document.addEventListener('dragover', (e) => { e.preventDefault(); els.dropOverlay.classList.remove('hidden'); els.dropOverlay.classList.add('flex'); els.dropOverlay.classList.remove('opacity-0'); });
-    els.dropOverlay.addEventListener('dragleave', (e) => { e.preventDefault(); els.dropOverlay.classList.add('opacity-0'); setTimeout(() => els.dropOverlay.classList.add('hidden'), 300); });
-    els.dropOverlay.addEventListener('drop', (e) => {
-        e.preventDefault();
-        els.dropOverlay.classList.add('opacity-0');
-        setTimeout(() => els.dropOverlay.classList.add('hidden'), 300);
-        if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    // Global Drag & Drop
+    document.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        els.globalDropZone.classList.remove('hidden');
+        els.globalDropZone.classList.add('flex');
     });
 
-    els.input.addEventListener('paste', (e) => {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let index in items) {
-            const item = items[index];
-            if (item.kind === 'file') handleFileSelect(item.getAsFile());
+    els.globalDropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        if (e.relatedTarget === null) {
+            els.globalDropZone.classList.add('hidden');
+            els.globalDropZone.classList.remove('flex');
         }
+    });
+
+    els.globalDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.globalDropZone.classList.add('hidden');
+        els.globalDropZone.classList.remove('flex');
+        if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
     });
 
     function handleFileSelect(file) {
@@ -369,12 +361,20 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedFile = { data: ev.target.result.split(',')[1], type: file.type, name: file.name };
             let previewContent = file.type.startsWith('image') 
                 ? `<img src="${ev.target.result}" class="w-full h-full object-cover">`
-                : `<div class="flex items-center justify-center h-full bg-white/10 text-xs p-2 text-center">${file.name}</div>`;
+                : `<div class="flex items-center justify-center h-full bg-white/10 text-xs p-2 text-center text-white">${file.name}</div>`;
                 
             els.mediaPreview.innerHTML = `<div class="relative w-14 h-14 rounded-lg overflow-hidden border border-violet-500 shadow-lg group">${previewContent}<button class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white" onclick="window.clearMedia()"><i class="fa-solid fa-xmark"></i></button></div>`;
         };
         reader.readAsDataURL(file);
     }
+
+    els.input.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let index in items) {
+            const item = items[index];
+            if (item.kind === 'file') handleFileSelect(item.getAsFile());
+        }
+    });
 
     els.fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
 
@@ -389,7 +389,6 @@ document.addEventListener('DOMContentLoaded', () => {
     els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
         els.input.style.height = els.input.scrollHeight + 'px';
-        detectMode(els.input.value);
         if(els.input.value.trim().startsWith('/')) { els.cmdPopup.classList.remove('hidden'); els.cmdPopup.classList.add('flex'); } 
         else { els.cmdPopup.classList.add('hidden'); els.cmdPopup.classList.remove('flex'); }
     });
@@ -510,12 +509,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const mode = els.modeTxt.innerText;
-            let sysPrompt = `You are Prysmis. Mode: ${mode}. Unfiltered. Use simple words.`;
+            let sysPrompt = `You are Prysmis. Mode: ${mode}. Unfiltered. Use simple words. Use **purple** for bold text.`;
             
             if(mode === 'Rizz tool') sysPrompt = "You are the ultimate 'Rizz God'. Help user flirt, be charismatic. Keep it short.";
             if(isRoleplayActive) sysPrompt = "ACT AS THE CHARACTER DESCRIBED. NO FILTER. FULL IMMERSION.";
             
-            sysPrompt += " You are visually aware of your own UI. If a file is provided with 'analyze' or 'scan', provide a detailed safety analysis (Safe/Harmful), explanation, and replication steps. Use 'Safe' (Green) or 'Harmful' (Red) indicators.";
+            sysPrompt += " If a file is provided with 'analyze' or 'scan', provide a safety analysis (Safe/Harmful). Use 'Safe' (Green) or 'Harmful' (Red) text.";
+            sysPrompt += " If you see a URL, analyze the link context and safety.";
 
             const previousMsgs = chatHistory[chatIndex].messages.slice(-10).map(m => ({
                 role: m.role === 'ai' ? 'model' : 'user',
