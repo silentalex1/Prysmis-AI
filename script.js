@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(els.fastSpeedToggle) localStorage.setItem('prysmis_fast_speed', els.fastSpeedToggle.checked);
         if(els.themeSelector) {
             localStorage.setItem('prysmis_theme', els.themeSelector.value);
-            document.body.className = `bg-main text-white h-screen w-screen overflow-hidden flex font-sans selection:bg-accent selection:text-white ${els.themeSelector.value}`;
+            document.body.className = `bg-main text-white h-screen w-screen overflow-hidden flex font-sans selection:bg-violet-500 selection:text-white ${els.themeSelector.value}`;
         }
         els.saveSettings.textContent = "Saved";
         els.saveSettings.classList.add('bg-green-500', 'text-white');
@@ -384,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switchToStandard();
     }
 
+    if(els.homeBtn) els.homeBtn.addEventListener('click', startNewChat);
     if(els.newChatBtn) els.newChatBtn.addEventListener('click', startNewChat);
     if(els.quickNewChatBtn) els.quickNewChatBtn.addEventListener('click', startNewChat);
 
