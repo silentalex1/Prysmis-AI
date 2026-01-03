@@ -9,6 +9,11 @@
 </head>
 <body>
 
+    <div class="static-bg">
+        <div class="layer grid-pattern"></div>
+        <div class="layer glow-center"></div>
+    </div>
+
     <div id="auth-page" class="split-screen">
         <div class="auth-left">
             <div class="auth-card">
@@ -18,21 +23,37 @@
             </div>
         </div>
         <div class="auth-right">
-            <div class="visual-design">
-                <div class="orb"></div>
-                <div class="grid-overlay"></div>
-            </div>
+            <div class="visual-orb"></div>
         </div>
     </div>
 
     <div id="chat-page" class="hidden">
-        <div id="chat-container">
-            <div id="chat-messages"></div>
-            <div class="input-wrapper">
-                <div class="glow-border"></div>
-                <input type="text" id="user-input" placeholder="Ask PrysmisAI anything or use '/' commands.">
+        <nav class="side-nav">
+            <div class="nav-logo">P</div>
+            <div class="nav-items">
+                <div class="nav-icon active">Chat</div>
+                <div class="nav-icon">Vault</div>
             </div>
-        </div>
+        </nav>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">Recent Threads</div>
+            <div id="history-list"></div>
+        </aside>
+
+        <main id="chat-viewport">
+            <div id="chat-container">
+                <div id="chat-messages"></div>
+                
+                <div class="input-section">
+                    <div id="image-preview-container" class="hidden"></div>
+                    <div class="input-wrapper">
+                        <div class="glow-border"></div>
+                        <input type="text" id="user-input" placeholder="Ask PrysmisAI anything or use '/' commands." autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script src="script.js"></script>
