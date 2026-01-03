@@ -2,287 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Prysmis - A Personal Learning Assistant Tool powered by AI.">
-    <title>Prysmis - Personal Learning Tool</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrysmisAI</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://js.puter.com/v2/"></script>
 </head>
-<body class="bg-main text-white h-screen w-screen overflow-hidden flex font-sans selection:bg-accent selection:text-white theme-midnight">
+<body>
 
-    <div class="glow-bg"></div>
-    <div id="flash-overlay" class="pointer-events-none fixed inset-0 z-0 opacity-0 transition-opacity duration-500 mix-blend-screen"></div>
-    
-    <div id="theme-effects" class="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-        <div class="snow hidden"></div>
-        <div class="leaves hidden"></div>
-        <div class="rain hidden"></div>
-        <div class="waves hidden"></div>
-        <div class="fire hidden"></div>
-        <div class="sun-container hidden">
-            <div class="sun"></div>
-            <div class="sun-glow"></div>
+    <div id="auth-page" class="split-screen">
+        <div class="auth-left">
+            <div class="auth-card">
+                <h1>PrysmisAI</h1>
+                <p>create your account using:</p>
+                <button id="login-btn">login with puterjs</button>
+            </div>
         </div>
-        <div class="embers hidden"></div>
-    </div>
-
-    <div id="drop-overlay" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md hidden flex-col items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none" aria-hidden="true">
-        <div class="border-2 border-dashed border-accent rounded-3xl p-8 md:p-16 flex flex-col items-center animate-bounce">
-            <i class="fa-solid fa-file-import text-4xl md:text-6xl text-accent mb-6"></i>
-            <h2 class="text-2xl md:text-3xl font-bold text-white">Drop File Here</h2>
+        <div class="auth-right">
+            <div class="visual-design">
+                <div class="orb"></div>
+                <div class="grid-overlay"></div>
+            </div>
         </div>
     </div>
 
-    <div id="notification-area" class="fixed top-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
-
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-panel backdrop-blur-2xl border-r border-accent/10 transform -translate-x-full md:translate-x-0 md:static md:w-20 md:bg-transparent md:border-r-0 transition-transform duration-300 z-[100] flex flex-col items-center py-8" aria-label="Main Navigation">
-        <button class="w-12 h-12 bg-gradient-to-br from-accent to-accent-dark rounded-2xl flex items-center justify-center shadow-glow mb-auto cursor-pointer hover:scale-105 transition duration-300 group relative shrink-0 z-[101] pointer-events-auto" id="home-btn" aria-label="Go to Home">
-            <i class="fa-solid fa-bolt text-white text-xl pointer-events-none"></i>
-            <span class="tooltip-right md:block hidden">Home</span>
-        </button>
-
-        <div class="flex flex-col gap-6 mb-auto mt-8 w-full items-center">
-            <button id="history-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-gray-200 group relative cursor-pointer z-[101] pointer-events-auto" aria-label="View History">
-                <i class="fa-solid fa-clock-rotate-left text-xl pointer-events-none"></i>
-                <span class="tooltip-right md:block hidden">History</span>
-            </button>
-        </div>
-        
-        <button id="settings-trigger" class="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center transition duration-300 text-gray-500 hover:text-white group relative mb-4 cursor-pointer z-[101] pointer-events-auto" aria-label="Open Settings">
-            <i class="fa-solid fa-gear text-xl group-hover:rotate-90 transition-transform duration-700 pointer-events-none"></i>
-            <span class="tooltip-right md:block hidden">Settings</span>
-        </button>
-    </aside>
-
-    <div id="mobile-overlay" class="fixed inset-0 bg-black/60 z-[90] hidden md:hidden backdrop-blur-sm" aria-hidden="true"></div>
-
-    <main class="flex-1 flex flex-col relative z-10 h-full min-w-0">
-        
-        <header class="w-full p-4 flex flex-col items-center z-[200] relative shrink-0 pointer-events-none">
-            <button id="mobile-menu-btn" class="md:hidden pointer-events-auto absolute top-5 left-5 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 cursor-pointer hover:bg-white/20 transition z-[102] active:scale-95" aria-label="Toggle Menu">
-                <i class="fa-solid fa-bars pointer-events-none"></i>
-            </button>
-
-            <div class="text-center animate-slide-in mt-2 md:mt-0 pointer-events-auto">
-                <h1 class="majestic-text text-3xl md:text-4xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-gray-300 to-gray-500 drop-shadow-2xl">
-                    Prysmis
-                </h1>
-                <p class="text-gray-600 text-[9px] font-bold tracking-[0.4em] uppercase mt-2">Personal Learning Tool</p>
+    <div id="chat-page" class="hidden">
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+            <div class="input-wrapper">
+                <div class="glow-border"></div>
+                <input type="text" id="user-input" placeholder="Ask PrysmisAI anything or use '/' commands.">
             </div>
-            
-            <div class="pointer-events-auto mt-6 relative z-[202]">
-                <button id="mode-btn" class="glass-pill px-6 py-2 rounded-full text-xs font-medium flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 hover:border-accent shadow-lg hover:shadow-accent/20 cursor-pointer min-w-[160px] justify-center" aria-label="Change Mode">
-                    <span id="mode-icon"><i class="fa-solid fa-sparkles text-accent"></i></span>
-                    <span id="current-mode-txt">AI Assistant</span>
-                    <i class="fa-solid fa-chevron-down text-[10px] opacity-50 pointer-events-none ml-auto"></i>
-                </button>
-                
-                <div id="mode-dropdown" class="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-panel backdrop-blur-xl border border-accent/20 rounded-2xl shadow-2xl overflow-hidden hidden flex-col z-[9999] py-1 max-h-64 overflow-y-auto custom-scrollbar">
-                    <div class="mode-item" data-val="AI Assistant" data-icon="fa-sparkles"><i class="fa-solid fa-sparkles text-accent w-5"></i> AI Assistant</div>
-                    <div class="mode-item" data-val="Coding" data-icon="fa-code"><i class="fa-solid fa-code text-cyan-400 w-5"></i> Coding</div>
-                    <div class="mode-item" data-val="Image Generation" data-icon="fa-image"><i class="fa-solid fa-image text-purple-400 w-5"></i> Image Generation</div>
-                    <div class="mode-item" data-val="Code Dumper" data-icon="fa-terminal"><i class="fa-solid fa-terminal text-emerald-500 w-5"></i> Code Dumper</div>
-                    <div class="mode-item" data-val="Rizz tool" data-icon="fa-heart"><i class="fa-solid fa-heart text-rose-500 w-5"></i> Rizz tool</div>
-                    <div class="mode-item" data-val="Geometry" data-icon="fa-shapes"><i class="fa-solid fa-shapes text-blue-400 w-5"></i> Geometry</div>
-                    <div class="mode-item" data-val="English" data-icon="fa-feather"><i class="fa-solid fa-feather text-pink-400 w-5"></i> English</div>
-                    <div class="mode-item" data-val="Biology" data-icon="fa-dna"><i class="fa-solid fa-dna text-green-400 w-5"></i> Biology</div>
-                    <div class="mode-item" data-val="Physics" data-icon="fa-atom"><i class="fa-solid fa-atom text-orange-400 w-5"></i> Physics</div>
-                    <div class="mode-item" data-val="Chemistry" data-icon="fa-flask"><i class="fa-solid fa-flask text-yellow-400 w-5"></i> Chemistry</div>
-                    <div class="mode-item" data-val="Debate" data-icon="fa-gavel"><i class="fa-solid fa-gavel text-red-400 w-5"></i> Debate</div>
-                    <div class="mode-item" data-val="Psychology" data-icon="fa-brain"><i class="fa-solid fa-brain text-purple-400 w-5"></i> Psychology</div>
-                    <div class="mode-item" data-val="History" data-icon="fa-landmark"><i class="fa-solid fa-landmark text-yellow-600 w-5"></i> History</div>
-                </div>
-            </div>
-        </header>
-
-        <div id="standard-ui" class="flex-1 flex flex-col h-full relative overflow-hidden">
-            <div id="chat-feed" class="flex-1 overflow-y-auto px-4 md:px-[18%] pt-10 pb-40 flex flex-col gap-6 scroll-smooth z-10 custom-scrollbar">
-                <div id="hero-section" class="h-full flex flex-col items-center justify-center animate-fade-in pb-20 px-4">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-accent to-accent-dark rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-glow">
-                        <i class="fa-solid fa-wand-magic-sparkles text-3xl text-white"></i>
-                    </div>
-                    <h2 class="text-3xl font-bold text-white mb-3 text-center">Ready to Learn?</h2>
-                    <div class="flex flex-wrap gap-3 justify-center max-w-xl mt-4">
-                        <button class="suggestion-chip" onclick="window.chipAction('Physics', 'Explain Quantum Entanglement')"><i class="fa-solid fa-atom text-orange-400 mr-1"></i> Physics</button>
-                        <button class="suggestion-chip" onclick="window.chipAction('Geometry', 'Solve: 2x^2 + 5x - 3 = 0')"><i class="fa-solid fa-shapes text-blue-400 mr-1"></i> Math</button>
-                        <button class="suggestion-chip" onclick="window.chipAction('Coding', 'Deobfuscate this code snippet')"><i class="fa-solid fa-shield-halved text-emerald-400 mr-1"></i> Code Security</button>
-                    </div>
-                    <button id="get-started-btn" class="mt-10 px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform shadow-lg cursor-pointer z-[102] pointer-events-auto text-sm tracking-wide" aria-label="Get Started with Settings">Get Started</button>
-                </div>
-            </div>
-
-            <div class="absolute bottom-0 left-0 w-full pb-6 flex flex-col items-center bg-gradient-to-t from-bg-main via-bg-main/95 to-transparent pt-32 px-4 z-[200]">
-                
-                <button id="stop-ai-btn" class="absolute bottom-full mb-4 bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-2 rounded-full text-xs font-bold flex items-center gap-2 opacity-0 pointer-events-none transition-all transform translate-y-4 cursor-pointer hover:bg-red-500/20 z-[201]" aria-label="Stop Generation">
-                    <i class="fa-solid fa-triangle-exclamation"></i> STOP GENERATION
-                </button>
-                
-                <button id="continue-btn" class="absolute bottom-full right-4 md:right-[20%] mb-4 glass-pill border border-accent/30 text-accent px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 cursor-pointer hover:bg-accent/20 z-[201] shadow-glow">
-                    <i class="fa-solid fa-arrow-right"></i> Continue Response
-                </button>
-
-                <div class="relative w-full max-w-3xl pointer-events-auto flex gap-2 items-end" id="input-container">
-                    <div id="media-preview" class="absolute bottom-full left-0 mb-3 px-2 flex gap-2 flex-wrap w-full"></div>
-
-                    <div id="text-toolbar" class="absolute bottom-full left-4 mb-2 bg-panel border border-accent/20 rounded-lg p-1 flex gap-1 shadow-xl hidden z-[203] transition-opacity duration-200">
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-bold w-8 transition" onmousedown="window.insertFormat('**', '**')" aria-label="Bold">B</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white italic w-8 transition" onmousedown="window.insertFormat('*', '*')" aria-label="Italic">I</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white line-through w-8 transition" onmousedown="window.insertFormat('~~', '~~')" aria-label="Strikethrough">S</button>
-                        <button class="p-2 hover:bg-white/10 rounded text-xs text-white font-mono w-8 transition" onmousedown="window.insertFormat('`', '`')" aria-label="Code">&lt;&gt;</button>
-                    </div>
-
-                    <div id="cmd-popup" class="absolute bottom-full left-0 mb-3 w-full md:w-64 glass-popup rounded-2xl overflow-hidden hidden flex-col z-[201] p-1">
-                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/features')"><span class="text-violet-400 font-bold">/features</span></div>
-                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/roleplay')"><span class="text-pink-400 font-bold">/roleplay</span></div>
-                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/invisible tab')"><span class="text-emerald-400 font-bold">/invisible tab</span></div>
-                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/discord-invite')"><span class="text-blue-400 font-bold">/discord-invite</span></div>
-                        <div class="cmd-row rounded-xl" onclick="window.runCmd('/clear')"><span class="text-red-400 font-bold">/clear</span></div>
-                    </div>
-
-                    <div id="input-bar" class="flex-1 flex items-end bg-panel border border-accent/20 rounded-[24px] p-2 pl-4 shadow-2xl transition-all duration-300 focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/10 hover:border-accent/40 relative z-[201]">
-                        <input type="file" id="file-input" class="hidden" accept="*">
-                        <button onclick="document.getElementById('file-input').click()" class="mb-1 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition cursor-pointer shrink-0 pointer-events-auto relative z-[202]" aria-label="Upload File">
-                            <i class="fa-solid fa-paperclip text-lg pointer-events-none"></i>
-                        </button>
-                        <textarea id="prompt-input" rows="1" class="flex-1 bg-transparent border-none outline-none text-gray-100 px-4 py-3 resize-none placeholder-gray-500 font-medium text-[15px] leading-relaxed max-h-32 relative z-[202] pointer-events-auto" placeholder="Ask PrysmisAI anything or use '/' commands" aria-label="Chat Input"></textarea>
-                        <button id="submit-btn" class="mb-1 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer shrink-0 pointer-events-auto relative z-[202]" aria-label="Send Message">
-                            <i class="fa-solid fa-arrow-up pointer-events-none"></i>
-                        </button>
-                    </div>
-
-                    <button id="quick-new-chat-btn" class="mb-1 w-12 h-12 rounded-full bg-panel border border-accent/20 text-white flex items-center justify-center shadow-lg hover:bg-white/10 transition cursor-pointer shrink-0 pointer-events-auto z-[202]" title="New Chat" aria-label="New Chat">
-                        <i class="fa-solid fa-plus text-lg pointer-events-none"></i>
-                    </button>
-                </div>
-                <div class="text-center mt-3 w-full"><p class="text-[9px] text-gray-500 font-bold tracking-widest uppercase">Powered by Gemini so enjoy.</p></div>
-            </div>
-        </div>
-
-        <div id="coding-workspace-ui" class="hidden flex-1 flex-col h-full relative bg-main z-[10] overflow-hidden">
-             <div class="sticky top-0 h-14 bg-panel border-b border-accent/20 flex items-center justify-between px-4 z-[9000] shrink-0 w-full shadow-lg">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-red-500/80"></div>
-                    <div class="w-2 h-2 rounded-full bg-yellow-500/80"></div>
-                    <div class="w-2 h-2 rounded-full bg-green-500/80"></div>
-                    <span class="ml-2 text-xs font-mono font-bold text-gray-400">WORKSPACE.env</span>
-                </div>
-                <div class="flex gap-3">
-                    <button id="ws-run-btn" class="bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 px-4 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-2 tracking-wide font-mono"><i class="fa-solid fa-play"></i> RUN</button>
-                    <button id="ws-obf-btn" class="bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 px-4 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-2 tracking-wide font-mono"><i class="fa-solid fa-lock"></i> OBFUSCATE</button>
-                    <button id="ws-deobf-btn" class="bg-pink-500/10 border border-pink-500/20 text-pink-400 hover:bg-pink-500/20 px-4 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-2 tracking-wide font-mono"><i class="fa-solid fa-unlock"></i> DEOBFUSCATE</button>
-                </div>
-             </div>
-
-             <div class="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
-                 <div class="flex-1 flex flex-col border-r border-accent/10 h-1/2 md:h-full relative">
-                     <textarea id="ws-editor" class="flex-1 bg-main text-[#d4d4d4] font-mono text-[13px] p-6 outline-none resize-none custom-scrollbar leading-7 z-10 w-full h-full" spellcheck="false" placeholder="// Write or paste code here..."></textarea>
-                 </div>
-                 
-                 <div class="flex-1 flex flex-col h-1/2 md:h-full bg-main relative" id="ws-right-panel">
-                     <div class="flex-1 p-0 overflow-hidden relative" id="ws-preview-container">
-                         <div id="ws-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-mono select-none pointer-events-none">
-                             WAITING FOR INPUT...
-                         </div>
-                         <iframe id="ws-iframe" class="w-full h-full border-none hidden bg-white"></iframe>
-                         <div id="ws-raw-output" class="w-full h-full font-mono text-xs text-gray-300 p-4 whitespace-pre-wrap hidden overflow-auto custom-scrollbar"></div>
-                     </div>
-                     
-                     <div id="ws-resizer" class="h-1 bg-white/5 hover:bg-accent/50 cursor-row-resize transition-colors z-50"></div>
-
-                     <div id="ws-terminal-container" class="bg-panel border-t border-accent/10 flex flex-col" style="height: 160px; min-height: 100px; max-height: 80%;">
-                         <div class="px-3 py-1.5 bg-panel border-b border-accent/10 flex items-center gap-2 shrink-0">
-                             <i class="fa-solid fa-terminal text-[10px] text-gray-500"></i>
-                             <span class="text-[10px] font-bold text-gray-500">TERMINAL</span>
-                         </div>
-                         <div id="ws-terminal" class="flex-1 p-3 font-mono text-[11px] overflow-y-auto custom-scrollbar text-gray-400">
-                             <div class="mb-1"><span class="text-green-500">➜</span> <span class="text-accent">~</span> Initializing Prysmis Environment...</div>
-                             <div><span class="text-green-500">➜</span> <span class="text-accent">~</span> Ready.</div>
-                         </div>
-                     </div>
-                 </div>
-             </div>
-        </div>
-
-        <div id="image-gen-ui" class="hidden flex-1 flex-col h-full relative bg-main z-[10] overflow-hidden items-center justify-center p-4">
-            <div class="w-full max-w-2xl flex flex-col gap-6 animate-fade-in">
-                <div class="border border-accent/20 rounded-2xl p-2 bg-panel shadow-2xl relative aspect-square flex items-center justify-center overflow-hidden group transition-all">
-                    <img id="generated-image" class="w-full h-full object-contain rounded-xl hidden" alt="Generated Image">
-                    <div id="image-placeholder" class="text-center">
-                        <i class="fa-solid fa-image text-4xl text-accent mb-4 block"></i>
-                        <span class="text-gray-500 text-xs font-mono">IMAGE PREVIEW</span>
-                    </div>
-                    <a id="download-btn" class="absolute bottom-4 right-4 bg-white text-black p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition hidden" download="image.jpg"><i class="fa-solid fa-download"></i></a>
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" id="image-prompt" class="flex-1 bg-panel border border-accent/20 rounded-xl px-4 py-3 text-sm outline-none focus:border-accent text-white" placeholder="Describe the image you want to see...">
-                    <button id="generate-img-btn" class="bg-white text-black font-bold px-6 py-3 rounded-xl hover:scale-105 transition shadow-lg">Generate</button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <div id="settings-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[99999] hidden flex items-center justify-center opacity-0 transition-opacity duration-300" aria-modal="true" role="dialog">
-        <div class="bg-panel border border-accent/20 w-full max-w-lg rounded-[2rem] shadow-2xl transform scale-95 transition-all duration-300 relative mx-4 p-8" id="settings-box">
-            <button id="close-settings" class="absolute top-6 right-6 text-gray-500 hover:text-white text-xl" aria-label="Close Settings"><i class="fa-solid fa-xmark"></i></button>
-            <h2 class="text-2xl font-bold text-white mb-6">Configuration</h2>
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Gemini API Key</label>
-                    <input type="password" id="api-key-field" class="w-full bg-main border border-accent/20 rounded-xl px-5 py-4 text-white text-xs font-mono z-[1000]" placeholder="••••••••••••••••">
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-accent text-[10px] mt-3 inline-block hover:underline font-bold">GENERATE KEY</a>
-                </div>
-                
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Theme</label>
-                    <select id="theme-selector" class="w-full bg-main border border-accent/20 rounded-xl px-5 py-4 text-white text-xs font-sans outline-none cursor-pointer">
-                        <option value="theme-midnight">Midnight (Default)</option>
-                        <option value="theme-sunset">Sunset</option>
-                        <option value="theme-forest">Forest</option>
-                        <option value="theme-ocean">Ocean</option>
-                        <option value="theme-matrix">Matrix</option>
-                        <option value="theme-christmas">Christmas</option>
-                        <option value="theme-halloween">Halloween</option>
-                        <option value="theme-thanksgiving">Thanksgiving</option>
-                        <option value="theme-cyberpunk">Cyberpunk</option>
-                    </select>
-                </div>
-
-                 <div class="flex items-center justify-between p-4 bg-main rounded-xl border border-accent/20">
-                        <div>
-                            <span class="text-sm font-bold text-white block">Fast Response Speed</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer z-[1000]">
-                            <input type="checkbox" id="fast-speed-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                        </label>
-                    </div>
-            </div>
-            <button id="save-settings-btn" class="w-full mt-8 bg-white text-black font-bold py-4 rounded-xl hover:scale-[1.01] transition shadow-xl cursor-pointer z-[1000]">Save</button>
-        </div>
-    </div>
-
-    <div id="history-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[99999] hidden flex items-center justify-center opacity-0 transition-opacity duration-300" aria-modal="true" role="dialog">
-        <div class="bg-panel border border-accent/20 w-full max-w-3xl rounded-[2rem] shadow-2xl transform scale-95 transition-all duration-300 relative mx-6 flex flex-col h-[75vh]">
-            <button id="close-history" class="absolute top-6 right-6 text-gray-500 hover:text-white z-[1000]" aria-label="Close History"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <div class="p-8 border-b border-accent/20">
-                <h2 class="text-2xl font-bold text-white mb-6">Chat History</h2>
-                <input type="text" id="search-input" placeholder="Search..." class="w-full bg-main border border-accent/20 rounded-2xl py-4 pl-4 text-white transition text-sm z-[1000]">
-            </div>
-            <div id="history-list" class="flex-1 overflow-y-auto p-6 space-y-2 custom-scrollbar z-[1000]"></div>
-        </div>
-    </div>
-    
-    <div id="code-dumper-key-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[99999] hidden flex items-center justify-center opacity-0 transition-opacity duration-300" aria-modal="true" role="dialog">
-        <div class="bg-panel border border-emerald-500/20 w-full max-w-md rounded-[2rem] shadow-2xl transform scale-95 transition-all duration-300 relative mx-4 p-10 text-center">
-             <button id="close-dumper-key" class="absolute top-6 right-6 text-gray-500 hover:text-white z-[1000]" aria-label="Close Modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-             <h2 class="text-2xl font-bold text-white mb-4">Access Required</h2>
-             <input type="text" id="dumper-key-input" class="w-full bg-main border border-white/10 rounded-xl px-6 py-4 text-white text-center mb-6 font-mono z-[1000]" placeholder="XXXX-XXXX-XXXX">
-             <button id="verify-key-btn" class="w-full bg-white text-black font-bold py-4 rounded-xl transition hover:bg-emerald-5 cursor-pointer z-[1000]">Verify</button>
         </div>
     </div>
 
