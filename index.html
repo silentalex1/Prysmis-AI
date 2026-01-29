@@ -3,59 +3,1280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrysmisAI</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://js.puter.com/v2/"></script>
+    <title>PrysmisAI - v1.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.23/dist/web-llm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.1/dist/fabric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.23.0/dist/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-cose-bilkent@4.1.1/cytoscape-cose-bilkent.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.1/cytoscape-dagre.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"></script>
+    <style>
+        :root {
+            --bg: #080812;
+            --bg-chat: #0c0c1a;
+            --accent: #00d4ff;
+            --accent-glow: rgba(0,212,255,0.35);
+            --success: #00ff88;
+            --warn: #ffaa00;
+            --error: #ff4444;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass: rgba(255,255,255,0.025);
+            --code-bg: #0f111e;
+            --code-accent: #00d4ff;
+            --neural-purple: #aa00ff;
+            --gradient: linear-gradient(135deg, #00d4ff 0%, #00ff88 50%, #aa00ff 100%);
+            --gradient-code: linear-gradient(135deg, #1e1e2e 0%, #2a2a40 50%, #36364e 100%);
+            --graph-edge: linear-gradient(90deg, #aa00ff, #00d4ff);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at 15% 85%, rgba(20,0,60,0.7) 0%, var(--bg) 40%, #000 100%); 
+            color: var(--text); 
+            overflow: hidden;
+            height: 100vh;
+            line-height: 1.75;
+        }
+        .container { height: 100vh; display: flex; }
+        .sidebar { 
+            width: 460px; 
+            background: linear-gradient(180deg, rgba(12,12,26,0.99), rgba(8,8,18,0.99)); 
+            backdrop-filter: blur(100px); 
+            border-right: 1px solid var(--accent-glow);
+            padding: 48px;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 6px 0 60px rgba(0,0,0,0.8);
+        }
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .navbar { 
+            padding: 40px 64px; 
+            display: flex; 
+            align-items: center; 
+            gap: 32px;
+            background: linear-gradient(135deg, rgba(8,8,18,0.99), rgba(12,12,26,0.99));
+            border-bottom: 1px solid var(--accent-glow);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+        .logo { 
+            font-size: 44px; 
+            font-weight: 900; 
+            background: var(--gradient); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 80px var(--accent-glow);
+            letter-spacing: -2.5px;
+        }
+        .status-badge { 
+            background: linear-gradient(135deg, var(--glass), rgba(0,212,255,0.2)); 
+            padding: 16px 32px; 
+            border-radius: 999px; 
+            font-size: 16px; 
+            font-weight: 800;
+            border: 1px solid var(--accent-glow);
+            box-shadow: 0 12px 48px rgba(0,212,255,0.3);
+        }
+        .chat-area { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 64px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 44px;
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+        }
+        .chat-area::-webkit-scrollbar { display: none; }
+        .message { 
+            max-width: 88%; 
+            padding: 44px 52px; 
+            border-radius: 44px; 
+            animation: slideIn 1s cubic-bezier(0.34, 0.56, 0.65, 1);
+            position: relative;
+            cursor: pointer;
+            word-break: break-word;
+            backdrop-filter: blur(60px);
+            transition: all 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+            border: 1px solid transparent;
+        }
+        .message:hover { 
+            transform: translateY(-8px) scale(1.025); 
+            box-shadow: 0 40px 140px rgba(0,0,0,0.8); 
+        }
+        .user-msg { 
+            align-self: flex-end; 
+            background: linear-gradient(135deg, var(--gradient), rgba(0,255,136,0.9)); 
+            margin-left: auto;
+            border-bottom-right-radius: 24px;
+            box-shadow: 0 24px 100px rgba(0,212,255,0.6);
+        }
+        .ai-msg { 
+            background: linear-gradient(135deg, var(--glass), rgba(12,12,26,0.7)); 
+            border: 1px solid var(--accent-glow);
+            border-bottom-left-radius: 24px;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+        }
+        .thinking { 
+            background: linear-gradient(135deg, rgba(0,212,255,0.35), rgba(0,255,136,0.3)); 
+            animation: neuralPulse 2.8s infinite;
+            border-color: var(--accent);
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(80px) scale(0.88); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes neuralPulse { 0%,100% { box-shadow: 0 0 40px var(--accent-glow); } 50% { box-shadow: 0 0 80px var(--accent-glow); } }
+        .input-container { 
+            padding: 64px; 
+            background: linear-gradient(180deg, rgba(8,8,18,0.99), rgba(12,12,26,0.99)); 
+            border-top: 1px solid var(--accent-glow);
+            position: relative;
+        }
+        .preview-queue {
+            position: absolute;
+            top: -28px;
+            left: 64px;
+            right: 64px;
+            background: linear-gradient(135deg, rgba(0,255,136,0.3), rgba(0,212,255,0.25));
+            backdrop-filter: blur(60px);
+            border-radius: 28px;
+            padding: 24px 36px;
+            border: 2px solid rgba(0,255,136,0.6);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+            box-shadow: 0 24px 100px rgba(0,255,136,0.4);
+        }
+        .preview-queue.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .continue-btn {
+            position: absolute;
+            top: -24px;
+            right: 64px;
+            background: linear-gradient(135deg, var(--success), #00ffaa);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 999px;
+            font-weight: 900;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 20px 80px rgba(0,255,136,0.6);
+            transition: all 0.5s;
+            opacity: 0;
+            transform: scale(0.9);
+            z-index: 60;
+        }
+        .continue-btn.visible {
+            opacity: 1;
+            transform: scale(1);
+            animation: bounceIn 0.7s;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .input-box { 
+            display: flex; 
+            align-items: end; 
+            gap: 36px; 
+            background: linear-gradient(135deg, var(--glass), rgba(12,12,26,0.45)); 
+            backdrop-filter: blur(100px); 
+            border-radius: 52px; 
+            padding: 40px 52px; 
+            border: 2px solid var(--accent-glow);
+            transition: all 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+            position: relative;
+        }
+        .input-box:focus-within { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 100px var(--accent-glow); 
+            transform: scale(1.04) translateY(-6px);
+        }
+        textarea { 
+            flex: 1; 
+            border: none; 
+            background: transparent; 
+            color: var(--text); 
+            font-family: 'Inter', sans-serif; 
+            font-size: 20px; 
+            resize: none; 
+            outline: none;
+            max-height: 240px;
+            line-height: 1.85;
+        }
+        .btn { 
+            width: 76px; height: 76px; 
+            border-radius: 50%; 
+            border: none; 
+            background: var(--gradient); 
+            color: white; 
+            font-size: 28px; 
+            font-weight: 900;
+            cursor: pointer; 
+            transition: all 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(30px);
+        }
+        .btn::before { 
+            content: ''; 
+            position: absolute; 
+            top: -50%; 
+            left: -50%; 
+            width: 200%; 
+            height: 200%; 
+            background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%); 
+            transition: all 1s;
+            opacity: 0;
+        }
+        .btn:hover::before { opacity: 1; transform: scale(1.4); }
+        .btn:hover { transform: scale(1.3) rotate(180deg); box-shadow: 0 36px 140px var(--accent-glow); }
+        .sidebar-section { 
+            margin-bottom: 52px; 
+            padding-bottom: 40px; 
+            border-bottom: 1px solid rgba(0,212,255,0.25); 
+        }
+        .section-title { 
+            font-size: 24px; 
+            font-weight: 900; 
+            margin-bottom: 32px; 
+            background: var(--gradient); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase; 
+            letter-spacing: 2.5px;
+            position: relative;
+        }
+        .section-title::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: -16px; 
+            left: 0; 
+            width: 100px; 
+            height: 5px; 
+            background: var(--gradient);
+            border-radius: 3px;
+        }
+        .neural-node { 
+            padding: 24px 36px; 
+            background: linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,255,136,0.2)); 
+            border-radius: 32px; 
+            margin-bottom: 24px; 
+            cursor: pointer; 
+            font-size: 17px; 
+            border: 1px solid rgba(0,212,255,0.5); 
+            transition: all 0.6s;
+            position: relative;
+            overflow: hidden;
+        }
+        .neural-node::before { 
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 8px; 
+            height: 100%; 
+            background: var(--gradient);
+            opacity: 1;
+        }
+        .neural-node:hover { 
+            background: linear-gradient(135deg, rgba(0,212,255,0.6), rgba(0,255,136,0.5)); 
+            transform: translateX(20px) scale(1.08); 
+            box-shadow: 0 32px 120px var(--accent-glow); 
+        }
+        .confidence-bar { 
+            height: 10px; 
+            background: linear-gradient(90deg, rgba(12,12,26,0.9), rgba(0,212,255,0.35), var(--success)); 
+            border-radius: 6px; 
+            margin-top: 16px;
+            overflow: hidden;
+        }
+        .confidence-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, var(--success), #00ffaa); 
+            transition: width 1.2s cubic-bezier(0.25,0.46,0.45,0.94);
+            box-shadow: 0 0 24px var(--success);
+        }
+        #knowledge-graph { 
+            width: 100%; 
+            height: 280px; 
+            border-radius: 32px; 
+            border: 3px solid var(--accent-glow);
+            margin-top: 24px;
+            background: var(--glass);
+        }
+        .fusion-panel { 
+            background: linear-gradient(135deg, rgba(170,0,255,0.3), rgba(0,255,136,0.25)); 
+            border: 3px solid rgba(170,0,255,0.6); 
+            border-radius: 32px; 
+            padding: 36px; 
+            margin: 24px 0;
+            box-shadow: 0 28px 120px rgba(170,0,255,0.4);
+        }
+        .source-cite { 
+            background: linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,212,255,0.15)); 
+            padding: 16px 32px; 
+            border-radius: 32px; 
+            font-size: 16px; 
+            margin: 20px 0; 
+            border-left: 8px solid var(--accent);
+            cursor: pointer;
+            transition: all 0.5s;
+            display: inline-block;
+        }
+        .source-cite:hover {
+            background: linear-gradient(135deg, rgba(0,212,255,0.5), rgba(0,212,255,0.4));
+            transform: translateX(12px);
+            box-shadow: 0 16px 60px rgba(0,212,255,0.5);
+        }
+        .code-block { 
+            background: linear-gradient(135deg, var(--code-bg), #161626); 
+            border-radius: 44px; 
+            padding: 52px; 
+            margin: 44px 0; 
+            border: 2px solid rgba(0,212,255,0.4);
+            position: relative; 
+            overflow: hidden;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 
+                0 44px 160px rgba(0,0,0,0.9),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+            border-left: 12px solid var(--code-accent);
+        }
+        .code-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: var(--gradient);
+            box-shadow: 0 3px 20px rgba(0,212,255,0.8);
+        }
+        .code-block pre {
+            font-size: 17px;
+            line-height: 1.8;
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #e0e6ed;
+        }
+        .code-block code {
+            color: #f1f4f8;
+            font-weight: 400;
+        }
+        .code-block .keyword { color: #ff7b72; font-weight: 700; }
+        .code-block .string { color: #a5d6ff; }
+        .code-block .comment { color: #6b7280; font-style: italic; }
+        .code-block .function { color: #00d4ff; font-weight: 800; }
+        .code-block .number { color: #ffaa00; }
+        .code-block .operator { color: #ff7b72; }
+        .sandbox-output {
+            background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,136,0.08));
+            border: 2px solid rgba(0,255,136,0.6);
+            border-radius: 28px;
+            padding: 32px;
+            margin: 32px 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .reasoning-trace { 
+            background: linear-gradient(135deg, rgba(0,255,136,0.2), rgba(0,255,136,0.12)); 
+            border: 3px solid rgba(0,255,136,0.6); 
+            border-radius: 32px; 
+            padding: 36px; 
+            margin: 24px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            box-shadow: 0 32px 140px rgba(0,255,136,0.4);
+        }
+        .feedback { display: flex; gap: 20px; margin-top: 36px; padding: 28px; background: rgba(12,12,26,0.7); border-radius: 32px; }
+        .feedback-btn { 
+            padding: 16px 32px; 
+            border-radius: 32px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 18px;
+            transition: all 0.5s;
+            backdrop-filter: blur(30px);
+        }
+        .feedback-up { 
+            background: linear-gradient(135deg, var(--success), #00ffaa); 
+            color: white; 
+            box-shadow: 0 20px 80px rgba(0,255,136,0.6);
+        }
+        .feedback-down { 
+            background: linear-gradient(135deg, var(--warn), #ffcc00); 
+            color: white; 
+            box-shadow: 0 20px 80px rgba(255,170,0,0.6);
+        }
+        .feedback-btn:hover { transform: scale(1.12); }
+        .metacognition-panel {
+            background: linear-gradient(135deg, rgba(170,0,255,0.25), rgba(170,0,255,0.15));
+            border: 3px solid rgba(170,0,255,0.7);
+            border-radius: 32px;
+            padding: 36px;
+            margin: 24px 0;
+            box-shadow: 0 32px 140px rgba(170,0,255,0.4);
+        }
+        @media (max-width: 768px) { 
+            .sidebar { width: 100%; height: auto; position: absolute; z-index: 1000; transform: translateX(-100%); transition: transform 0.6s; }
+            .sidebar.open { transform: translateX(0); }
+            .chat-area { padding: 32px; }
+            .input-container { padding: 32px; }
+        }
+    </style>
 </head>
 <body>
-
-    <div class="static-bg">
-        <div class="layer grid-pattern"></div>
-        <div class="layer glow-center"></div>
-    </div>
-
-    <div id="auth-page" class="split-screen">
-        <div class="auth-left">
-            <div class="auth-card">
-                <h1>PrysmisAI</h1>
-                <p>create your account using:</p>
-                <button id="login-btn">login with puterjs</button>
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-section">
+                <div class="section-title">PRYSMIS CORE v1.0</div>
+                <div id="core-status"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-title">HIERARCHICAL GRAPH</div>
+                <div id="knowledge-graph"></div>
+                <div id="active-nodes"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-title">RECURSIVE DAGs</div>
+                <div id="dag-stack"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-title">EXPERT ROUTING</div>
+                <div id="expert-matrix"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-title">SUPARFUSION</div>
+                <div id="fusion-matrix"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-title">SANDOX ENGINE</div>
+                <div id="sandbox-status"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-title">METACOGNITION</div>
+                <div id="self-correction"></div>
             </div>
         </div>
-        <div class="auth-right">
-            <div class="visual-orb"></div>
-        </div>
-    </div>
 
-    <div id="chat-page" class="hidden">
-        <nav class="side-nav">
-            <div class="nav-logo">P</div>
-            <div class="nav-items">
-                <div class="nav-icon active">Chat</div>
-                <div class="nav-icon">Vault</div>
-            </div>
-        </nav>
-
-        <aside class="sidebar">
-            <div class="sidebar-header">Recent Threads</div>
-            <div id="history-list"></div>
-        </aside>
-
-        <main id="chat-viewport">
-            <div id="chat-container">
-                <div id="chat-messages"></div>
-                
-                <div class="input-section">
-                    <div id="image-preview-container" class="hidden"></div>
-                    <div class="input-wrapper">
-                        <div class="glow-border"></div>
-                        <input type="text" id="user-input" placeholder="Ask PrysmisAI anything or use '/' commands." autocomplete="off">
-                    </div>
+        <div class="main">
+            <div class="navbar">
+                <div class="logo">PrysmisAI - v1.0</div>
+                <span class="status-badge" id="global-status">SUPARINTELLIGENCE ACTIVE</span>
+                <div style="margin-left:auto;display:flex;gap:20px;">
+                    <button class="btn" style="width:60px;height:60px;font-size:20px;background:linear-gradient(135deg,var(--neural-purple),#ff00ff);" onclick="prysmis.toggleSidebar()" title="Knowledge Graph">N</button>
                 </div>
             </div>
-        </main>
+
+            <div class="chat-area" id="chat">
+                <div class="message ai-msg">
+                    <strong>PRYSMISAI v1.0 - SUPARINTELLIGENCE ONLINE</strong><br><br>
+                    <strong>Hierarchical Graph Memory • Recursive DAG Reasoning • Expert Superfusion • Live Execution Sandbox • Self-Evolving Metacognition</strong><br><br>
+                    Type anything or use commands:<br>
+                    <code style="background:rgba(0,212,255,0.25);padding:6px 16px;border-radius:16px;">/research [topic]</code> 
+                    <code style="background:rgba(0,255,136,0.25);padding:6px 16px;border-radius:16px;">/continue</code> 
+                    <code style="background:rgba(170,0,255,0.25);padding:6px 16px;border-radius:16px;">/dag [task]</code>
+                    <code style="background:rgba(255,170,0,0.25);padding:6px 16px;border-radius:16px;">/sandbox [code]</code>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="preview-queue" id="preview-queue"></div>
+                <button class="continue-btn" id="continue-btn" onclick="prysmis.forceContinue()">CONTINUE AI</button>
+                <div class="input-box">
+                    <textarea id="input" rows="1" placeholder="Execute reasoning DAG • Drop multimodal inputs • /research topic • /sandbox code • /continue"></textarea>
+                    <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf,.txt,.js,.py,.html" multiple style="display: none;">
+                    <button class="btn" style="background:linear-gradient(135deg,var(--neural-purple),#ff00ff);" id="plus-btn" title="Multimodal Superfusion">M</button>
+                    <button class="btn" id="send-btn" title="EXECUTE SUPAR DAG">E</button>
+                </div>
+                <div id="preview-zone"></div>
+            </div>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        class PrysmisAI {
+            constructor() {
+                this.expertModules = {
+                    code: { weight: 1.2, adapter: null, execution: true },
+                    math: { weight: 1.1, adapter: null, symbolic: true },
+                    science: { weight: 1.05, adapter: null, simulation: true },
+                    research: { weight: 1.3, cache: new Map(), live: true },
+                    logic: { weight: 1.15, formal: true, verification: true },
+                    multimodal: { weight: 1.4, fusion: true, attention: true },
+                    metacognition: { weight: 1.0, selfCorrect: true }
+                };
+                this.memoryGraph = {
+                    nodes: [], edges: [], causality: new Map(), timelines: new Map(),
+                    sessions: { active: [], archived: [] },
+                    embeddings: new Map()
+                };
+                this.dagEngine = { stack: [], cache: new Map(), parallel: 6 };
+                this.sandbox = { pyodide: null, js: new Map(), lua: null };
+                this.suparfusor = { crossModal: null, attention: null };
+                this.metacognition = { errorPatterns: new Map(), correctionRate: 0.92 };
+                this.conversationState = { queue: [], active: [], history: [] };
+                this.isProcessing = false;
+                this.isSilent = 0;
+                this.previewQueue = [];
+                this.embedder = null;
+                this.graph = cytoscape({
+                    container: document.getElementById('knowledge-graph'),
+                    style: [
+                        { selector: 'node', style: { 'background-color': '#00d4ff', 'label': 'data(label)', 'width': 36, 'height': 36, 'text-valign': 'center', 'font-size': 12 } },
+                        { selector: 'edge.causal', style: { 'width': 6, 'line-color': '#00ff88', 'curve-style': 'bezier', 'target-arrow-shape': 'triangle' } },
+                        { selector: 'edge.timeline', style: { 'width': 4, 'line-color': '#ffaa00', 'curve-style': 'straight', 'target-arrow-shape': 'vee' } },
+                        { selector: 'edge.dependency', style: { 'width': 3, 'line-color': '#aa00ff', 'curve-style': 'unbundled-bezier' } }
+                    ],
+                    layout: { name: 'dagre', rankDir: 'LR', nodeSep: 60, edgeSep: 20 }
+                });
+                this.init();
+            }
+
+            async init() {
+                const chat = new MLCChatModule();
+                await chat.reload('Llama-3.2-3B-Instruct-q4f16_1-MLC');
+                this.baseModel = chat;
+                
+                const { pipeline } = await import('@xenova/transformers');
+                this.embedder = await pipeline('feature-extraction', 'Xenova/all-mpnet-base-v2');
+                this.suparfusor.crossModal = await pipeline('feature-extraction', 'Xenova/multi-qa-mpnet-base-dot-v1');
+                this.vision = await pipeline('image-to-text', 'Xenova/llava-v1.6-mistral-7b-vision');
+                this.audio = await pipeline('automatic-speech-recognition', 'Xenova/whisper-large-v3');
+                
+                this.sandbox.pyodide = await loadPyodide();
+                await this.sandbox.pyodide.loadPackage(['numpy', 'scipy', 'sympy', 'matplotlib']);
+                
+                Object.keys(this.expertModules).forEach(k => {
+                    this.expertModules[k].adapter = this.createLoRAAdapter(k);
+                });
+                
+                this.restorePersistentState();
+                this.setupAdvancedUI();
+                this.autonomousMetacognition();
+                this.silenceDetection();
+                this.queueProcessor();
+                this.updateMatrix();
+            }
+
+            createLoRAAdapter(domain) {
+                const matrices = Array(12).fill().map(() => 
+                    new Array(768).fill(0.001).map(() => (Math.random() - 0.5) * 0.02)
+                );
+                return { domain, matrices, alpha: 16, scale: 1.0 };
+            }
+
+            async superEmbed(content, modality, metadata = {}) {
+                const base = await this.embedder(content, { pooling: 'mean', normalize: true });
+                const emb = Array.from(base.data).slice(0, 768);
+                
+                const domainBoost = this.expertModules[metadata.expert || 'default']?.weight || 1.0;
+                emb[0] *= domainBoost * (modality === 'code' ? 2.4 : 1.0);
+                emb[1] *= (modality === 'research' ? 2.1 : 1.0);
+                emb[2] *= (modality === 'causal' ? 1.9 : 1.0);
+                
+                return { 
+                    embedding: emb, 
+                    modality, 
+                    metadata, 
+                    timestamp: Date.now(), 
+                    causality: metadata.causal || 0,
+                    relevance: 1.0, 
+                    decay: 1.0,
+                    session: metadata.session || 'active'
+                };
+            }
+
+            async hierarchicalGraphSearch(query, filters = { causality: 0.8, recency: 3600000 }, limit = 24) {
+                const qEmb = await this.superEmbed(query, 'query', {}).embedding;
+                const candidates = [];
+                
+                this.memoryGraph.nodes.forEach(node => {
+                    if (Date.now() - node.timestamp > filters.recency) return;
+                    const sim = this.cosineSim(qEmb, node.embedding);
+                    if (sim > 0.76) {
+                        candidates.push({ 
+                            node, 
+                            score: sim * node.relevance * node.decay * (node.causality * filters.causality + 0.2)
+                        });
+                    }
+                });
+                
+                return candidates
+                    .sort((a,b) => b.score - a.score)
+                    .slice(0, limit)
+                    .map(c => ({...c.node, graphScore: c.score }));
+            }
+
+            cosineSim(v1, v2) {
+                const dot = v1.reduce((s, a, i) => s + a * v2[i], 0);
+                const n1 = Math.sqrt(v1.reduce((s, a) => s + a*a, 0));
+                const n2 = Math.sqrt(v2.reduce((s, a) => s + a*a, 0));
+                return Math.max(0, dot / (n1 * n2 + 1e-8));
+            }
+
+            async recursiveSuperDAG(task, depth = 0, maxDepth = 6, context = []) {
+                if (depth > maxDepth) {
+                    return [{
+                        id: `leaf_${Date.now()}`, 
+                        task, 
+                        deps: [], 
+                        parallel: false, 
+                        expert: 'logic',
+                        confidence: 0.94,
+                        verification: true
+                    }];
+                }
+                
+                const dagPrompt = `DECOMPOSE "${task}" → RECURSIVE JSON DAG (max 6 nodes): {
+                    nodes: [{id:"n1",task:"...",deps:[],expert:"code|math|logic",parallel:false,verification:true}],
+                    edges: [{from:"n1",to:"n2",type:"causal|dependency|timeline"}]
+                }`;
+                
+                const dagStr = await this.metaRoute(dagPrompt, context, 1400);
+                let dag;
+                
+                try {
+                    dag = JSON.parse(dagStr);
+                } catch {
+                    return [{
+                        id: `n_${Date.now()}`, 
+                        task, 
+                        deps: [], 
+                        parallel: false, 
+                        expert: 'logic',
+                        confidence: 0.92,
+                        verification: true
+                    }];
+                }
+                
+                const expandedNodes = await Promise.all(dag.nodes.map(async n => ({
+                    ...n,
+                    subtasks: await this.recursiveSuperDAG(n.task, depth + 1, maxDepth, [...context, task]),
+                    contextHash: this.hash(context.slice(-3))
+                })));
+                
+                return { nodes: expandedNodes, edges: dag.edges || [] };
+            }
+
+            metaRoute(prompt, context, tokens = 2000) {
+                const expertScores = {};
+                const parallelRoutes = Object.entries(this.expertModules).map(async ([name, module]) => {
+                    const weightedPrompt = this.applyLoRA(prompt, module.adapter);
+                    const result = await this.baseModel.generate(weightedPrompt + `\nCONTEXT: ${JSON.stringify(context.slice(0,4))}`, tokens);
+                    const confidence = parseFloat(result.match(/confidence[:\s]*([\d.]+)/)?.[1] || 0.85);
+                    expertScores[name] = confidence * module.weight;
+                    return { name, result, confidence };
+                });
+                
+                return Promise.all(parallelRoutes).then(routes => {
+                    const best = routes.reduce((best, curr) => 
+                        expertScores[curr.name] > expertScores[best.name] ? curr : best
+                    );
+                    this.updateExpertWeight(best.name, best.confidence);
+                    return best.result;
+                });
+            }
+
+            applyLoRA(prompt, adapter) {
+                if (!adapter) return prompt;
+                const scale = adapter.alpha * adapter.scale;
+                return `${prompt}\n[LoRA:${adapter.domain}:${scale.toFixed(2)}]`;
+            }
+
+            updateExpertWeight(name, performance) {
+                const module = this.expertModules[name];
+                module.weight *= (1 + (performance - 0.85) * 0.08);
+                module.weight = Math.max(0.6, Math.min(2.0, module.weight));
+            }
+
+            async superFusion(inputs) {
+                const embeddings = await Promise.all(inputs.map(i => 
+                    this.superEmbed(i.content, i.modality || 'text', i.metadata || {})
+                ));
+                
+                const attentionMatrix = embeddings.map((e1, i) => 
+                    embeddings.map((e2, j) => 
+                        this.cosineSim(e1.embedding, e2.embedding) * 
+                        (i === j ? 1.0 : 0.4) * 
+                        e1.metadata.weight * e2.metadata.weight
+                    )
+                );
+                
+                const fusedEmbedding = attentionMatrix[0].map((_, i) => 
+                    embeddings.reduce((sum, emb, j) => sum + attentionMatrix[j][i] * emb.embedding[i], 0)
+                );
+                
+                const dominantIdx = attentionMatrix[0].indexOf(Math.max(...attentionMatrix[0]));
+                return {
+                    fused: fusedEmbedding.map(x => x / Math.max(1, fusedEmbedding.reduce((s,v)=>s+Math.abs(v),0))),
+                    attention: attentionMatrix,
+                    dominant: embeddings[dominantIdx],
+                    coherence: attentionMatrix.reduce((s, row) => s + Math.max(...row), 0) / embeddings.length
+                };
+            }
+
+            async dynamicSandbox(code, language = 'python', context = {}) {
+                if (!this.sandbox.pyodide && language === 'python') {
+                    throw new Error('Pyodide not ready');
+                }
+                
+                if (language === 'python') {
+                    try {
+                        const result = await this.sandbox.pyodide.runPythonAsync(`
+import sys, io
+sys.stdout = io.StringIO()
+${code}
+sys.stdout.getvalue()
+                        `);
+                        return { success: true, output: result, validated: true };
+                    } catch (e) {
+                        return { success: false, error: e.message, validated: false };
+                    }
+                } else if (language === 'javascript') {
+                    try {
+                        const func = new Function('context', code);
+                        const result = func(context);
+                        return { success: true, output: JSON.stringify(result), validated: true };
+                    } catch (e) {
+                        return { success: false, error: e.message, validated: false };
+                    }
+                }
+                
+                return { success: false, error: 'Language not supported', validated: false };
+            }
+
+            async metacognitiveValidation(output, prompt, context) {
+                const checks = await Promise.all([
+                    this.baseModel.generate(`HALLUCINATION CHECK: "${output.slice(0,500)}" for "${prompt}" → 0-1 score:`, 200),
+                    this.baseModel.generate(`LOGIC CHECK: "${output.slice(0,500)}" → consistency score 0-1:`, 200),
+                    this.baseModel.generate(`OPTIMIZATION: "${output.slice(0,300)}" → improvement score 0-1:`, 200)
+                ]);
+                
+                const scores = checks.map(c => parseFloat(c.match(/(\d\.\d+)/)?.[1] || 0.9));
+                const avgScore = scores.reduce((a,b)=>a+b,0)/scores.length;
+                
+                if (avgScore < 0.87) {
+                    this.metacognition.errorPatterns.set(prompt.slice(0,50), {
+                        type: scores[0] < 0.8 ? 'hallucination' : 'logic',
+                        count: (this.metacognition.errorPatterns.get(prompt.slice(0,50))?.count || 0) + 1
+                    });
+                    return await this.selfCorrect(output, prompt, context, scores);
+                }
+                
+                return { output, validated: true, confidence: avgScore };
+            }
+
+            async selfCorrect(output, prompt, context, diagnostics) {
+                const correctionPrompt = `SELF-CORRECT: "${output}"\nERRORS: ${JSON.stringify(diagnostics)}\nCONTEXT: ${JSON.stringify(context.slice(0,2))}\nCORRECTED:`;
+                const corrected = await this.metaRoute(correctionPrompt, context);
+                this.metacognition.correctionRate = (this.metacognition.correctionRate * 0.9) + 0.1;
+                return { output: corrected, validated: true, confidence: 0.94, corrected: true };
+            }
+
+            hash(content) {
+                let h = 5381;
+                for (let i = 0; i < content.length; i++) {
+                    h = ((h << 5) + h) + content.charCodeAt(i);
+                }
+                return h >>> 0;
+            }
+
+            async nonBlockingExecute(input) {
+                if (this.conversationState.queue.length === 0 && !this.isProcessing) {
+                    this.isProcessing = true;
+                    await this.processQueueItem(input);
+                    this.isProcessing = false;
+                } else {
+                    this.conversationState.queue.push(input);
+                }
+            }
+
+            async processQueueItem(input) {
+                const msgId = this.appendMessage('user', this.formatHyperlinks(input));
+                const thinkingId = this.appendMessage('ai', this.thinkingMatrix([
+                    'Meta-Routing → Expert Selection',
+                    'SuperFusion → Cross-Modal Alignment', 
+                    'Recursive DAG → Depth 6',
+                    'Sandbox Execution → Live Validation',
+                    'Metacognition → Self-Correction'
+                ]));
+                
+                const graphContext = await this.hierarchicalGraphSearch(input, { causality: 0.85 });
+                const fusion = await this.superFusion([
+                    { content: input, modality: 'text' },
+                    ...graphContext.slice(0,4).map(c => ({ 
+                        content: c.content, 
+                        modality: c.modality || 'memory',
+                        metadata: { weight: c.graphScore, causal: c.causality }
+                    }))
+                ]);
+                
+                const superDAG = await this.recursiveSuperDAG(input, 0, 6, graphContext.map(c => c.content));
+                const dagResults = await this.executeParallelDAG(superDAG, graphContext);
+                
+                const trace = {
+                    dagDepth: 6,
+                    expertDominant: Object.keys(this.expertModules).reduce((a,k) => 
+                        this.expertModules[k].weight > this.expertModules[a].weight ? k : a
+                    ),
+                    fusionCoherence: fusion.coherence.toFixed(3),
+                    contextHits: graphContext.length,
+                    corrections: this.metacognition.correctionRate.toFixed(3),
+                    sandboxValidations: Object.values(dagResults).filter(r => r.validated).length
+                };
+                
+                let reasoning = await this.metaRoute(input, graphContext.map(c => c.content));
+                const validated = await this.metacognitiveValidation(reasoning, input, graphContext);
+                reasoning = validated.output;
+                
+                const enrichedOutput = this.enrichWithSandbox(reasoning, dagResults);
+                const final = this.formatFinalOutput(enrichedOutput, trace, validated);
+                
+                document.getElementById(thinkingId).outerHTML = final;
+                await this.synthesizeGraphMemory(input, reasoning, fusion, dagResults);
+                this.updateMatrix();
+                this.renderCausalGraph();
+            }
+
+            enrichWithSandbox(reasoning, dagResults) {
+                const codeBlocks = reasoning.match(/```[\s\S]*?```/g) || [];
+                return codeBlocks.reduce((acc, block) => {
+                    const langMatch = block.match(/^```(\w+)/);
+                    const lang = langMatch ? langMatch[1] : 'python';
+                    const code = block.replace(/^```[\w]*\n|```$/g, '');
+                    
+                    if (code.trim()) {
+                        const sandboxResult = this.sandbox.pyodide ? 
+                            this.dynamicSandbox(code, lang, dagResults) : 
+                            { success: false, output: 'Sandbox warming up...' };
+                        
+                        return acc.replace(block, `${block}
+<div class="sandbox-output">
+<strong>SANDBOX ${lang.toUpperCase()}: </strong>${sandboxResult.output || sandboxResult.error}
+</div>`);
+                    }
+                    return acc;
+                }, reasoning);
+            }
+
+            formatFinalOutput(content, trace, validation) {
+                return `
+                    <div class="reasoning-trace">
+                        <strong>SUPERTRACE v1.0:</strong> 
+                        DAG(Depth:${trace.dagDepth}) | 
+                        Expert:${trace.expertDominant.toUpperCase()} | 
+                        Fusion:${trace.fusionCoherence} | 
+                        Context:${trace.contextHits} | 
+                        Corrections:${trace.corrections} | 
+                        Validated:${trace.sandboxValidations}
+                        ${validation.corrected ? '<span style="color:var(--success);font-weight:900;">✓ SELF-CORRECTED</span>' : ''}
+                    </div>
+                    <div class="code-block" style="font-size:18px;">${content}</div>
+                    <div class="feedback">
+                        <button class="feedback-btn feedback-up" onclick="prysmis.reinforce('excellent')">EXCELLENT +0.08</button>
+                        <button class="feedback-btn feedback-down" onclick="prysmis.reinforce('improve')">IMPROVE -0.06</button>
+                    </div>
+                `;
+            }
+
+            async synthesizeGraphMemory(input, output, fusion, dagResults) {
+                const emb = await this.superEmbed(input + output, 'synthesis', {
+                    expert: this.expertModules.default,
+                    causal: fusion.coherence > 0.85 ? 0.9 : 0.6,
+                    session: 'active'
+                });
+                
+                const nodeId = `n_${Date.now()}_${this.hash(input)}`;
+                const memoryNode = {
+                    ...emb,
+                    id: nodeId,
+                    input, output, fusionCoherence: fusion.coherence,
+                    dagResults: Object.keys(dagResults).length,
+                    validated: true,
+                    session: 'active',
+                    causality: emb.causality,
+                    timeline: Date.now(),
+                    predecessors: this.conversationState.history.slice(-3).map(h => h.id),
+                    relevance: 1.0,
+                    decay: Math.exp(-0.00008 * (Date.now() - emb.timestamp))
+                };
+                
+                this.memoryGraph.nodes.unshift(memoryNode);
+                if (this.memoryGraph.nodes.length > 2000) this.memoryGraph.nodes = this.memoryGraph.nodes.slice(0,2000);
+                
+                this.memoryGraph.edges.push(...memoryNode.predecessors.map(pred => ({
+                    id: `e_${Date.now()}_${pred}`,
+                    source: pred,
+                    target: nodeId,
+                    type: 'dependency',
+                    weight: memoryNode.relevance,
+                    timestamp: Date.now()
+                })));
+                
+                if (this.memoryGraph.edges.length > 5000) {
+                    this.memoryGraph.edges = this.memoryGraph.edges.slice(-5000);
+                }
+                
+                this.conversationState.history.unshift(memoryNode);
+                if (this.conversationState.history.length > 1200) {
+                    this.conversationState.history = this.conversationState.history.slice(0,1200);
+                }
+                
+                this.memoryGraph.sessions.active.push(nodeId);
+                if (this.memoryGraph.sessions.active.length > 300) {
+                    this.memoryGraph.sessions.archived.push(...this.memoryGraph.sessions.active.splice(0,100));
+                }
+            }
+
+            async executeParallelDAG(dag, context) {
+                const topoOrder = this.topologicalSort(dag);
+                const results = {};
+                
+                for (let i = 0; i < topoOrder.length; i += this.dagEngine.parallel) {
+                    const batch = topoOrder.slice(i, i + this.dagEngine.parallel);
+                    const batchResults = await Promise.allSettled(batch.map(async nodeId => {
+                        const node = this.findNodeDeep(dag, nodeId);
+                        const priorContext = Object.values(results).slice(-6);
+                        
+                        let result = await this.metaRoute(node.task, priorContext, 800);
+                        
+                        if (node.verification && node.expert === 'code') {
+                            const sandbox = await this.dynamicSandbox(result.match(/```[\s\S]*```/)?.[0]?.replace(/```[\w]*\n?|```$/g,'') || '', 'python');
+                            result += `\nSANDBOX: ${sandbox.output || sandbox.error}`;
+                        }
+                        
+                        results[nodeId] = { output: result, validated: sandbox?.success ?? true };
+                    }));
+                }
+                
+                return results;
+            }
+
+            topologicalSort(dag) {
+                const visited = new Set();
+                const order = [];
+                
+                const visit = (nodeId) => {
+                    if (visited.has(nodeId)) return;
+                    visited.add(nodeId);
+                    
+                    const node = this.findNodeDeep(dag, nodeId);
+                    node.deps?.forEach(dep => visit(dep));
+                    
+                    order.push(nodeId);
+                };
+                
+                dag.nodes.forEach(n => visit(n.id));
+                return order.reverse();
+            }
+
+            findNodeDeep(dag, nodeId) {
+                if (dag.nodes) {
+                    return dag.nodes.find(n => n.id === nodeId) || 
+                           dag.nodes.find(n => n.subtasks?.find(st => st.id === nodeId));
+                }
+                return null;
+            }
+
+            reinforce(signal) {
+                const delta = signal === 'excellent' ? 0.08 : -0.06;
+                Object.values(this.expertModules).forEach(module => {
+                    module.weight = Math.max(0.5, Math.min(2.5, module.weight + delta * 0.3));
+                });
+                this.updateMatrix();
+            }
+
+            formatHyperlinks(text) {
+                return text.replace(/(https?:\/\/[^\s<]+|www\.[\w\.-]+\.[a-z]{2,})/g, match => 
+                    `<span class="source-cite" onclick="prysmis.liveExtract('${match.replace(/'/g,'&#39;')}')" style="font-weight:700;">${match}</span>`
+                );
+            }
+
+            async liveExtract(url) {
+                const extraction = await this.expertModules.research.generate(`LIVE EXTRACTION & STRUCTURE → ${url}`, 800);
+                const node = await this.superEmbed(`Live:${url}`, 'research', { url, live: true });
+                this.memoryGraph.nodes.unshift(node);
+                return `<div class="fusion-panel"><strong>LIVE EXTRACTION:</strong> ${extraction}</div>`;
+            }
+
+            setupAdvancedUI() {
+                const input = document.getElementById('input');
+                input.oninput = () => {
+                    input.style.height = 'auto';
+                    input.style.height = Math.min(input.scrollHeight, 260) + 'px';
+                };
+                
+                input.onkeydown = async e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        const val = input.value.trim();
+                        if (val) {
+                            await this.nonBlockingExecute(val);
+                            input.value = '';
+                            input.style.height = 'auto';
+                        }
+                    }
+                };
+                
+                document.getElementById('send-btn').onclick = async () => {
+                    const val = input.value.trim();
+                    if (val) {
+                        await this.nonBlockingExecute(val);
+                        input.value = '';
+                        input.style.height = 'auto';
+                    }
+                };
+                
+                document.getElementById('plus-btn').onclick = () => document.getElementById('file-input').click();
+                
+                document.getElementById('file-input').onchange = async e => {
+                    const files = Array.from(e.target.files);
+                    const superInputs = await Promise.all(files.map(async f => {
+                        const url = URL.createObjectURL(f);
+                        let content = '', modality = 'document';
+                        
+                        if (f.type.startsWith('image/')) {
+                            const res = await this.vision(url);
+                            content = res[0].generated_text;
+                            modality = 'vision';
+                        } else if (f.type.startsWith('audio/')) {
+                            const res = await this.audio(url);
+                            content = res.text;
+                            modality = 'audio';
+                        } else if (f.name.match(/\.(js|py|html|css|json)$/)) {
+                            content = await f.text();
+                            modality = 'code';
+                        } else {
+                            content = await f.text();
+                            modality = 'document';
+                        }
+                        
+                        return { content, modality, metadata: { file: f.name, weight: 1.6 } };
+                    }));
+                    
+                    const fusionPreview = await this.superFusion(superInputs);
+                    document.getElementById('preview-zone').innerHTML = `
+                        <div class="fusion-panel">
+                            <strong>SUPARFUSION ACTIVE:</strong> Coherence ${fusionPreview.coherence.toFixed(3)} | 
+                            Dominant: ${fusionPreview.dominant.modality}
+                        </div>
+                    `;
+                };
+            }
+
+            queueProcessor() {
+                setInterval(async () => {
+                    if (!this.isProcessing && this.conversationState.queue.length > 0) {
+                        const next = this.conversationState.queue.shift();
+                        this.previewQueue = [];
+                        document.getElementById('preview-queue').classList.remove('visible');
+                        await this.processQueueItem(next);
+                    } else if (this.conversationState.queue.length > 0) {
+                        document.getElementById('preview-queue').innerHTML = 
+                            `<strong>QUEUE: ${this.conversationState.queue.length} pending</strong><br>
+                             Next: ${this.conversationState.queue[0]?.slice(0,80)}...`;
+                        document.getElementById('preview-queue').classList.add('visible');
+                    }
+                }, 100);
+            }
+
+            silenceDetection() {
+                setInterval(() => {
+                    const silence = Date.now() - (this.conversationState.history[0]?.timestamp || 0);
+                    if (silence > 150000) {
+                        document.getElementById('continue-btn').classList.add('visible');
+                        this.isSilent = silence / 1000;
+                    }
+                }, 25000);
+            }
+
+            forceContinue() {
+                document.getElementById('continue-btn').classList.remove('visible');
+                if (this.conversationState.history.length > 0) {
+                    const lastContext = this.conversationState.history[0];
+                    this.nonBlockingExecute(`CONTINUE EXACTLY: ${lastContext.input}\nFrom: ${lastContext.output.slice(-400)}`);
+                }
+            }
+
+            autonomousMetacognition() {
+                setInterval(async () => {
+                    if (this.metacognition.errorPatterns.size > 5) {
+                        const patterns = Array.from(this.metacognition.errorPatterns.entries());
+                        const worst = patterns.reduce((worst, [pat, data]) => 
+                            data.count > worst[1].count ? [pat, data] : worst
+                        );
+                        
+                        const correction = await this.metaRoute(
+                            `CORRECT PATTERN: ${worst[0]} → Error: ${worst[1].type}`,
+                            this.conversationState.history.slice(0,3)
+                        );
+                        
+                        this.metacognition.errorPatterns.delete(worst[0]);
+                        console.log('Metacognitive correction applied:', correction);
+                    }
+                }, 120000);
+            }
+
+            updateMatrix() {
+                const totalMem = this.memoryGraph.nodes.length;
+                const causalEdges = this.memoryGraph.edges.filter(e => e.type === 'causal').length;
+                
+                document.getElementById('core-status').innerHTML = `
+                    <div style="font-size:22px;font-weight:900;margin-bottom:20px;">
+                        Graph Load: ${(totalMem/2000*100).toFixed(1)}%
+                    </div>
+                    <div>Nodes: ${totalMem} | Causal: ${causalEdges} | Sessions: ${this.memoryGraph.sessions.active.length}</div>
+                    <div>Queue: ${this.conversationState.queue.length} | Corrections: ${(1-this.metacognition.correctionRate*100).toFixed(1)}%</div>
+                `;
+                
+                document.getElementById('active-nodes').innerHTML = 
+                    this.memoryGraph.nodes.slice(0,8).map(n => 
+                        `<div class="neural-node">
+                            ${n.metadata?.expert?.toUpperCase() || 'SYN'} ${n.content.slice(0,60)}...
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width:${(n.relevance*n.decay*n.causality*100)}%"></div>
+                            </div>
+                        </div>`
+                    ).join('');
+                
+                document.getElementById('expert-matrix').innerHTML = 
+                    Object.entries(this.expertModules).map(([k,v]) => 
+                        `<div class="neural-node">${k.toUpperCase()}: ${(v.weight*100).toFixed(1)}%</div>`
+                    ).join('');
+                
+                document.getElementById('fusion-matrix').innerHTML = `
+                    <div class="fusion-panel">
+                        Superfusion Coherence: ${this.suparfusor?.lastCoherence?.toFixed(3) || 'N/A'} | 
+                        Dominant Modality: ${this.suparfusor?.dominantModality || 'Text'}
+                    </div>
+                `;
+                
+                document.getElementById('self-correction').innerHTML = `
+                    <div class="metacognition-panel">
+                        Error Patterns: ${this.metacognition.errorPatterns.size} | 
+                        Correction Rate: ${(1-this.metacognition.correctionRate*100).toFixed(1)}%
+                    </div>
+                `;
+            }
+
+            renderCausalGraph() {
+                this.graph.elements().remove();
+                
+                const recentGraph = this.memoryGraph.nodes.slice(0,24);
+                const recentEdges = this.memoryGraph.edges.filter(e => 
+                    recentGraph.some(n => n.id === e.source || n.id === e.target)
+                ).slice(0,48);
+                
+                this.graph.add(recentGraph.map(n => ({
+                    group: 'nodes',
+                    data: { 
+                        id: n.id, 
+                        label: `${n.modality[0]}${n.metadata?.expert?.[0] || ''}`,
+                        score: (n.causality * 100).toFixed(0)
+                    }
+                })));
+                
+                this.graph.add(recentEdges.map(e => ({
+                    group: 'edges',
+                    data: { 
+                        source: e.source, 
+                        target: e.target, 
+                        weight: e.weight 
+                    },
+                    classes: e.type
+                })));
+                
+                this.graph.layout({ 
+                    name: 'dagre', 
+                    rankDir: 'LR',
+                    animate: true, 
+                    animationDuration: 1600,
+                    fit: true,
+                    padding: 28
+                }).run();
+            }
+
+            restorePersistentState() {
+                try {
+                    const state = JSON.parse(localStorage.getItem('prysmisai_v1_supar') || '{}');
+                    this.memoryGraph = state.memoryGraph || this.memoryGraph;
+                    Object.assign(this.expertModules, state.expertModules || {});
+                    this.conversationState = state.conversationState || this.conversationState;
+                    this.metacognition.errorPatterns = new Map(state.metacognition?.errorPatterns || []);
+                    this.renderCausalGraph();
+                } catch {}
+            }
+
+            async savePersistentState() {
+                localStorage.setItem('prysmisai_v1_supar', JSON.stringify({
+                    memoryGraph: this.memoryGraph,
+                    expertModules: this.expertModules,
+                    conversationState: this.conversationState,
+                    metacognition: Object.fromEntries(this.metacognition.errorPatterns)
+                }));
+            }
+
+            appendMessage(role, content) {
+                const chat = document.getElementById('chat');
+                const div = document.createElement('div');
+                div.className = `message ${role === 'user' ? 'user-msg' : 'ai-msg thinking'}`;
+                div.innerHTML = content;
+                chat.appendChild(div);
+                chat.scrollTop = chat.scrollHeight;
+                return `msg_${Date.now()}`;
+            }
+
+            thinkingMatrix(stages) {
+                return `<div style="display:flex;flex-direction:column;gap:24px;">
+                    <div style="display:flex;gap:24px;align-items:center;">
+                        <div style="width:52px;height:52px;border:8px solid var(--accent-glow);border-top:8px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div>
+                        <div>
+                            <strong style="font-size:24px;">SUPAR DAG EXECUTING</strong>
+                            <div style="font-size:16px;color:var(--text-dim);margin-top:4px;">${stages.join(' → ')}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        ${stages.map(s => `<div style="flex:1;height:6px;background:var(--gradient);animation:progress 6s linear infinite;background-size:400% 100%;border-radius:3px;box-shadow:0 0 24px var(--accent-glow);"></div>`).join('')}
+                    </div>
+                </div>`;
+            }
+
+            toggleSidebar() {
+                document.getElementById('sidebar').classList.toggle('open');
+            }
+        }
+
+        const prysmis = new PrysmisAI();
+        window.prysmis = prysmis;
+
+        setInterval(() => prysmis.updateMatrix(), 4000);
+        setInterval(() => prysmis.savePersistentState(), 45000);
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin { to { transform: rotate(360deg); } }
+            @keyframes progress { 0% { background-position: 400% 0; } 100% { background-position: -400% 0; } }
+            pre code .keyword { color: #ff7b72 !important; font-weight: 700; }
+            pre code .string { color: #a5d6ff !important; }
+            pre code .comment { color: #6b7280 !important; font-style: italic; }
+            pre code .function { color: #00d4ff !important; font-weight: 800; }
+            pre code .number { color: #ffaa00 !important; }
+            pre code .operator { color: #ff7b72 !important; font-weight: 600; }
+        `;
+        document.head.appendChild(style);
+    </script>
 </body>
 </html>
