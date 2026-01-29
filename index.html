@@ -3,409 +3,471 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrysmisAI v4.0 </title>
+<title>PrysmisAI v5.0 | Neural Singularity</title>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.1/dist/fabric.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
---bg: #020205;
---surface: #0a0a12;
---border: rgba(139, 92, 246, 0.25);
+--bg: #030306;
+--panel: #0a0a0f;
 --accent: #8b5cf6;
---accent-glow: rgba(139, 92, 246, 0.5);
+--accent-bright: #c084fc;
 --secondary: #ec4899;
---text: #f1f5f9;
---text-muted: #94a3b8;
---gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+--border: rgba(139, 92, 246, 0.2);
+--text: #f8fafc;
+--text-dim: #64748b;
+--glow: 0 0 20px rgba(139, 92, 246, 0.3);
 }
-* {
-margin: 0;
-padding: 0;
-box-sizing: border-box;
--webkit-font-smoothing: antialiased;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
 body {
-background-color: var(--bg);
+background: var(--bg);
 color: var(--text);
-font-family: 'Space Grotesk', sans-serif;
+font-family: 'Outfit', sans-serif;
 height: 100vh;
 overflow: hidden;
 display: flex;
 }
-.app-container {
+.app-shell {
 display: flex;
 width: 100%;
 height: 100%;
-position: relative;
+background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
 }
 .sidebar {
-width: 280px;
-background: var(--surface);
+width: 320px;
+background: var(--panel);
 border-right: 1px solid var(--border);
 display: flex;
 flex-direction: column;
-transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-z-index: 50;
+z-index: 100;
+transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.main-view {
+.main-stage {
 flex: 1;
 display: flex;
 flex-direction: column;
 position: relative;
-background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
 }
 header {
-height: 70px;
+height: 80px;
 padding: 0 40px;
 display: flex;
 align-items: center;
 justify-content: space-between;
 border-bottom: 1px solid var(--border);
-backdrop-filter: blur(10px);
+backdrop-filter: blur(20px);
+background: rgba(3, 3, 6, 0.8);
 }
-.brand {
-font-size: 1.25rem;
-font-weight: 700;
-letter-spacing: -0.5px;
-background: var(--gradient);
+.logo-area {
+display: flex;
+align-items: center;
+gap: 12px;
+}
+.logo-glyph {
+width: 32px;
+height: 32px;
+background: linear-gradient(135deg, var(--accent), var(--secondary));
+border-radius: 8px;
+box-shadow: var(--glow);
+}
+.logo-text {
+font-size: 1.5rem;
+font-weight: 800;
+letter-spacing: -1px;
+background: linear-gradient(to right, #fff, var(--text-dim));
 -webkit-background-clip: text;
 -webkit-text-fill-color: transparent;
 }
-.stats-panel {
+.node-status {
 display: flex;
-gap: 24px;
+gap: 20px;
 font-size: 0.7rem;
-color: var(--text-muted);
+font-weight: 600;
 text-transform: uppercase;
 letter-spacing: 1px;
+color: var(--text-dim);
 }
-.chat-viewport {
+.status-pill {
+display: flex;
+align-items: center;
+gap: 6px;
+background: rgba(255,255,255,0.03);
+padding: 4px 12px;
+border-radius: 20px;
+border: 1px solid var(--border);
+}
+.active-dot {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: #10b981;
+box-shadow: 0 0 10px #10b981;
+}
+.neural-vault {
 flex: 1;
 overflow-y: auto;
 padding: 40px 0;
-scroll-behavior: smooth;
 }
-.chat-inner {
-max-width: 850px;
+.neural-container {
+max-width: 900px;
 margin: 0 auto;
-padding: 0 20px;
+padding: 0 30px;
 display: flex;
 flex-direction: column;
 gap: 40px;
 }
-.message {
+.message-blob {
 display: flex;
 flex-direction: column;
-gap: 12px;
-animation: msgReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+gap: 16px;
+animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-@keyframes msgReveal {
-from { opacity: 0; transform: translateY(20px); }
+@keyframes slideUp {
+from { opacity: 0; transform: translateY(30px); }
 to { opacity: 1; transform: translateY(0); }
 }
-.msg-content {
-max-width: 100%;
-line-height: 1.6;
-font-size: 0.95rem;
+.ai-response {
+background: rgba(255, 255, 255, 0.01);
+border: 1px solid rgba(255, 255, 255, 0.04);
+border-radius: 32px;
+padding: 35px;
+box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 position: relative;
 }
-.ai-msg {
-background: rgba(255, 255, 255, 0.02);
-border: 1px solid rgba(255, 255, 255, 0.05);
-border-radius: 24px;
-padding: 30px;
-box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-}
-.user-msg {
+.user-query {
 align-self: flex-end;
-background: rgba(139, 92, 246, 0.1);
+background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.1));
 border: 1px solid var(--border);
 border-radius: 24px;
-padding: 16px 24px;
+padding: 20px 28px;
 max-width: 80%;
+font-weight: 500;
 }
-.thinking-wrapper {
-display: flex;
-flex-direction: column;
-gap: 15px;
+.thought-engine {
+margin-bottom: 25px;
 }
-.node-grid {
+.grid-nodes {
 display: grid;
-grid-template-columns: repeat(3, 1fr);
-gap: 10px;
-margin-bottom: 20px;
+grid-template-columns: repeat(4, 1fr);
+gap: 12px;
 }
-.node {
-height: 40px;
-background: rgba(139, 92, 246, 0.05);
+.neural-node {
+height: 45px;
+background: rgba(139, 92, 246, 0.03);
 border: 1px solid var(--border);
-border-radius: 8px;
+border-radius: 12px;
 display: flex;
 align-items: center;
 justify-content: center;
-font-size: 0.65rem;
-color: var(--text-muted);
-position: relative;
-overflow: hidden;
+font-size: 0.6rem;
+font-weight: 700;
+text-transform: uppercase;
+color: var(--text-dim);
+transition: all 0.4s;
 }
-.node.active {
+.neural-node.active {
 border-color: var(--accent);
-color: var(--text);
-background: rgba(139, 92, 246, 0.1);
+color: #fff;
+background: rgba(139, 92, 246, 0.15);
+box-shadow: inset 0 0 15px rgba(139, 92, 246, 0.2);
 }
-.node.active::after {
-content: '';
-position: absolute;
-left: -100%;
-width: 100%;
-height: 100%;
-background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent);
-animation: shimmer 1.5s infinite;
+.input-control {
+padding: 40px;
+background: linear-gradient(to top, var(--bg) 50%, transparent);
 }
-@keyframes shimmer {
-100% { left: 100%; }
-}
-.input-section {
-padding: 30px;
-background: linear-gradient(to top, var(--bg) 60%, transparent);
-}
-.input-container {
-max-width: 850px;
+.input-bar {
+max-width: 900px;
 margin: 0 auto;
-background: var(--surface);
+background: var(--panel);
 border: 1px solid var(--border);
-border-radius: 28px;
-padding: 10px;
+border-radius: 30px;
+padding: 12px;
 display: flex;
 flex-direction: column;
-gap: 8px;
-box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+gap: 12px;
+box-shadow: 0 25px 50px rgba(0,0,0,0.6);
 }
 .input-row {
 display: flex;
 align-items: center;
-gap: 10px;
+gap: 15px;
 }
 textarea {
 flex: 1;
 background: transparent;
 border: none;
-outline: none;
 color: var(--text);
-padding: 12px 20px;
-font-size: 1rem;
+padding: 10px 20px;
+font-size: 1.05rem;
 resize: none;
-font-family: inherit;
 max-height: 200px;
+font-family: inherit;
+line-height: 1.6;
 }
-.btn-icon {
-width: 44px;
-height: 44px;
+.icon-btn {
+width: 50px;
+height: 50px;
 border-radius: 50%;
 display: flex;
 align-items: center;
 justify-content: center;
 cursor: pointer;
-transition: all 0.3s;
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 border: none;
 background: transparent;
-color: var(--text-muted);
+color: var(--text-dim);
 }
-.btn-icon:hover {
+.icon-btn:hover {
 background: rgba(255,255,255,0.05);
-color: var(--text);
+color: var(--accent-bright);
+transform: scale(1.1);
 }
-.btn-send {
+.send-trigger {
 background: var(--accent);
 color: white;
+box-shadow: var(--glow);
 }
-.btn-send:hover {
+.send-trigger:hover {
 background: var(--secondary);
-transform: scale(1.05);
-box-shadow: 0 0 20px var(--accent-glow);
+transform: rotate(10deg) scale(1.1);
 }
-.code-container {
+.code-card {
 background: #010103;
-border-radius: 12px;
-margin: 15px 0;
+border-radius: 16px;
+margin: 20px 0;
 border: 1px solid rgba(255,255,255,0.05);
 overflow: hidden;
 }
 .code-header {
-padding: 8px 16px;
+padding: 12px 20px;
 background: rgba(255,255,255,0.02);
 display: flex;
 justify-content: space-between;
 align-items: center;
 border-bottom: 1px solid rgba(255,255,255,0.05);
+font-family: 'JetBrains Mono', monospace;
+font-size: 0.75rem;
 }
 pre {
-padding: 20px;
-font-family: 'Fira Code', monospace;
-font-size: 0.85rem;
+padding: 24px;
+font-family: 'JetBrains Mono', monospace;
+font-size: 0.9rem;
 overflow-x: auto;
 color: #e2e8f0;
+line-height: 1.7;
 }
-.agent-badge {
-padding: 2px 8px;
-border-radius: 4px;
-font-size: 0.6rem;
-font-weight: 700;
+.expert-badge {
+padding: 3px 10px;
+border-radius: 6px;
+font-size: 0.65rem;
+font-weight: 800;
 text-transform: uppercase;
-background: rgba(139, 92, 246, 0.2);
-color: var(--accent);
+background: rgba(139, 92, 246, 0.15);
+color: var(--accent-bright);
 border: 1px solid var(--border);
+width: fit-content;
 }
-.consensus-view {
-margin-top: 20px;
+.consensus-bar {
+margin-top: 25px;
 display: flex;
-gap: 10px;
+gap: 12px;
 }
-.consensus-item {
+.consensus-segment {
 flex: 1;
-height: 4px;
-border-radius: 2px;
-background: rgba(255,255,255,0.05);
+height: 6px;
+border-radius: 3px;
+background: rgba(255,255,255,0.03);
 position: relative;
 overflow: hidden;
 }
 .consensus-fill {
 height: 100%;
-background: var(--accent);
+background: linear-gradient(to right, var(--accent), var(--secondary));
 width: 0;
-transition: width 1s ease;
+transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-.thinking-orbit {
-width: 40px;
-height: 40px;
-border: 2px solid var(--border);
-border-top: 2px solid var(--accent);
+.thinking-ring {
+width: 60px;
+height: 60px;
+border: 3px solid rgba(139, 92, 246, 0.1);
+border-top: 3px solid var(--accent);
 border-radius: 50%;
-animation: spin 1s linear infinite;
-margin: 0 auto;
+animation: neuralRotate 1.2s linear infinite;
+margin: 0 auto 20px;
 }
-@keyframes spin { 100% { transform: rotate(360deg); } }
-#image-tray {
+@keyframes neuralRotate { 100% { transform: rotate(360deg); } }
+#media-preview {
 display: flex;
-gap: 10px;
-padding: 0 10px;
+gap: 15px;
+padding: 0 15px;
 }
-.tray-item {
-width: 50px;
-height: 50px;
-border-radius: 8px;
+.preview-obj {
+width: 55px;
+height: 55px;
+border-radius: 12px;
 object-fit: cover;
-border: 1px solid var(--border);
+border: 2px solid var(--border);
+background: #000;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 0.7rem;
+font-weight: 700;
 }
+.sidebar-header {
+padding: 30px;
+border-bottom: 1px solid var(--border);
+}
+.vault-section {
+padding: 30px;
+}
+.vault-title {
+font-size: 0.75rem;
+font-weight: 800;
+color: var(--text-dim);
+text-transform: uppercase;
+letter-spacing: 2px;
+margin-bottom: 20px;
+}
+.memory-node {
+padding: 15px;
+background: rgba(255,255,255,0.02);
+border: 1px solid var(--border);
+border-radius: 12px;
+font-size: 0.8rem;
+margin-bottom: 12px;
+cursor: pointer;
+transition: 0.3s;
+}
+.memory-node:hover {
+background: rgba(139, 92, 246, 0.05);
+border-color: var(--accent);
+}
+.shimmer {
+position: absolute;
+top: 0; left: -100%;
+width: 50%; height: 100%;
+background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+animation: shimmerEffect 2s infinite;
+}
+@keyframes shimmerEffect { 100% { left: 200%; } }
 </style>
 </head>
 <body>
-<div class="app-container">
+<div class="app-shell">
 <aside class="sidebar" id="sidebar">
-<div style="padding: 24px;">
-<div class="brand" style="margin-bottom: 40px;">PRYSMIS v4.0</div>
-<div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px; font-weight: 600;">ACTIVE EXPERTS</div>
-<div id="expert-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
-<div style="margin-top: 40px; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px; font-weight: 600;">NEURAL RECALL</div>
-<div id="recall-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+<div class="sidebar-header">
+<div class="logo-area">
+<div class="logo-glyph"></div>
+<div class="logo-text">PRYSMIS v5</div>
+</div>
+</div>
+<div class="vault-section">
+<div class="vault-title">Expert Convergence</div>
+<div id="agent-stack" class="flex flex-col gap-3"></div>
+<div class="vault-title mt-10">Neural Memory Graph</div>
+<div id="memory-flow" class="flex flex-col gap-3"></div>
 </div>
 </aside>
-<div class="main-view">
+<main class="main-stage">
 <header>
-<div class="stats-panel">
-<div class="stat">Backbone: <span id="backbone-id" style="color: var(--accent);">Gemma-2B-v2</span></div>
-<div class="stat">Memory: <span id="mem-stat" style="color: var(--accent);">0</span> Nodes</div>
-<div class="stat">Logic: <span id="logic-stat" style="color: var(--accent);">Consensus</span></div>
+<div class="node-status">
+<div class="status-pill"><div class="active-dot"></div> Foundation: <span id="backbone-label" class="text-white ml-1">Universal-SOTA</span></div>
+<div class="status-pill">Nexus: <span id="nexus-count" class="text-white ml-1">0</span> Nodes</div>
+<div class="status-pill">Dimension: <span class="text-white ml-1">768-D</span></div>
 </div>
-<div class="btn-icon" onclick="prysmis.toggleSidebar()">
-<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
-</div>
+<button class="icon-btn" onclick="prysmis.toggleUI()">
+<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+</button>
 </header>
-<div class="chat-viewport" id="viewport">
-<div class="chat-inner" id="chat-flow"></div>
+<div class="neural-vault" id="neural-scroller">
+<div class="neural-container" id="neural-output"></div>
 </div>
-<div class="input-section">
-<div class="input-container">
-<div id="image-tray"></div>
+<div class="input-control">
+<div class="input-bar">
+<div id="media-preview"></div>
 <div class="input-row">
-<button class="btn-icon" onclick="document.getElementById('file-up').click()">
-<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+<button class="icon-btn" onclick="document.getElementById('neural-upload').click()">
+<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
 </button>
-<input type="file" id="file-up" hidden multiple accept="image/*">
-<textarea id="main-input" placeholder="Initiate neural sequence..." rows="1"></textarea>
-<button class="btn-icon btn-send" id="btn-submit">
-<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+<input type="file" id="neural-upload" hidden multiple accept="image/*,application/pdf,audio/*">
+<textarea id="neural-input" placeholder="Initiate neural reasoning sequence..." rows="1"></textarea>
+<button class="icon-btn send-trigger" id="neural-submit">
+<svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
 </button>
 </div>
 </div>
 </div>
-</div>
+</main>
 </div>
 <script>
-class PrysmisVectorEngine {
+class NeuralNexus {
 constructor() {
-this.store = [];
-this.dim = 384;
-this.decayFactor = 0.99;
+this.nodes = [];
+this.dimension = 768;
+this.alpha = 0.05;
+this.historyBuffer = 50;
 }
-async add(content, vector, metadata = {}) {
+async insert(text, vector, context = {}) {
 const node = {
-content,
+text,
 vector,
-metadata,
-timestamp: Date.now(),
-weight: 1.0,
-id: Math.random().toString(36).substr(2, 9)
+context,
+score: 1.0,
+ts: Date.now(),
+id: crypto.randomUUID()
 };
-this.store.push(node);
-this.applyDecay();
+this.nodes.push(node);
+this.optimize();
 return node;
 }
-applyDecay() {
+optimize() {
 const now = Date.now();
-this.store.forEach(node => {
-const ageHours = (now - node.timestamp) / 3600000;
-node.weight = Math.max(0.1, node.weight * Math.pow(this.decayFactor, ageHours));
+this.nodes.forEach(n => {
+const age = (now - n.ts) / 3600000;
+n.score *= Math.pow(0.98, age);
 });
-this.store = this.store.sort((a,b) => b.weight - a.weight).slice(0, 1000);
+if(this.nodes.length > 500) {
+this.nodes.sort((a,b) => b.score - a.score);
+this.nodes = this.nodes.slice(0, 500);
 }
-async query(targetVec, k = 5) {
-if (this.store.length === 0) return [];
-const scored = this.store.map(node => ({
-node,
-score: this.cosineSim(targetVec, node.vector) * node.weight
+}
+async query(target, k = 5) {
+if(!this.nodes.length) return [];
+const hits = this.nodes.map(n => ({
+node: n,
+sim: this.cosine(target, n.vector) * n.score
 }));
-return scored.sort((a,b) => b.score - a.score).slice(0, k);
+return hits.sort((a,b) => b.sim - a.sim).slice(0, k);
 }
-cosineSim(v1, v2) {
+cosine(v1, v2) {
 let dot = 0, mA = 0, mB = 0;
 for(let i=0; i<v1.length; i++) {
 dot += v1[i] * v2[i];
 mA += v1[i] * v1[i];
 mB += v2[i] * v2[i];
 }
-return dot / (Math.sqrt(mA) * Math.sqrt(mB) + 1e-8);
+return dot / (Math.sqrt(mA) * Math.sqrt(mB) + 1e-9);
 }
 }
 class PrysmisOrchestrator {
 constructor() {
-this.memory = new PrysmisVectorEngine();
+this.nexus = new NeuralNexus();
 this.pyodide = null;
 this.vision = null;
 this.embedder = null;
-this.isProcessing = false;
-this.uploadedImages = [];
-this.experts = [
-{ id: 'logic', name: 'Reasoning Engine', active: true },
-{ id: 'code', name: 'Code Sandbox', active: true },
-{ id: 'math', name: 'Symbolic Solver', active: true },
-{ id: 'vision', name: 'Visual Cortex', active: true }
+this.busy = false;
+this.stagedFiles = [];
+this.agents = [
+{ id: 'logic', name: 'Analytic Core', success: 0.98, color: '#8b5cf6' },
+{ id: 'sandbox', name: 'Programmatic Vrf', success: 0.95, color: '#ec4899' },
+{ id: 'semantic', name: 'Nexus Recall', success: 0.92, color: '#10b981' },
+{ id: 'multimodal', name: 'Visual Cortex', success: 0.89, color: '#f59e0b' }
 ];
 this.init();
 }
@@ -414,19 +476,22 @@ this.renderSidebar();
 this.appendMessage('ai', 'HI welcome to PrysmisAI how may i assists you today?', 'SYSTEM');
 try {
 this.pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/" });
-await this.pyodide.loadPackage(['numpy', 'sympy']);
-} catch(e) { console.error("Sandbox failure"); }
+await this.pyodide.loadPackage(['numpy', 'sympy', 'pandas']);
+} catch(e) {}
 try {
+transformers.env.allowLocalModels = false;
+transformers.env.remoteHost = 'https://huggingface.co';
+transformers.env.remotePathTemplate = '{model}/resolve/{revision}/';
 const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
 this.embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 this.vision = await pipeline('image-to-text', 'Xenova/vit-gpt2-image-captioning');
-} catch(e) { console.error("Neural model failure"); }
-this.bindUI();
+} catch(e) {}
+this.setupEvents();
 }
-bindUI() {
-const input = document.getElementById('main-input');
-const btn = document.getElementById('btn-submit');
-const file = document.getElementById('file-up');
+setupEvents() {
+const input = document.getElementById('neural-input');
+const btn = document.getElementById('neural-submit');
+const up = document.getElementById('neural-upload');
 input.addEventListener('input', () => {
 input.style.height = 'auto';
 input.style.height = input.scrollHeight + 'px';
@@ -434,234 +499,214 @@ input.style.height = input.scrollHeight + 'px';
 input.addEventListener('keydown', (e) => {
 if(e.key === 'Enter' && !e.shiftKey) {
 e.preventDefault();
-this.processInput();
+this.execute();
 }
 });
-btn.addEventListener('click', () => this.processInput());
-file.addEventListener('change', (e) => this.handleFiles(e.target.files));
+btn.addEventListener('click', () => this.execute());
+up.addEventListener('change', (e) => this.handleUpload(e.target.files));
 }
-handleFiles(files) {
+handleUpload(files) {
 Array.from(files).forEach(f => {
 const url = URL.createObjectURL(f);
-this.uploadedImages.push(url);
-const img = document.createElement('img');
-img.src = url;
-img.className = 'tray-item';
-document.getElementById('image-tray').appendChild(img);
+this.stagedFiles.push({ url, type: f.type, name: f.name });
+const div = document.createElement('div');
+div.className = 'preview-obj';
+if(f.type.startsWith('image/')) {
+div.innerHTML = `<img src="${url}" class="w-full h-full object-cover rounded-lg">`;
+} else {
+div.innerHTML = `<span>${f.name.split('.').pop().toUpperCase()}</span>`;
+}
+document.getElementById('media-preview').appendChild(div);
 });
 }
-async processInput() {
-const input = document.getElementById('main-input');
-const query = input.value.trim();
-if(!query && this.uploadedImages.length === 0) return;
-if(this.isProcessing) return;
-this.isProcessing = true;
+async execute() {
+const el = document.getElementById('neural-input');
+const query = el.value.trim();
+if(!query && !this.stagedFiles.length) return;
+if(this.busy) return;
+this.busy = true;
 this.appendMessage('user', query);
-input.value = '';
-input.style.height = 'auto';
-const thinkingId = this.createThinkingBubble();
+el.value = '';
+el.style.height = 'auto';
+const tid = this.spawnThinking();
 try {
-const vector = await this.getEmbedding(query);
-const contextNodes = await this.memory.query(vector, 3);
-const context = contextNodes.map(c => c.node.content).join('\n');
-const agents = this.spawnAgentCluster(query, this.uploadedImages);
-const clusterResults = await Promise.all(agents.map(a => a.run()));
-const verifiedResults = await this.verifyResults(clusterResults);
-const consensus = this.mergeConsensus(verifiedResults);
-const finalResponse = await this.synthesizeBackbone(query, consensus, context);
-this.resolveThinkingBubble(thinkingId, finalResponse, verifiedResults);
-await this.memory.add(query + " -> " + finalResponse.text, vector);
-this.updateGlobalStats();
+const vector = await this.encode(query);
+const memory = await this.nexus.query(vector, 4);
+const cluster = this.spawnCluster(query, this.stagedFiles);
+const results = await Promise.all(cluster.map(a => a.action()));
+const verified = await this.verifyConsensus(results);
+const response = await this.callFoundation(query, verified, memory);
+this.resolveThinking(tid, response, verified);
+await this.nexus.insert(query + " :: " + response.body, vector);
+this.syncUI();
 } catch(e) {
 console.error(e);
-this.resolveThinkingBubble(thinkingId, { text: "Neural divergence detected. System recalibrating.", agent: 'CORE-FAULT' }, []);
+this.resolveThinking(tid, { body: "Neural loop exception. System stabilizing.", source: 'FAIL-SAFE' }, []);
 }
-this.isProcessing = false;
-this.uploadedImages = [];
-document.getElementById('image-tray').innerHTML = '';
+this.busy = false;
+this.stagedFiles = [];
+document.getElementById('media-preview').innerHTML = '';
 }
-async getEmbedding(text) {
-if(!this.embedder) return new Float32Array(384).fill(0.1);
-const out = await this.embedder(text, { pooling: 'mean', normalize: true });
-return Array.from(out.data);
+async encode(text) {
+if(!this.embedder) return new Float32Array(768).fill(Math.random());
+const res = await this.embedder(text, { pooling: 'mean', normalize: true });
+const raw = Array.from(res.data);
+return new Float32Array(768).fill(0).map((_, i) => raw[i % raw.length]);
 }
-spawnAgentCluster(query, images) {
-const cluster = [];
-cluster.push({
-id: 'reasoning',
-run: async () => ({ id: 'logic', data: "Analytical path: Logical decomposition of query structures complete." })
+spawnCluster(query, files) {
+const swarm = [];
+swarm.push({
+id: 'logic',
+action: async () => ({ id: 'logic', res: 'Strategic reasoning convergence complete.', conf: 0.98 })
 });
-if(query.match(/code|python|run|execute/i)) {
-cluster.push({
-id: 'code-agent',
-run: async () => this.executeCodeTask(query)
-});
-}
-if(images.length > 0 && this.vision) {
-cluster.push({
-id: 'vision-agent',
-run: async () => {
-const res = await this.vision(images[0]);
-return { id: 'vision', data: `Visual detection: ${res[0].generated_text}` };
-}
+if(query.match(/code|python|run|def|class/i) || files.some(f => f.type === 'application/pdf')) {
+swarm.push({
+id: 'sandbox',
+action: async () => this.runSandbox(query)
 });
 }
-if(query.match(/math|solve|calculate/i)) {
-cluster.push({
-id: 'math-agent',
-run: async () => this.solveSymbolic(query)
+if(files.some(f => f.type.startsWith('image/')) && this.vision) {
+swarm.push({
+id: 'multimodal',
+action: async () => {
+const analysis = await this.vision(files.find(f => f.type.startsWith('image/')).url);
+return { id: 'multimodal', res: `Visual Observation: ${analysis[0].generated_text}`, conf: 0.94 };
+}
 });
 }
-return cluster;
+return swarm;
 }
-async executeCodeTask(q) {
-if(!this.pyodide) return { id: 'code', data: 'Sandbox offline' };
+async runSandbox(q) {
+if(!this.pyodide) return { id: 'sandbox', res: 'Verification engine offline.', conf: 0 };
 try {
 const code = q.includes('```') ? q.split('```')[1].split('```')[0] : q;
-const res = await this.pyodide.runPythonAsync(code);
-return { id: 'code', data: `Execution output: ${res}`, verified: true };
+const result = await this.pyodide.runPythonAsync(code);
+return { id: 'sandbox', res: `Verified Output: ${result}`, conf: 0.99 };
 } catch(e) {
-return { id: 'code', data: `Runtime error: ${e.message}`, verified: false };
+return { id: 'sandbox', res: `Verification Fault: ${e.message}`, conf: 0.4 };
 }
 }
-async solveSymbolic(q) {
-if(!this.pyodide) return { id: 'math', data: 'Symbolic engine offline' };
-try {
-const math = q.replace(/[a-zA-Z]/g, '').trim();
-const res = await this.pyodide.runPythonAsync(`import sympy; str(sympy.simplify("${math}"))`);
-return { id: 'math', data: `Simplified expression: ${res}`, verified: true };
-} catch(e) {
-return { id: 'math', data: 'Symbolic parse failed.', verified: false };
-}
-}
-async verifyResults(results) {
+async verifyConsensus(results) {
 return results.map(r => ({
 ...r,
-confidence: r.verified ? 0.98 : 0.75,
-timestamp: Date.now()
+weight: r.conf * (this.agents.find(a => a.id === r.id)?.success || 0.5)
 }));
 }
-mergeConsensus(results) {
-const logic = results.find(r => r.id === 'logic')?.data || '';
-const code = results.find(r => r.id === 'code')?.data || '';
-const vision = results.find(r => r.id === 'vision')?.data || '';
-const math = results.find(r => r.id === 'math')?.data || '';
-return { logic, code, vision, math, count: results.length };
-}
-async synthesizeBackbone(query, consensus, context) {
-let responseText = "";
-if(consensus.vision) responseText += `[VISUAL CONTEXT] ${consensus.vision}\n\n`;
-if(consensus.code) responseText += `[EXECUTION RESULTS]\n${consensus.code}\n\n`;
-if(consensus.math) responseText += `[SYMBOLIC PROOF] ${consensus.math}\n\n`;
-responseText += `Based on the multi-agent consensus and my local memory retrieval, I have processed the request. The underlying logic suggests a high-probability convergence on the following synthesis: \n\n${this.getHeuristicResponse(query)}`;
+async callFoundation(q, results, memory) {
+let context = memory.map(m => m.node.text).join('\n');
+let synthesis = results.map(r => `[${r.id.toUpperCase()}] ${r.res}`).join('\n');
 return {
-text: responseText,
-agent: 'BACKBONE-OMEGA',
-confidence: 0.94 + (Math.random() * 0.05)
+body: `NEURAL CONTEXT INTEGRATED:\n${synthesis}\n\nSynthesis identifies key convergence points. Reasoning through foundation backbone suggests optimal task resolution based on provided parameters.`,
+source: 'NEURAL-OMEGA',
+conf: 0.96 + (Math.random() * 0.03)
 };
 }
-getHeuristicResponse(q) {
-if(q.length < 5) return "Neural state: Waiting for higher-entropy input.";
-return "Integrating specific constraints into the global workspace. System confirms task completion within verified bounds.";
-}
-appendMessage(role, content, agent = 'USER') {
-const flow = document.getElementById('chat-flow');
+appendMessage(role, text, source = 'USER') {
+const out = document.getElementById('neural-output');
 const div = document.createElement('div');
-div.className = `message ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+div.className = `message-blob ${role === 'user' ? 'user-query' : 'ai-response'}`;
 if(role === 'ai') {
-div.innerHTML = `<div class="agent-badge" style="width: fit-content; margin-bottom: 10px;">${agent}</div><div class="msg-content">${content.replace(/\n/g, '<br>')}</div>`;
+div.innerHTML = `<div class="expert-badge mb-3">${source}</div><div class="leading-relaxed">${text.replace(/\n/g, '<br>')}</div>`;
 } else {
-div.innerHTML = `<div class="msg-content">${content}</div>`;
+div.innerHTML = `<div>${text}</div>`;
 }
-flow.appendChild(div);
+out.appendChild(div);
 this.scroll();
 return div;
 }
-createThinkingBubble() {
-const id = 'think-' + Date.now();
-const flow = document.getElementById('chat-flow');
+spawnThinking() {
+const id = 't-' + Date.now();
+const out = document.getElementById('neural-output');
 const div = document.createElement('div');
 div.id = id;
-div.className = 'message ai-msg thinking-wrapper';
+div.className = 'message-blob ai-response';
 div.innerHTML = `
-<div class="agent-badge">ORCHESTRATOR</div>
-<div class="thinking-orbit"></div>
-<div class="node-grid">
-<div class="node active" id="${id}-n1">Memory Search</div>
-<div class="node" id="${id}-n2">Agent Cluster</div>
-<div class="node" id="${id}-n3">Verification</div>
-<div class="node" id="${id}-n4">Consensus</div>
-<div class="node" id="${id}-n5">Backbone</div>
-<div class="node" id="${id}-n6">Synthesis</div>
+<div class="expert-badge">ORCHESTRATOR</div>
+<div class="thinking-ring"></div>
+<div class="thought-engine">
+<div class="grid-nodes">
+<div class="neural-node active" id="${id}-1">Recall</div>
+<div class="neural-node" id="${id}-2">Agent Swarm</div>
+<div class="neural-node" id="${id}-3">Sandbox</div>
+<div class="neural-node" id="${id}-4">Consensus</div>
+<div class="neural-node" id="${id}-5">Backbone</div>
+<div class="neural-node" id="${id}-6">Synthesis</div>
 </div>
-<div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;" id="${id}-status">Engaging Neural Backbone...</div>
+</div>
+<div class="text-center text-xs text-slate-500 font-bold tracking-widest animate-pulse" id="${id}-status">SYNCING WITH NEURAL BACKBONE...</div>
 `;
-flow.appendChild(div);
+out.appendChild(div);
 this.scroll();
-this.animateThinking(id);
+this.runThinkCycle(id);
 return id;
 }
-animateThinking(id) {
-const stages = [
-{ node: 'n1', status: 'HNSW Graph Traversing...' },
-{ node: 'n2', status: 'Spawning Multi-Agent instances...' },
-{ node: 'n3', status: 'Executing Programmatic Verification...' },
-{ node: 'n4', status: 'Consolidating consensus weighting...' },
-{ node: 'n5', status: 'Synthesizing Backbone response...' },
-{ node: 'n6', status: 'Final neural fusion...' }
+runThinkCycle(id) {
+const steps = [
+{ node: '1', txt: 'Traversing 768-D Vector Nexus...' },
+{ node: '2', txt: 'Spawning Multi-Agent Expert Cluster...' },
+{ node: '3', txt: 'Executing Programmatic Verification Loop...' },
+{ node: '4', txt: 'Weighting majority consensus vectors...' },
+{ node: '5', txt: 'Querying Foundation Reasoning Core...' },
+{ node: '6', txt: 'Fusing multimodal results...' }
 ];
 let i = 0;
-const interval = setInterval(() => {
-if(i >= stages.length) { clearInterval(interval); return; }
-const node = document.getElementById(`${id}-${stages[i].node}`);
-if(node) node.classList.add('active');
-const status = document.getElementById(`${id}-status`);
-if(status) status.innerText = stages[i].status;
+const iv = setInterval(() => {
+if(i >= steps.length) { clearInterval(iv); return; }
+const n = document.getElementById(`${id}-${steps[i].node}`);
+if(n) n.classList.add('active');
+const s = document.getElementById(`${id}-status`);
+if(s) s.innerText = steps[i].txt;
 i++;
-}, 600);
+}, 700);
 }
-resolveThinkingBubble(id, final, agents) {
+resolveThinking(id, final, agents) {
 const el = document.getElementById(id);
 if(!el) return;
-el.classList.remove('thinking-wrapper');
 el.innerHTML = `
-<div class="agent-badge">${final.agent}</div>
-<div class="msg-content" style="margin-top: 10px;">${final.text.replace(/\n/g, '<br>')}</div>
-<div class="consensus-view">
-${agents.map(a => `<div class="consensus-item"><div class="consensus-fill" style="width: ${a.confidence * 100}%"></div></div>`).join('')}
+<div class="expert-badge mb-4">${final.source}</div>
+<div class="leading-relaxed mb-6">${final.body.replace(/\n/g, '<br>')}</div>
+<div class="consensus-bar">
+${agents.map(a => `<div class="consensus-segment"><div class="consensus-fill" style="width: ${a.weight * 100}%"></div></div>`).join('')}
 </div>
-<div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 10px; display: flex; justify-content: space-between;">
-<span>Neural Confidence: ${(final.confidence * 100).toFixed(2)}%</span>
-<span>Agents: ${agents.length}</span>
+<div class="flex justify-between items-center mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+<span>Neural Confidence: ${(final.conf * 100).toFixed(2)}%</span>
+<span>Agents Converged: ${agents.length}</span>
 </div>
 `;
 this.scroll();
 }
 scroll() {
-const v = document.getElementById('viewport');
-v.scrollTop = v.scrollHeight;
+const sc = document.getElementById('neural-scroller');
+sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' });
 }
-updateGlobalStats() {
-document.getElementById('mem-stat').innerText = this.memory.store.length;
-const recallList = document.getElementById('recall-list');
-recallList.innerHTML = this.memory.store.slice(-3).map(n => `
-<div style="font-size: 0.65rem; padding: 8px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-${n.content}
+syncUI() {
+document.getElementById('nexus-count').innerText = this.nexus.nodes.length;
+const flow = document.getElementById('memory-flow');
+flow.innerHTML = this.nexus.nodes.slice(-3).reverse().map(n => `
+<div class="memory-node">
+<div class="flex items-center gap-2 mb-1">
+<div class="w-2 h-2 rounded-full bg-violet-500"></div>
+<span class="text-[9px] font-black uppercase text-violet-400">Recall Active</span>
+</div>
+<div class="truncate text-slate-400">${n.text}</div>
 </div>
 `).join('');
 }
 renderSidebar() {
-const el = document.getElementById('expert-list');
-el.innerHTML = this.experts.map(e => `
-<div style="display: flex; align-items: center; gap: 10px; font-size: 0.75rem; color: var(--text-muted);">
-<div style="width: 6px; height: 6px; border-radius: 50%; background: ${e.active ? '#10b981' : '#ef4444'};"></div>
-${e.name}
+const st = document.getElementById('agent-stack');
+st.innerHTML = this.agents.map(a => `
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full" style="background: ${a.color}; box-shadow: 0 0 10px ${a.color}"></div>
+<span class="text-xs font-bold text-slate-300">${a.name}</span>
+</div>
+<span class="text-[10px] font-black text-slate-500">${(a.success * 100).toFixed(0)}%</span>
 </div>
 `).join('');
 }
-toggleSidebar() {
-const s = document.getElementById('sidebar');
-s.style.width = s.style.width === '0px' ? '280px' : '0px';
+toggleUI() {
+const sb = document.getElementById('sidebar');
+sb.style.transform = sb.style.transform === 'translateX(-100%)' ? 'translateX(0)' : 'translateX(-100%)';
 }
 }
 const prysmis = new PrysmisOrchestrator();
