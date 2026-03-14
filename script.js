@@ -445,9 +445,7 @@ function renderMsg(role, content) {
     let html = content
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/```([\s\S]*?)```/g, (match, code) => {
-            return `<div style="background:#000; padding:15px; border-radius:10px; border:1px solid #333; margin:10px 0; color:#2ecc71;">
-                <pre style="margin:0; overflow-x:auto;">${code.trim()}</pre>
-            </div>`;
+            return `<code>${code.trim()}</code>`;
         });
 
     div.innerHTML = `
@@ -455,7 +453,7 @@ function renderMsg(role, content) {
             <div style="width:24px; height:24px; background:${role === 'user' ? '#7289da' : '#2ecc71'}; border-radius:6px;"></div>
             <span style="font-size:12px; color:#888; font-weight:800;">${role === 'user' ? 'YOU' : 'PRYSMISAI'}</span>
         </div>
-        <div style="padding-left:34px; color:#e0e0e0;">${html}</div>
+        <div class="message-content" style="padding-left:34px; color:#e0e0e0;">${html}</div>
     `;
     
     chatFlow.appendChild(div);
