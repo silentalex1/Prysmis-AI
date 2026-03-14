@@ -11,17 +11,52 @@
 
 <div id="onboarding-overlay" class="overlay">
     <div class="modal">
-        <h2>PrysmisAI Setup</h2>
-        <p>You must install our roblox plugin continue.</p>
-        <p>- After installing our roblox plugin you must enable http request in your game.</p>
+        <div class="modal-header">
+            <div class="modal-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#2ecc71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="#2ecc71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="#2ecc71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2>Welcome to PrysmisAI</h2>
+            <p>Your AI-powered Roblox game development assistant</p>
+        </div>
+        
+        <div class="modal-content">
+            <div class="setup-steps">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-text">
+                        <h3>Install Plugin</h3>
+                        <p>Download and install our Roblox plugin to enable AI integration</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-text">
+                        <h3>Enable HTTP Requests</h3>
+                        <p>Make sure HTTP requests are enabled in your Roblox game settings</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-text">
+                        <h3>Connect & Create</h3>
+                        <p>Click "Connect" to link with your plugin and start creating!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="modal-footer">
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="dont-show-again">
-                <label for="dont-show-again">do not appear again</label>
+                <label for="dont-show-again">Don't show this again</label>
             </div>
             <div class="modal-btns">
-                <button id="btn-i-know" class="btn-gray" disabled>i know</button>
-                <button id="btn-install" class="btn-green-large">install plugin</button>
+                <button id="btn-i-know" class="btn-gray" disabled>I understand</button>
+                <button id="btn-install" class="btn-green-large">Install Plugin</button>
             </div>
         </div>
     </div>
