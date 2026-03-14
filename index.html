@@ -1,716 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrysmisAI v2</title>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fabric@5.3.1/dist/fabric.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root {
---bg: #030306;
---panel: #0a0a0f;
---accent: #8b5cf6;
---accent-bright: #c084fc;
---secondary: #ec4899;
---border: rgba(139, 92, 246, 0.2);
---text: #f8fafc;
---text-dim: #64748b;
---glow: 0 0 20px rgba(139, 92, 246, 0.3);
-}
-* { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
-body {
-background: var(--bg);
-color: var(--text);
-font-family: 'Outfit', sans-serif;
-height: 100vh;
-overflow: hidden;
-display: flex;
-}
-.app-shell {
-display: flex;
-width: 100%;
-height: 100%;
-background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
-}
-.sidebar {
-width: 320px;
-background: var(--panel);
-border-right: 1px solid var(--border);
-display: flex;
-flex-direction: column;
-z-index: 100;
-transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.main-stage {
-flex: 1;
-display: flex;
-flex-direction: column;
-position: relative;
-}
-header {
-height: 80px;
-padding: 0 40px;
-display: flex;
-align-items: center;
-justify-content: space-between;
-border-bottom: 1px solid var(--border);
-backdrop-filter: blur(20px);
-background: rgba(3, 3, 6, 0.8);
-}
-.logo-area {
-display: flex;
-align-items: center;
-gap: 12px;
-}
-.logo-glyph {
-width: 32px;
-height: 32px;
-background: linear-gradient(135deg, var(--accent), var(--secondary));
-border-radius: 8px;
-box-shadow: var(--glow);
-}
-.logo-text {
-font-size: 1.5rem;
-font-weight: 800;
-letter-spacing: -1px;
-background: linear-gradient(to right, #fff, var(--text-dim));
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-}
-.node-status {
-display: flex;
-gap: 20px;
-font-size: 0.7rem;
-font-weight: 600;
-text-transform: uppercase;
-letter-spacing: 1px;
-color: var(--text-dim);
-}
-.status-pill {
-display: flex;
-align-items: center;
-gap: 6px;
-background: rgba(255,255,255,0.03);
-padding: 4px 12px;
-border-radius: 20px;
-border: 1px solid var(--border);
-}
-.active-dot {
-width: 6px;
-height: 6px;
-border-radius: 50%;
-background: #10b981;
-box-shadow: 0 0 10px #10b981;
-}
-.neural-vault {
-flex: 1;
-overflow-y: auto;
-padding: 40px 0;
-}
-.neural-container {
-max-width: 900px;
-margin: 0 auto;
-padding: 0 30px;
-display: flex;
-flex-direction: column;
-gap: 40px;
-}
-.message-blob {
-display: flex;
-flex-direction: column;
-gap: 16px;
-animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-@keyframes slideUp {
-from { opacity: 0; transform: translateY(30px); }
-to { opacity: 1; transform: translateY(0); }
-}
-.ai-response {
-background: rgba(255, 255, 255, 0.01);
-border: 1px solid rgba(255, 255, 255, 0.04);
-border-radius: 32px;
-padding: 35px;
-box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-position: relative;
-}
-.user-query {
-align-self: flex-end;
-background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.1));
-border: 1px solid var(--border);
-border-radius: 24px;
-padding: 20px 28px;
-max-width: 80%;
-font-weight: 500;
-}
-.thought-engine {
-margin-bottom: 25px;
-}
-.grid-nodes {
-display: grid;
-grid-template-columns: repeat(4, 1fr);
-gap: 12px;
-}
-.neural-node {
-height: 45px;
-background: rgba(139, 92, 246, 0.03);
-border: 1px solid var(--border);
-border-radius: 12px;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 0.6rem;
-font-weight: 700;
-text-transform: uppercase;
-color: var(--text-dim);
-transition: all 0.4s;
-}
-.neural-node.active {
-border-color: var(--accent);
-color: #fff;
-background: rgba(139, 92, 246, 0.15);
-box-shadow: inset 0 0 15px rgba(139, 92, 246, 0.2);
-}
-.input-control {
-padding: 40px;
-background: linear-gradient(to top, var(--bg) 50%, transparent);
-}
-.input-bar {
-max-width: 900px;
-margin: 0 auto;
-background: var(--panel);
-border: 1px solid var(--border);
-border-radius: 30px;
-padding: 12px;
-display: flex;
-flex-direction: column;
-gap: 12px;
-box-shadow: 0 25px 50px rgba(0,0,0,0.6);
-}
-.input-row {
-display: flex;
-align-items: center;
-gap: 15px;
-}
-textarea {
-flex: 1;
-background: transparent;
-border: none;
-color: var(--text);
-padding: 10px 20px;
-font-size: 1.05rem;
-resize: none;
-max-height: 200px;
-font-family: inherit;
-line-height: 1.6;
-}
-.icon-btn {
-width: 50px;
-height: 50px;
-border-radius: 50%;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-border: none;
-background: transparent;
-color: var(--text-dim);
-}
-.icon-btn:hover {
-background: rgba(255,255,255,0.05);
-color: var(--accent-bright);
-transform: scale(1.1);
-}
-.send-trigger {
-background: var(--accent);
-color: white;
-box-shadow: var(--glow);
-}
-.send-trigger:hover {
-background: var(--secondary);
-transform: rotate(10deg) scale(1.1);
-}
-.code-card {
-background: #010103;
-border-radius: 16px;
-margin: 20px 0;
-border: 1px solid rgba(255,255,255,0.05);
-overflow: hidden;
-}
-.code-header {
-padding: 12px 20px;
-background: rgba(255,255,255,0.02);
-display: flex;
-justify-content: space-between;
-align-items: center;
-border-bottom: 1px solid rgba(255,255,255,0.05);
-font-family: 'JetBrains Mono', monospace;
-font-size: 0.75rem;
-}
-pre {
-padding: 24px;
-font-family: 'JetBrains Mono', monospace;
-font-size: 0.9rem;
-overflow-x: auto;
-color: #e2e8f0;
-line-height: 1.7;
-}
-.expert-badge {
-padding: 3px 10px;
-border-radius: 6px;
-font-size: 0.65rem;
-font-weight: 800;
-text-transform: uppercase;
-background: rgba(139, 92, 246, 0.15);
-color: var(--accent-bright);
-border: 1px solid var(--border);
-width: fit-content;
-}
-.consensus-bar {
-margin-top: 25px;
-display: flex;
-gap: 12px;
-}
-.consensus-segment {
-flex: 1;
-height: 6px;
-border-radius: 3px;
-background: rgba(255,255,255,0.03);
-position: relative;
-overflow: hidden;
-}
-.consensus-fill {
-height: 100%;
-background: linear-gradient(to right, var(--accent), var(--secondary));
-width: 0;
-transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.thinking-ring {
-width: 60px;
-height: 60px;
-border: 3px solid rgba(139, 92, 246, 0.1);
-border-top: 3px solid var(--accent);
-border-radius: 50%;
-animation: neuralRotate 1.2s linear infinite;
-margin: 0 auto 20px;
-}
-@keyframes neuralRotate { 100% { transform: rotate(360deg); } }
-#media-preview {
-display: flex;
-gap: 15px;
-padding: 0 15px;
-}
-.preview-obj {
-width: 55px;
-height: 55px;
-border-radius: 12px;
-object-fit: cover;
-border: 2px solid var(--border);
-background: #000;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 0.7rem;
-font-weight: 700;
-}
-.sidebar-header {
-padding: 30px;
-border-bottom: 1px solid var(--border);
-}
-.vault-section {
-padding: 30px;
-}
-.vault-title {
-font-size: 0.75rem;
-font-weight: 800;
-color: var(--text-dim);
-text-transform: uppercase;
-letter-spacing: 2px;
-margin-bottom: 20px;
-}
-.memory-node {
-padding: 15px;
-background: rgba(255,255,255,0.02);
-border: 1px solid var(--border);
-border-radius: 12px;
-font-size: 0.8rem;
-margin-bottom: 12px;
-cursor: pointer;
-transition: 0.3s;
-}
-.memory-node:hover {
-background: rgba(139, 92, 246, 0.05);
-border-color: var(--accent);
-}
-.shimmer {
-position: absolute;
-top: 0; left: -100%;
-width: 50%; height: 100%;
-background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-animation: shimmerEffect 2s infinite;
-}
-@keyframes shimmerEffect { 100% { left: 200%; } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrysmisAI</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
+
+<div id="onboarding-overlay" class="overlay">
+    <div class="modal">
+        <h2>PrysmisAI Setup</h2>
+        <p>You must install our roblox plugin continue.</p>
+        <p>- After installing our roblox plugin you must enable http request in your game.</p>
+        <div class="modal-footer">
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="dont-show-again">
+                <label for="dont-show-again">do not appear again</label>
+            </div>
+            <div class="modal-btns">
+                <button id="btn-i-know" class="btn-gray" disabled>i know</button>
+                <button id="btn-install" class="btn-green-large">install plugin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="settings-overlay" class="overlay" style="display: none;">
+    <div class="settings-container">
+        <div class="settings-modal-floating">
+            <aside class="settings-sidebar">
+                <div class="sidebar-user-preview">
+                    <img id="sidebar-pfp-small" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Prysmis" alt="PFP">
+                    <div class="sidebar-user-info">
+                        <span id="sidebar-name-label">Guest</span>
+                        <small>Edit Profiles</small>
+                    </div>
+                </div>
+                <div class="settings-sidebar-item active">My Account</div>
+            </aside>
+            <main class="settings-content">
+                <button class="close-settings-btn" onclick="attemptCloseSettings()">×</button>
+                <div class="settings-scroll-area">
+                    <h1>My Account</h1>
+                    <div class="account-form">
+                        <div class="pfp-edit-section">
+                            <label>Profile Picture</label>
+                            <input type="file" id="pfp-upload" accept=".png" style="display: none;" onchange="handleFileSelect(event)">
+                            <div class="pfp-circle-wrapper" onclick="document.getElementById('pfp-upload').click()">
+                                <img id="pfp-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Prysmis" alt="Profile">
+                                <div class="pfp-overlay">EDIT</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Display Name</label>
+                            <input type="text" id="name-input" placeholder="Enter name" oninput="showSettingsSave()">
+                        </div>
+                    </div>
+                </div>
+                <div id="settings-save-bar" class="save-bar">
+                    <span>Careful — you have unsaved changes!</span>
+                    <div class="save-bar-btns">
+                        <button class="reset-btn" onclick="hideSettingsSave()">Reset</button>
+                        <button class="save-btn" onclick="saveSettings()">Save Changes</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<nav class="navbar">
+    <div class="brand-section">
+        <button id="toggle-sidebar" class="icon-btn">☰</button>
+        <div class="brand">PrysmisAI</div>
+    </div>
+    <div class="nav-links">
+        <button class="btn-connect-blue" onclick="this.innerText='Connected'">Connect</button>
+        <button class="btn-green-nav" onclick="window.open('https://www.roblox.com/library/create', '_blank')">Install plugin</button>
+    </div>
+</nav>
+
 <div class="app-shell">
-<aside class="sidebar" id="sidebar">
-<div class="sidebar-header">
-<div class="logo-area">
-<div class="logo-glyph"></div>
-<div class="logo-text">PRYSMIS v5</div>
+    <aside class="sidebar" id="app-sidebar">
+        <div class="history-container" id="chat-history"></div>
+        <div class="sidebar-actions">
+            <button id="sign-in" class="sidebar-btn btn-login-purple">login</button>
+            <button id="settings-btn" class="sidebar-btn btn-settings-red" onclick="toggleSettings()">settings</button>
+        </div>
+    </aside>
+
+    <main class="chat-viewport">
+        <div id="chat-flow" class="chat-flow">
+            <div class="hero-section" id="hero-presets">
+                <h1 id="hero-title">What are we building today?</h1>
+                <div class="preset-grid" id="preset-grid">
+                    <div class="preset-item" data-prompt="create a horror game that does ">create a horror game that does _____</div>
+                    <div class="preset-item" data-prompt="make me a good map that is ">make me a good map that is _____</div>
+                    <div class="preset-item" data-prompt="create me a complex game that is about ">create me a complex game that is about _____</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-anchor">
+            <div class="input-stack" id="input-stack-container">
+                <div class="model-picker-outer">
+                    <select id="model-select" class="premium-select">
+                        <option value="claude-4-6-opus">Claude Opus 4.6</option>
+                        <option value="google/gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+                    </select>
+                </div>
+                <div class="input-row-flex">
+                    <div class="input-box-wrapper" id="input-container">
+                        <button id="mode-toggle" class="mode-btn">Switch to Chat</button>
+                        <textarea id="user-input" placeholder="Ask PrysmiAI to make anything for your game.." rows="1"></textarea>
+                    </div>
+                    <button id="new-chat-btn" class="btn-new-chat">+ New Chat</button>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
-</div>
-<div class="vault-section">
-<div class="vault-title">Expert Convergence</div>
-<div id="agent-stack" class="flex flex-col gap-3"></div>
-<div class="vault-title mt-10">Neural Memory Graph</div>
-<div id="memory-flow" class="flex flex-col gap-3"></div>
-</div>
-</aside>
-<main class="main-stage">
-<header>
-<div class="node-status">
-<div class="status-pill"><div class="active-dot"></div> Foundation: <span id="backbone-label" class="text-white ml-1">Universal-SOTA</span></div>
-<div class="status-pill">Nexus: <span id="nexus-count" class="text-white ml-1">0</span> Nodes</div>
-<div class="status-pill">Dimension: <span class="text-white ml-1">768-D</span></div>
-</div>
-<button class="icon-btn" onclick="prysmis.toggleUI()">
-<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
-</button>
-</header>
-<div class="neural-vault" id="neural-scroller">
-<div class="neural-container" id="neural-output"></div>
-</div>
-<div class="input-control">
-<div class="input-bar">
-<div id="media-preview"></div>
-<div class="input-row">
-<button class="icon-btn" onclick="document.getElementById('neural-upload').click()">
-<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
-</button>
-<input type="file" id="neural-upload" hidden multiple accept="image/*,application/pdf,audio/*">
-<textarea id="neural-input" placeholder="Initiate neural reasoning sequence..." rows="1"></textarea>
-<button class="icon-btn send-trigger" id="neural-submit">
-<svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-</button>
-</div>
-</div>
-</div>
-</main>
-</div>
-<script>
-class NeuralNexus {
-constructor() {
-this.nodes = [];
-this.dimension = 768;
-this.alpha = 0.05;
-this.historyBuffer = 50;
-}
-async insert(text, vector, context = {}) {
-const node = {
-text,
-vector,
-context,
-score: 1.0,
-ts: Date.now(),
-id: crypto.randomUUID()
-};
-this.nodes.push(node);
-this.optimize();
-return node;
-}
-optimize() {
-const now = Date.now();
-this.nodes.forEach(n => {
-const age = (now - n.ts) / 3600000;
-n.score *= Math.pow(0.98, age);
-});
-if(this.nodes.length > 500) {
-this.nodes.sort((a,b) => b.score - a.score);
-this.nodes = this.nodes.slice(0, 500);
-}
-}
-async query(target, k = 5) {
-if(!this.nodes.length) return [];
-const hits = this.nodes.map(n => ({
-node: n,
-sim: this.cosine(target, n.vector) * n.score
-}));
-return hits.sort((a,b) => b.sim - a.sim).slice(0, k);
-}
-cosine(v1, v2) {
-let dot = 0, mA = 0, mB = 0;
-for(let i=0; i<v1.length; i++) {
-dot += v1[i] * v2[i];
-mA += v1[i] * v1[i];
-mB += v2[i] * v2[i];
-}
-return dot / (Math.sqrt(mA) * Math.sqrt(mB) + 1e-9);
-}
-}
-class PrysmisOrchestrator {
-constructor() {
-this.nexus = new NeuralNexus();
-this.pyodide = null;
-this.vision = null;
-this.embedder = null;
-this.busy = false;
-this.stagedFiles = [];
-this.agents = [
-{ id: 'logic', name: 'Analytic Core', success: 0.98, color: '#8b5cf6' },
-{ id: 'sandbox', name: 'Programmatic Vrf', success: 0.95, color: '#ec4899' },
-{ id: 'semantic', name: 'Nexus Recall', success: 0.92, color: '#10b981' },
-{ id: 'multimodal', name: 'Visual Cortex', success: 0.89, color: '#f59e0b' }
-];
-this.init();
-}
-async init() {
-this.renderSidebar();
-this.appendMessage('ai', 'HI welcome to PrysmisAI how may i assists you today?', 'SYSTEM');
-try {
-this.pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/" });
-await this.pyodide.loadPackage(['numpy', 'sympy', 'pandas']);
-} catch(e) {}
-try {
-transformers.env.allowLocalModels = false;
-transformers.env.remoteHost = 'https://huggingface.co';
-transformers.env.remotePathTemplate = '{model}/resolve/{revision}/';
-const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
-this.embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-this.vision = await pipeline('image-to-text', 'Xenova/vit-gpt2-image-captioning');
-} catch(e) {}
-this.setupEvents();
-}
-setupEvents() {
-const input = document.getElementById('neural-input');
-const btn = document.getElementById('neural-submit');
-const up = document.getElementById('neural-upload');
-input.addEventListener('input', () => {
-input.style.height = 'auto';
-input.style.height = input.scrollHeight + 'px';
-});
-input.addEventListener('keydown', (e) => {
-if(e.key === 'Enter' && !e.shiftKey) {
-e.preventDefault();
-this.execute();
-}
-});
-btn.addEventListener('click', () => this.execute());
-up.addEventListener('change', (e) => this.handleUpload(e.target.files));
-}
-handleUpload(files) {
-Array.from(files).forEach(f => {
-const url = URL.createObjectURL(f);
-this.stagedFiles.push({ url, type: f.type, name: f.name });
-const div = document.createElement('div');
-div.className = 'preview-obj';
-if(f.type.startsWith('image/')) {
-div.innerHTML = `<img src="${url}" class="w-full h-full object-cover rounded-lg">`;
-} else {
-div.innerHTML = `<span>${f.name.split('.').pop().toUpperCase()}</span>`;
-}
-document.getElementById('media-preview').appendChild(div);
-});
-}
-async execute() {
-const el = document.getElementById('neural-input');
-const query = el.value.trim();
-if(!query && !this.stagedFiles.length) return;
-if(this.busy) return;
-this.busy = true;
-this.appendMessage('user', query);
-el.value = '';
-el.style.height = 'auto';
-const tid = this.spawnThinking();
-try {
-const vector = await this.encode(query);
-const memory = await this.nexus.query(vector, 4);
-const cluster = this.spawnCluster(query, this.stagedFiles);
-const results = await Promise.all(cluster.map(a => a.action()));
-const verified = await this.verifyConsensus(results);
-const response = await this.callFoundation(query, verified, memory);
-this.resolveThinking(tid, response, verified);
-await this.nexus.insert(query + " :: " + response.body, vector);
-this.syncUI();
-} catch(e) {
-console.error(e);
-this.resolveThinking(tid, { body: "Neural loop exception. System stabilizing.", source: 'FAIL-SAFE' }, []);
-}
-this.busy = false;
-this.stagedFiles = [];
-document.getElementById('media-preview').innerHTML = '';
-}
-async encode(text) {
-if(!this.embedder) return new Float32Array(768).fill(Math.random());
-const res = await this.embedder(text, { pooling: 'mean', normalize: true });
-const raw = Array.from(res.data);
-return new Float32Array(768).fill(0).map((_, i) => raw[i % raw.length]);
-}
-spawnCluster(query, files) {
-const swarm = [];
-swarm.push({
-id: 'logic',
-action: async () => ({ id: 'logic', res: 'Strategic reasoning convergence complete.', conf: 0.98 })
-});
-if(query.match(/code|python|run|def|class/i) || files.some(f => f.type === 'application/pdf')) {
-swarm.push({
-id: 'sandbox',
-action: async () => this.runSandbox(query)
-});
-}
-if(files.some(f => f.type.startsWith('image/')) && this.vision) {
-swarm.push({
-id: 'multimodal',
-action: async () => {
-const analysis = await this.vision(files.find(f => f.type.startsWith('image/')).url);
-return { id: 'multimodal', res: `Visual Observation: ${analysis[0].generated_text}`, conf: 0.94 };
-}
-});
-}
-return swarm;
-}
-async runSandbox(q) {
-if(!this.pyodide) return { id: 'sandbox', res: 'Verification engine offline.', conf: 0 };
-try {
-const code = q.includes('```') ? q.split('```')[1].split('```')[0] : q;
-const result = await this.pyodide.runPythonAsync(code);
-return { id: 'sandbox', res: `Verified Output: ${result}`, conf: 0.99 };
-} catch(e) {
-return { id: 'sandbox', res: `Verification Fault: ${e.message}`, conf: 0.4 };
-}
-}
-async verifyConsensus(results) {
-return results.map(r => ({
-...r,
-weight: r.conf * (this.agents.find(a => a.id === r.id)?.success || 0.5)
-}));
-}
-async callFoundation(q, results, memory) {
-let context = memory.map(m => m.node.text).join('\n');
-let synthesis = results.map(r => `[${r.id.toUpperCase()}] ${r.res}`).join('\n');
-return {
-body: `NEURAL CONTEXT INTEGRATED:\n${synthesis}\n\nSynthesis identifies key convergence points. Reasoning through foundation backbone suggests optimal task resolution based on provided parameters.`,
-source: 'NEURAL-OMEGA',
-conf: 0.96 + (Math.random() * 0.03)
-};
-}
-appendMessage(role, text, source = 'USER') {
-const out = document.getElementById('neural-output');
-const div = document.createElement('div');
-div.className = `message-blob ${role === 'user' ? 'user-query' : 'ai-response'}`;
-if(role === 'ai') {
-div.innerHTML = `<div class="expert-badge mb-3">${source}</div><div class="leading-relaxed">${text.replace(/\n/g, '<br>')}</div>`;
-} else {
-div.innerHTML = `<div>${text}</div>`;
-}
-out.appendChild(div);
-this.scroll();
-return div;
-}
-spawnThinking() {
-const id = 't-' + Date.now();
-const out = document.getElementById('neural-output');
-const div = document.createElement('div');
-div.id = id;
-div.className = 'message-blob ai-response';
-div.innerHTML = `
-<div class="expert-badge">ORCHESTRATOR</div>
-<div class="thinking-ring"></div>
-<div class="thought-engine">
-<div class="grid-nodes">
-<div class="neural-node active" id="${id}-1">Recall</div>
-<div class="neural-node" id="${id}-2">Agent Swarm</div>
-<div class="neural-node" id="${id}-3">Sandbox</div>
-<div class="neural-node" id="${id}-4">Consensus</div>
-<div class="neural-node" id="${id}-5">Backbone</div>
-<div class="neural-node" id="${id}-6">Synthesis</div>
-</div>
-</div>
-<div class="text-center text-xs text-slate-500 font-bold tracking-widest animate-pulse" id="${id}-status">SYNCING WITH NEURAL BACKBONE...</div>
-`;
-out.appendChild(div);
-this.scroll();
-this.runThinkCycle(id);
-return id;
-}
-runThinkCycle(id) {
-const steps = [
-{ node: '1', txt: 'Traversing 768-D Vector Nexus...' },
-{ node: '2', txt: 'Spawning Multi-Agent Expert Cluster...' },
-{ node: '3', txt: 'Executing Programmatic Verification Loop...' },
-{ node: '4', txt: 'Weighting majority consensus vectors...' },
-{ node: '5', txt: 'Querying Foundation Reasoning Core...' },
-{ node: '6', txt: 'Fusing multimodal results...' }
-];
-let i = 0;
-const iv = setInterval(() => {
-if(i >= steps.length) { clearInterval(iv); return; }
-const n = document.getElementById(`${id}-${steps[i].node}`);
-if(n) n.classList.add('active');
-const s = document.getElementById(`${id}-status`);
-if(s) s.innerText = steps[i].txt;
-i++;
-}, 700);
-}
-resolveThinking(id, final, agents) {
-const el = document.getElementById(id);
-if(!el) return;
-el.innerHTML = `
-<div class="expert-badge mb-4">${final.source}</div>
-<div class="leading-relaxed mb-6">${final.body.replace(/\n/g, '<br>')}</div>
-<div class="consensus-bar">
-${agents.map(a => `<div class="consensus-segment"><div class="consensus-fill" style="width: ${a.weight * 100}%"></div></div>`).join('')}
-</div>
-<div class="flex justify-between items-center mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-<span>Neural Confidence: ${(final.conf * 100).toFixed(2)}%</span>
-<span>Agents Converged: ${agents.length}</span>
-</div>
-`;
-this.scroll();
-}
-scroll() {
-const sc = document.getElementById('neural-scroller');
-sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' });
-}
-syncUI() {
-document.getElementById('nexus-count').innerText = this.nexus.nodes.length;
-const flow = document.getElementById('memory-flow');
-flow.innerHTML = this.nexus.nodes.slice(-3).reverse().map(n => `
-<div class="memory-node">
-<div class="flex items-center gap-2 mb-1">
-<div class="w-2 h-2 rounded-full bg-violet-500"></div>
-<span class="text-[9px] font-black uppercase text-violet-400">Recall Active</span>
-</div>
-<div class="truncate text-slate-400">${n.text}</div>
-</div>
-`).join('');
-}
-renderSidebar() {
-const st = document.getElementById('agent-stack');
-st.innerHTML = this.agents.map(a => `
-<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl">
-<div class="flex items-center gap-3">
-<div class="w-2 h-2 rounded-full" style="background: ${a.color}; box-shadow: 0 0 10px ${a.color}"></div>
-<span class="text-xs font-bold text-slate-300">${a.name}</span>
-</div>
-<span class="text-[10px] font-black text-slate-500">${(a.success * 100).toFixed(0)}%</span>
-</div>
-`).join('');
-}
-toggleUI() {
-const sb = document.getElementById('sidebar');
-sb.style.transform = sb.style.transform === 'translateX(-100%)' ? 'translateX(0)' : 'translateX(-100%)';
-}
-}
-const prysmis = new PrysmisOrchestrator();
-window.prysmis = prysmis;
-</script>
+
+<script src="script.js"></script>
 </body>
 </html>
