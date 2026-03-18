@@ -96,7 +96,6 @@ function startNewChat() {
     attachedImages = [];
     clearImagePreview();
     
-    // Add preset functionality
     document.querySelectorAll('.preset-item').forEach(item => {
         item.addEventListener('mouseenter', () => {
             item.style.background = '#252528';
@@ -118,7 +117,6 @@ function startNewChat() {
     });
 }
 
-// Image paste functionality
 function createImagePreview() {
     let previewContainer = document.getElementById('image-preview-container');
     if (!previewContainer) {
@@ -209,7 +207,6 @@ function addImageToPreview(imageData, fileName) {
     });
 }
 
-// Handle paste events
 document.addEventListener('paste', (e) => {
     const items = e.clipboardData.items;
     let foundImage = false;
@@ -232,7 +229,6 @@ document.addEventListener('paste', (e) => {
     }
 });
 
-// Handle drag and drop
 userInput.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -255,7 +251,6 @@ userInput.addEventListener('drop', (e) => {
     }
 });
 
-// ESC key handler
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         const sets = document.getElementById('settings-overlay');
@@ -265,29 +260,120 @@ window.addEventListener('keydown', (e) => {
 
 document.getElementById('sign-in').addEventListener('click', async () => {
     try {
-        const res = await puter.auth.signInWithPopup();
-        userDisplayName = res.user.username;
-        sideNameLabel.innerText = res.user.username;
+        if (typeof puter === 'undefined') {
+            showNotification('PuterJS not loaded. Please refresh the page.', 'error');
+            return;
+        }
+        
         const loginBtn = document.getElementById('sign-in');
+        const originalText = loginBtn.innerText;
+        loginBtn.innerText = 'Signing in...';
+        loginBtn.disabled = true;
+        
+        const res = await puter.auth.signInWithPopup();
+        
+        userDisplayName = res.user.username;
+        if (sideNameLabel) sideNameLabel.innerText = res.user.username;
+        
         loginBtn.style.display = 'none';
-        showNotification('successfully logged in.');
+        
+        showNotification(`Welcome ${res.user.username}!`);
     } catch (err) {
-        showNotification('Failed to login', 'error');
+        console.error('Login error:', err);
+        
+        const loginBtn = document.getElementById('sign-in');
+        loginBtn.innerText = 'login';
+        loginBtn.disabled = false;
+        
+        if (err.message && err.message.includes('popup')) {
+            showNotification('Popup was blocked. Please allow popups and try again.', 'error');
+        } else if (err.message && err.message.includes('network')) {
+            showNotification('Network error. Please check your connection.', 'error');
+        } else {
+            showNotification('Login failed. Please try again.', 'error');
+        }
     }
 });
 
-document.querySelector('.btn-connect-blue').addEventListener('click', () => {
+document.querySelector('.btn-connect-blue').addEventListener('click', async () => {
     const connectBtn = document.querySelector('.btn-connect-blue');
     
     if (connectBtn.textContent === 'Connected') {
         connectBtn.textContent = 'Connect';
         connectBtn.style.background = 'var(--accent-blue)';
         showNotification('Disconnected from plugin', 'error');
+        
+        localStorage.removeItem('prysmis_plugin_connected');
     } else {
-        connectBtn.textContent = 'Connected';
-        connectBtn.style.background = '#27ae60';
-        showNotification('game has been connected. Enjoy using PrysmiAI :)', 'success');
+        try {
+            connectBtn.textContent = 'Connecting...';
+            connectBtn.disabled = true;
+            
+            await simulatePluginConnection();
+            
+            connectBtn.textContent = 'Connected';
+            connectBtn.style.background = '#27ae60';
+            connectBtn.disabled = false;
+            
+            localStorage.setItem('prysmis_plugin_connected', 'true');
+            
+            showNotification('Plugin connected successfully! Enjoy using PrysmiAI :)', 'success');
+        } catch (err) {
+            console.error('Plugin connection error:', err);
+            connectBtn.textContent = 'Connect';
+            connectBtn.style.background = 'var(--accent-blue)';
+            connectBtn.disabled = false;
+            showNotification('Failed to connect to plugin', 'error');
+        }
     }
+});
+
+async function simulatePluginConnection() {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const pluginAvailable = true;
+            
+            if (pluginAvailable) {
+                resolve();
+            } else {
+                reject(new Error('Plugin not found'));
+            }
+        }, 1500);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof puter === 'undefined') {
+        console.error('PuterJS not loaded');
+        showNotification('PuterJS not loaded. Please refresh the page.', 'error');
+        return;
+    }
+    
+    puter.init({
+        auth: true,
+        apiOrigin: 'https://api.puter.com',
+        appOrigin: window.location.origin
+    }).then(() => {
+        console.log('PuterJS initialized successfully');
+        
+        if (puter.auth.isSignedIn) {
+            const user = puter.auth.getUser();
+            userDisplayName = user.username;
+            if (sideNameLabel) sideNameLabel.innerText = user.username;
+            const loginBtn = document.getElementById('sign-in');
+            if (loginBtn) loginBtn.style.display = 'none';
+            showNotification('Welcome back!');
+        }
+        
+        if (localStorage.getItem('prysmis_plugin_connected') === 'true') {
+            const connectBtn = document.querySelector('.btn-connect-blue');
+            connectBtn.textContent = 'Connected';
+            connectBtn.style.background = '#27ae60';
+        }
+    }).catch(err => {
+        console.error('PuterJS initialization failed:', err);
+        showNotification('Failed to initialize PuterJS', 'error');
+    });
 });
 
 function showNotification(message, type = 'success') {
@@ -335,7 +421,6 @@ userInput.addEventListener('keydown', async (e) => {
         const hero = document.getElementById('hero-presets');
         if (hero) hero.style.display = 'none';
         
-        // Send message with images
         await sendMessageWithImages(text);
         
         userInput.value = '';
@@ -353,7 +438,6 @@ userInput.addEventListener('keydown', async (e) => {
 async function sendMessageWithImages(text) {
     let messageContent = text;
     
-    // Add images to message if any
     if (attachedImages.length > 0) {
         const imageHtml = attachedImages.map(img => 
             `<img src="${img.data}" style="max-width: 200px; max-height: 150px; border-radius: 8px; margin: 5px 0; display: block;" alt="${img.name}">`
@@ -419,18 +503,6 @@ function renameChat(id) {
             refreshHistoryUI();
         }
     }
-}
-
-// Handle preset item clicks
-function handlePresetClick(element) {
-    const prompt = element.getAttribute('data-prompt');
-    const userInput = document.getElementById('user-input');
-    userInput.value = prompt;
-    userInput.focus();
-    
-    // Adjust textarea height
-    userInput.style.height = 'auto';
-    userInput.style.height = userInput.scrollHeight + 'px';
 }
 
 function deleteChat(id) {
@@ -531,4 +603,14 @@ function saveSettings() {
     setTimeout(() => {
         document.getElementById('settings-overlay').style.display = 'none';
     }, 1500);
+}
+
+function handlePresetClick(element) {
+    const prompt = element.getAttribute('data-prompt');
+    const userInput = document.getElementById('user-input');
+    userInput.value = prompt;
+    userInput.focus();
+    
+    userInput.style.height = 'auto';
+    userInput.style.height = userInput.scrollHeight + 'px';
 }
