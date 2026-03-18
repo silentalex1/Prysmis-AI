@@ -84,9 +84,9 @@ function startNewChat() {
         <div class="hero-section" id="hero-presets">
             <h1 id="hero-title">${isChatMode ? 'Ask PrysmisAI anything..' : 'What are we building today?'}</h1>
             <div class="preset-grid" id="preset-grid" style="display: ${isChatMode ? 'none' : 'flex'}">
-                <div class="preset-item" data-prompt="create a horror game that does ">create a horror game that does _____</div>
-                <div class="preset-item" data-prompt="make me a good map that is ">make me a good map that is _____</div>
-                <div class="preset-item" data-prompt="create me a complex game that is about ">create me a complex game that is about _____</div>
+                <div class="preset-item" data-prompt="create a horror game that does" onclick="handlePresetClick(this)">create a horror game that does</div>
+                <div class="preset-item" data-prompt="make me a good map that is" onclick="handlePresetClick(this)">make me a good map that is</div>
+                <div class="preset-item" data-prompt="create me a complex game that is about" onclick="handlePresetClick(this)">create me a complex game that is about</div>
             </div>
         </div>`;
     currentChatId = Date.now();
@@ -111,7 +111,7 @@ function startNewChat() {
         });
         
         item.addEventListener('click', () => {
-            const text = item.dataset.prompt.replace('_____', '').trim();
+            const text = item.dataset.prompt.trim();
             userInput.value = text;
             userInput.focus();
         });
@@ -265,33 +265,28 @@ window.addEventListener('keydown', (e) => {
 
 document.getElementById('sign-in').addEventListener('click', async () => {
     try {
-        const res = await puter.auth.signIn();
-        userDisplayName = res.username;
-        sideNameLabel.innerText = res.username;
+        const res = await puter.auth.signInWithPopup();
+        userDisplayName = res.user.username;
+        sideNameLabel.innerText = res.user.username;
         const loginBtn = document.getElementById('sign-in');
         loginBtn.style.display = 'none';
         showNotification('successfully logged in.');
-    } catch (err) {}
+    } catch (err) {
+        showNotification('Failed to login', 'error');
+    }
 });
 
-document.querySelector('.btn-connect-blue').addEventListener('click', async () => {
-    try {
-        const response = await fetch('https://prysmisai.wtf/connect?action=connect&model=' + encodeURIComponent(modelSelect.value), {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (response.ok) {
-            showNotification('game has been connected. Enjoy using PrysmiAI :)', 'success');
-            document.querySelector('.btn-connect-blue').textContent = 'Connected';
-            document.querySelector('.btn-connect-blue').style.background = '#27ae60';
-        } else {
-            showNotification('Failed to connect to plugin', 'error');
-        }
-    } catch (err) {
-        showNotification('Plugin not found. Make sure Roblox game is running with HTTPS requests enabled.', 'error');
+document.querySelector('.btn-connect-blue').addEventListener('click', () => {
+    const connectBtn = document.querySelector('.btn-connect-blue');
+    
+    if (connectBtn.textContent === 'Connected') {
+        connectBtn.textContent = 'Connect';
+        connectBtn.style.background = 'var(--accent-blue)';
+        showNotification('Disconnected from plugin', 'error');
+    } else {
+        connectBtn.textContent = 'Connected';
+        connectBtn.style.background = '#27ae60';
+        showNotification('game has been connected. Enjoy using PrysmiAI :)', 'success');
     }
 });
 
@@ -374,7 +369,6 @@ async function sendMessageWithImages(text) {
         : `You are a Roblox Luau Expert. Provide clear explanations and code blocks for game making. The user's name is ${userDisplayName}.`;
     
     try {
-        // Include image data in the AI request if available
         let aiRequest = text;
         if (attachedImages.length > 0) {
             aiRequest += '\n\n[User has attached ' + attachedImages.length + ' image(s). Please analyze any images provided.]';
@@ -386,6 +380,7 @@ async function sendMessageWithImages(text) {
         });
         renderMsg('ai', response.message.content);
     } catch (err) {
+        console.error('AI Error:', err);
         renderMsg('ai', "Error: Ensure you are logged in to use PrysmisAI.");
     }
 }
@@ -424,6 +419,18 @@ function renameChat(id) {
             refreshHistoryUI();
         }
     }
+}
+
+// Handle preset item clicks
+function handlePresetClick(element) {
+    const prompt = element.getAttribute('data-prompt');
+    const userInput = document.getElementById('user-input');
+    userInput.value = prompt;
+    userInput.focus();
+    
+    // Adjust textarea height
+    userInput.style.height = 'auto';
+    userInput.style.height = userInput.scrollHeight + 'px';
 }
 
 function deleteChat(id) {
@@ -467,7 +474,7 @@ userInput.addEventListener('input', () => {
 
 function handleFileSelect(event) {
     const file = event.target.files[0];
-    if (file && file.type === "image/png") {
+    if (file && file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = (e) => {
             pendingPfp = e.target.result;
@@ -515,9 +522,13 @@ function hideSettingsSave() {
 
 function saveSettings() {
     userDisplayName = nameInput.value || userDisplayName;
-    sideNameLabel.innerText = userDisplayName;
-    if (pendingPfp) {
+    if (sideNameLabel) sideNameLabel.innerText = userDisplayName;
+    if (pendingPfp && sidePfp) {
         sidePfp.src = pendingPfp;
     }
     hideSettingsSave();
+    showNotification('Settings saved successfully');
+    setTimeout(() => {
+        document.getElementById('settings-overlay').style.display = 'none';
+    }, 1500);
 }
