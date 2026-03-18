@@ -266,18 +266,17 @@ document.getElementById('sign-in').addEventListener('click', async () => {
         }
         
         const loginBtn = document.getElementById('sign-in');
-        const originalText = loginBtn.innerText;
         loginBtn.innerText = 'Signing in...';
         loginBtn.disabled = true;
         
-        const res = await puter.auth.signInWithPopup();
+        const res = await puter.auth.signin();
         
-        userDisplayName = res.user.username;
-        if (sideNameLabel) sideNameLabel.innerText = res.user.username;
+        userDisplayName = res.username;
+        if (sideNameLabel) sideNameLabel.innerText = res.username;
         
         loginBtn.style.display = 'none';
         
-        showNotification(`Welcome ${res.user.username}!`);
+        showNotification(`Welcome ${res.username}!`);
     } catch (err) {
         console.error('Login error:', err);
         
@@ -349,15 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    puter.init({
-        auth: true,
-        apiOrigin: 'https://api.puter.com',
-        appOrigin: window.location.origin
-    }).then(() => {
+    puter.getUser().then(user => {
         console.log('PuterJS initialized successfully');
         
-        if (puter.auth.isSignedIn) {
-            const user = puter.auth.getUser();
+        if (user) {
             userDisplayName = user.username;
             if (sideNameLabel) sideNameLabel.innerText = user.username;
             const loginBtn = document.getElementById('sign-in');
