@@ -269,14 +269,41 @@ document.getElementById('sign-in').addEventListener('click', async () => {
         loginBtn.innerText = 'Signing in...';
         loginBtn.disabled = true;
         
-        const res = await puter.auth.signin();
+        // PuterJS v2 uses message passing for authentication
+        // Open the Puter authentication popup
+        const authWindow = window.open('https://puter.com/auth', 'puter-auth', 'width=500,height=600');
         
-        userDisplayName = res.username;
-        if (sideNameLabel) sideNameLabel.innerText = res.username;
+        // Listen for authentication message
+        const messageHandler = async (event) => {
+            if (event.origin === 'https://puter.com' && event.data.msg === 'puter.token') {
+                window.removeEventListener('message', messageHandler);
+                
+                // Set the auth token
+                puter.setAuthToken(event.data.token);
+                puter.setAppID(event.data.app_uid);
+                
+                // Get user info
+                const user = await puter.getUser();
+                userDisplayName = user.username;
+                if (sideNameLabel) sideNameLabel.innerText = user.username;
+                
+                loginBtn.style.display = 'none';
+                authWindow.close();
+                
+                showNotification(`Welcome ${user.username}!`);
+            }
+        };
         
-        loginBtn.style.display = 'none';
+        window.addEventListener('message', messageHandler);
         
-        showNotification(`Welcome ${res.username}!`);
+        // Timeout after 5 minutes
+        setTimeout(() => {
+            window.removeEventListener('message', messageHandler);
+            loginBtn.innerText = 'login';
+            loginBtn.disabled = false;
+            showNotification('Authentication timed out', 'error');
+        }, 300000);
+        
     } catch (err) {
         console.error('Login error:', err);
         
@@ -348,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
+    // Check if user is already authenticated
     puter.getUser().then(user => {
         console.log('PuterJS initialized successfully');
         
@@ -365,8 +393,13 @@ document.addEventListener('DOMContentLoaded', () => {
             connectBtn.style.background = '#27ae60';
         }
     }).catch(err => {
-        console.error('PuterJS initialization failed:', err);
-        showNotification('Failed to initialize PuterJS', 'error');
+        // 401 error means user is not authenticated, which is expected
+        if (err.status === 401) {
+            console.log('User not authenticated - login required');
+        } else {
+            console.error('PuterJS initialization failed:', err);
+            showNotification('Failed to initialize PuterJS', 'error');
+        }
     });
 });
 
