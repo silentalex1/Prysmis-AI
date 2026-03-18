@@ -148,7 +148,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: 'Segoe 
     margin-bottom: 20px;
     justify-content: center;
 }
-
+a
 .checkbox-wrapper input[type="checkbox"] {
     width: 16px;
     height: 16px;
