@@ -8,7 +8,24 @@ const client = new OpenAI({
   apiKey: process.env.PUTER_TOKEN
 });
 
+const models = [
+"anthropic/claude-opus-4-6","anthropic/claude-sonnet-4-6","anthropic/claude-opus-4-5","anthropic/claude-sonnet-4-5","anthropic/claude-haiku-4-5",
+"openai/gpt-5.4","openai/gpt-5.4-mini","openai/gpt-5.4-nano","openai/gpt-5","openai/o3","openai/o4-mini","openai/o1","openai/gpt-4.1",
+"google/gemini-3.1-pro","google/gemini-3.1-flash","google/gemini-3-pro","google/gemini-2.5-pro","google/gemini-2.5-flash",
+"x-ai/grok-4","x-ai/grok-4.20-beta","x-ai/grok-4-fast","x-ai/grok-4.1","x-ai/grok-4-reasoning",
+"deepseek/deepseek-r1","deepseek/deepseek-v3","deepseek/deepseek-coder","deepseek/deepseek-v3-0324",
+"meta-llama/llama-4-maverick","meta-llama/llama-4","meta-llama/llama-3.3","meta-llama/llama-3.1",
+"mistral/mistral-large","mistral/mistral-small","mistral/mistral-medium","mistral/mixtral-8x22b",
+"minimax/minimax-m2.7","minimax/minimax-m2","qwen/qwen-3-coder","qwen/qwen-3","qwen/qwen-2.5",
+"byte-dance/seed-1.5","byte-dance/seed-1","glm/glm-5","glm/glm-4.6","kling/kling-2"
+];
+
 http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/models') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(models));
+    return;
+  }
   if (req.method === 'GET' && !req.url.startsWith('/v1/')) {
     let filePath = '.' + (req.url === '/' ? '/index.html' : req.url);
     const ext = path.extname(filePath);
