@@ -1058,3 +1058,310 @@ transition: all 0.2s;
 }
 
 .btn-secondary:hover { border-color: var(--dim); color: var(--text); }
+
+#generateTokenBtn {
+padding: 0.45rem 1rem;
+background: transparent;
+border: 1px solid var(--border2);
+border-radius: 8px;
+color: var(--accent);
+font-weight: 700;
+font-size: 0.78rem;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+#generateTokenBtn:hover {
+background: rgba(79,142,247,0.1);
+border-color: var(--accent);
+}
+
+.sidebar-footer {
+padding: 0.8rem;
+border-top: 1px solid var(--border);
+flex-shrink: 0;
+}
+
+.settings-btn {
+width: 100%;
+padding: 0.6rem 1rem;
+background: transparent;
+border: 1px solid var(--border);
+border-radius: 9px;
+color: var(--dim);
+font-size: 0.8rem;
+font-family: inherit;
+font-weight: 600;
+cursor: pointer;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+transition: all 0.2s;
+}
+
+.settings-btn:hover {
+background: rgba(255,255,255,0.04);
+color: var(--text);
+border-color: var(--dim2);
+}
+
+.token-notif {
+position: fixed;
+top: 1.2rem;
+right: 1.5rem;
+z-index: 500;
+animation: notifSlide 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+
+@keyframes notifSlide {
+from { opacity: 0; transform: translateY(-12px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.token-notif-inner {
+background: #0c0c18;
+border: 1px solid var(--border2);
+border-radius: 14px;
+padding: 1rem 1.2rem;
+min-width: 360px;
+box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(79,142,247,0.08);
+}
+
+.token-notif-top {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 0.75rem;
+}
+
+.token-notif-label {
+font-size: 0.82rem;
+font-weight: 800;
+color: var(--green);
+letter-spacing: 0.2px;
+}
+
+.token-notif-close {
+background: none;
+border: none;
+color: var(--dim);
+cursor: pointer;
+padding: 2px;
+display: flex;
+align-items: center;
+transition: color 0.2s;
+}
+
+.token-notif-close:hover { color: var(--text); }
+
+.token-notif-field {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.token-notif-field input {
+flex: 1;
+background: rgba(255,255,255,0.04);
+border: 1px solid var(--border);
+border-radius: 8px;
+padding: 0.5rem 0.75rem;
+color: var(--accent);
+font-family: 'Fira Code', monospace;
+font-size: 0.75rem;
+outline: none;
+cursor: default;
+}
+
+.token-notif-hide {
+padding: 0.45rem 0.75rem;
+background: transparent;
+border: 1px solid var(--border);
+border-radius: 7px;
+color: var(--dim);
+font-size: 0.72rem;
+font-weight: 600;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+white-space: nowrap;
+}
+
+.token-notif-hide:hover { color: var(--text); border-color: var(--dim); }
+
+.token-notif-copy {
+padding: 0.45rem 0.85rem;
+background: #fff;
+border: none;
+border-radius: 7px;
+color: #0a0a14;
+font-size: 0.72rem;
+font-weight: 800;
+font-family: inherit;
+cursor: pointer;
+transition: opacity 0.2s;
+white-space: nowrap;
+}
+
+.token-notif-copy:hover { opacity: 0.88; }
+
+.settings-overlay {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.7);
+backdrop-filter: blur(10px);
+z-index: 800;
+display: flex;
+align-items: center;
+justify-content: center;
+animation: fadeIn 0.2s ease;
+}
+
+.settings-panel {
+background: #09090f;
+border: 1px solid var(--border);
+border-radius: 18px;
+width: 680px;
+height: 420px;
+display: flex;
+overflow: hidden;
+box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+animation: slideUp 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+
+.settings-sidebar {
+width: 190px;
+background: rgba(255,255,255,0.02);
+border-right: 1px solid var(--border);
+padding: 1.2rem 0.8rem;
+display: flex;
+flex-direction: column;
+gap: 0.25rem;
+flex-shrink: 0;
+}
+
+.settings-nav-btn {
+width: 100%;
+padding: 0.65rem 1rem;
+background: transparent;
+border: none;
+border-radius: 9px;
+color: var(--dim);
+font-size: 0.82rem;
+font-family: inherit;
+font-weight: 600;
+cursor: pointer;
+text-align: left;
+transition: all 0.2s;
+}
+
+.settings-nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+
+.settings-nav-btn.active {
+background: rgba(79,142,247,0.12);
+color: var(--text);
+border: 1px solid rgba(79,142,247,0.18);
+}
+
+.settings-content {
+flex: 1;
+overflow-y: auto;
+}
+
+.settings-content::-webkit-scrollbar { width: 3px; }
+.settings-content::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
+
+.settings-page {
+padding: 1.8rem 2rem;
+}
+
+.settings-page-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 2rem;
+}
+
+.settings-page-header h2 {
+font-size: 1.15rem;
+font-weight: 900;
+color: #fff;
+}
+
+.settings-close {
+background: none;
+border: 1px solid var(--border);
+border-radius: 8px;
+color: var(--dim);
+cursor: pointer;
+padding: 6px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.2s;
+}
+
+.settings-close:hover { color: var(--text); border-color: var(--dim); }
+
+.settings-field-group { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.settings-label {
+font-size: 0.7rem;
+font-weight: 800;
+color: var(--dim);
+text-transform: uppercase;
+letter-spacing: 0.6px;
+}
+
+.settings-token-row {
+display: flex;
+align-items: center;
+gap: 0.6rem;
+}
+
+.settings-token-input {
+flex: 1;
+background: rgba(255,255,255,0.03);
+border: 1px solid var(--border);
+border-radius: 9px;
+padding: 0.7rem 1rem;
+color: #fff;
+font-family: 'Fira Code', monospace;
+font-size: 0.8rem;
+outline: none;
+cursor: default;
+}
+
+.settings-token-input::placeholder { color: var(--dim2); font-family: inherit; }
+
+.settings-token-btn {
+padding: 0.6rem 1rem;
+background: transparent;
+border: 1px solid var(--border);
+border-radius: 9px;
+color: var(--dim);
+font-size: 0.75rem;
+font-family: inherit;
+font-weight: 700;
+cursor: pointer;
+white-space: nowrap;
+transition: all 0.2s;
+}
+
+.settings-token-btn:hover { color: var(--text); border-color: var(--dim); }
+
+.settings-token-btn-copy {
+background: #fff;
+border-color: #fff;
+color: #09090f;
+}
+
+.settings-token-btn-copy:hover { opacity: 0.88; color: #09090f; border-color: #fff; }
+
+.settings-token-hint {
+font-size: 0.75rem;
+color: var(--dim);
+line-height: 1.5;
+max-width: 440px;
+}
