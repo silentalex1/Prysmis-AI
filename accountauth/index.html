@@ -4,28 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PrysmisAI - Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth.css">
 </head>
 <body>
+<div class="bg-glow"></div>
 <div class="container">
 <div class="card">
+<div class="brand-row">
+<span class="brand-name">PrysmisAI</span>
+<span class="brand-badge">BETA</span>
+</div>
 <div class="tabs">
-<button class="tab active" onclick="showTab('create')">Create Account</button>
-<button class="tab" onclick="showTab('login')">Account Login</button>
+<button class="tab active" id="tabCreate" onclick="showTab('create')">Create Account</button>
+<button class="tab" id="tabLogin" onclick="showTab('login')">Sign In</button>
 </div>
 <div id="createTab" class="tab-content">
-<h1>Create Account</h1>
-<p>Initialize your PrysmisAI profile</p>
-<input type="text" id="createUsername" placeholder="Username" autocomplete="off">
-<input type="password" id="createPassword" placeholder="Password" autocomplete="off">
-<button id="createBtn">Create Account</button>
+<h1>Get Started</h1>
+<p>Create your PrysmisAI account to start building</p>
+<div class="field">
+<label>Username</label>
+<input type="text" id="createUsername" placeholder="Choose a username" autocomplete="off" spellcheck="false">
+</div>
+<div class="field">
+<label>Password</label>
+<input type="password" id="createPassword" placeholder="At least 6 characters" autocomplete="new-password">
+</div>
+<div id="createError" class="error-msg"></div>
+<button id="createBtn" class="submit-btn">
+<span id="createBtnText">Create Account</span>
+<span id="createSpinner" class="spinner" style="display:none"></span>
+</button>
+<p class="switch-hint">Already have an account? <button class="link-btn" onclick="showTab('login')">Sign in</button></p>
 </div>
 <div id="loginTab" class="tab-content" style="display:none">
-<h1>Account Login</h1>
-<p>Login to your PrysmisAI profile</p>
-<input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="off">
-<input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="off">
-<button id="loginBtn">Login to account</button>
+<h1>Welcome Back</h1>
+<p>Sign in to your PrysmisAI account</p>
+<div class="field">
+<label>Username</label>
+<input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="off" spellcheck="false">
+</div>
+<div class="field">
+<label>Password</label>
+<input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+</div>
+<div id="loginError" class="error-msg"></div>
+<button id="loginBtn" class="submit-btn">
+<span id="loginBtnText">Sign In</span>
+<span id="loginSpinner" class="spinner" style="display:none"></span>
+</button>
+<p class="switch-hint">No account yet? <button class="link-btn" onclick="showTab('create')">Create one</button></p>
 </div>
 </div>
 </div>
