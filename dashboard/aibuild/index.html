@@ -1,143 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrysmisAI Builder</title>
-    <link rel="stylesheet" href="dashboard.css">
-</head>
-<body>
-    <div class="animated-bg"></div>
-    <div class="scanline"></div>
-    <header>
-        <div class="brand">
-            <div class="logo">PrysmisAI</div>
-            <span class="badge">BETA</span>
-        </div>
-        <div class="header-actions">
-            <nav class="nav-links">
-                <a href="#" class="nav-item">API Doc</a>
-                <a href="#" class="nav-item donate-link">Donate to me?</a>
-                <a href="#" class="nav-item">Our Plugin</a>
-            </nav>
-            <div class="select-wrapper">
-                <select id="modelSelect">
-                    <option>Claude Opus 4.6</option>
-                    <option>Gemini 3.2</option>
-                    <option>ChatGPT 5.2</option>
-                </select>
-            </div>
-            <button id="connectBtn">Connect Plugin</button>
-        </div>
-    </header>
+const chatArea = document.getElementById('chatArea');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const modelSelect = document.getElementById('modelSelect');
+const presets = document.getElementById('presets');
+const projectsList = document.getElementById('projectsList');
+const modal = document.getElementById('addGameModal');
+const newChatBtn = document.getElementById('newChatBtn');
+const chatHistory = document.getElementById('chatHistory');
 
-    <div class="app-container">
-        <aside class="chat-sidebar">
-            <div class="sidebar-header">
-                <button id="newChatBtn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    New Chat
-                </button>
-            </div>
-            <div id="chatHistory" class="history-list"></div>
-        </aside>
+let currentChat = [];
 
-        <main class="content-area">
-            <div class="top-nav-container">
-                <nav class="navigation-tabs">
-                    <button class="tab-link active" onclick="showTab('chat')">AI Chat</button>
-                    <button class="tab-link" onclick="showTab('projects')">Community Projects</button>
-                </nav>
-                <div class="welcome-tag">Welcome <span id="userName">User</span></div>
-            </div>
+function formatText(text) {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
 
-            <section id="chatTab" class="viewport active-viewport">
-                <div id="chatArea" class="messages-container">
-                    <div id="presets">
-                        <h1 class="intro">What are we building today?</h1>
-                        <div class="preset-grid">
-                            <div class="preset-card" onclick="usePreset(0)">
-                                <span>Create Map</span>
-                                <p>Generate custom environments</p>
-                            </div>
-                            <div class="preset-card" onclick="usePreset(1)">
-                                <span>Animate Character</span>
-                                <p>Advanced movement setup</p>
-                            </div>
-                            <div class="preset-card" onclick="usePreset(2)">
-                                <span>Loading Screen</span>
-                                <p>UI startup flow builder</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="input-container">
-                    <div class="input-wrapper">
-                        <textarea id="input" rows="1" placeholder="Ask PrysmisAI Anything.."></textarea>
-                        <button id="sendBtn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        </button>
-                    </div>
-                </div>
-            </section>
+function addMessage(content, isUser) {
+    const msg = document.createElement('div');
+    msg.className = isUser ? 'user-msg' : 'ai-msg';
+    
+    if (!isUser) {
+        const tag = document.createElement('span');
+        tag.className = 'ai-tag';
+        tag.textContent = '<PrysmisAI>';
+        msg.appendChild(tag);
+        
+        const textNode = document.createElement('div');
+        textNode.innerHTML = formatText(content);
+        msg.appendChild(textNode);
+    } else {
+        msg.textContent = content;
+    }
+    
+    chatArea.appendChild(msg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    if (isUser) currentChat.push(content);
+}
 
-            <section id="projectsTab" class="viewport" style="display:none">
-                <div class="projects-header">
-                    <h2>Showcase</h2>
-                    <button id="addGameBtn" onclick="openModal()">+ Post Your Game</button>
-                </div>
-                <div class="projects-list" id="projectsList"></div>
-            </section>
-        </main>
+function showThinking() {
+    const loader = document.createElement('div');
+    loader.id = 'ai-thinking';
+    loader.className = 'thinking-anim';
+    loader.textContent = 'PrysmisAI is processing...';
+    chatArea.appendChild(loader);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
 
-        <aside class="sidebar-right" id="explorer">
-            <div class="sidebar-toggle" onclick="toggleExplorer()">
-                <span>Explorer</span>
-            </div>
-            <div class="sidebar-inner">
-                <div class="explorer-content">
-                    <div class="connection-status">
-                        <span id="statusDot" class="dot red"></span>
-                        <span id="statusText">Disconnected</span>
-                    </div>
-                    <div class="explorer-brand">Studio Explorer</div>
-                    <div class="block-design">
-                        <div class="rect"></div>
-                        <div class="rect-blur"></div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-    </div>
+function removeThinking() {
+    const loader = document.getElementById('ai-thinking');
+    if (loader) loader.remove();
+}
 
-    <div id="addGameModal" class="modal" style="display:none">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h2>Share Project</h2>
-                <div class="modal-divider"></div>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label>Project Title</label>
-                    <input type="text" id="gameTitle" placeholder="Enter game title...">
-                </div>
-                <div class="input-group">
-                    <label>Roblox Link</label>
-                    <input type="text" id="gameLink" placeholder="https://roblox.com/games/...">
-                </div>
-                <div class="input-group">
-                    <label>Description</label>
-                    <textarea id="gameAbout" placeholder="What is your game about?"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeModal()" class="btn-secondary">Cancel</button>
-                <button id="postGameBtn" class="btn-primary">Publish Project</button>
-            </div>
-        </div>
-    </div>
+sendBtn.onclick = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    
+    addMessage(text, true);
+    input.value = '';
+    presets.style.display = 'none';
+    
+    showThinking();
+    
+    try {
+        const res = await fetch(`/v1/chat/completions?model=${encodeURIComponent(modelSelect.value.toLowerCase().replace(/\s+/g, '-'))}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: [{ role: 'user', content: text }],
+                temperature: 0.7,
+                max_tokens: 2048
+            })
+        });
+        
+        const data = await res.json();
+        removeThinking();
+        const reply = data.choices?.[0]?.message?.content || 'No response';
+        addMessage(reply, false);
+    } catch (e) {
+        removeThinking();
+        addMessage('Error: ' + e.message, false);
+    }
+};
 
-    <script src="dashboard.js"></script>
-</body>
-</html>
+newChatBtn.onclick = () => {
+    if (currentChat.length > 0) {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.textContent = currentChat[0].substring(0, 25) + '...';
+        chatHistory.prepend(item);
+    }
+    chatArea.innerHTML = '';
+    chatArea.appendChild(presets);
+    presets.style.display = 'block';
+    currentChat = [];
+    input.value = '';
+};
+
+input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+    }
+});
+
+function usePreset(i) {
+    const texts = [
+        "Create me a map that is ",
+        "Make me a character that animates ",
+        "Make me an advanced loading startup screen that does "
+    ];
+    input.value = texts[i];
+    input.focus();
+}
+
+function toggleExplorer() {
+    document.getElementById('explorer').classList.toggle('open');
+}
+
+function showTab(tab) {
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.viewport').forEach(c => c.style.display = 'none');
+    event.target.classList.add('active');
+    document.getElementById(tab + 'Tab').style.display = 'flex';
+}
+
+function openModal() { modal.style.display = 'flex'; }
+function closeModal() { modal.style.display = 'none'; }
