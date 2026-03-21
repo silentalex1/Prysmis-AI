@@ -53,7 +53,7 @@ const Dashboard = () => {
 
   return (
     <div className="h-screen bg-[#050505] text-white flex flex-col">
-      {/* Top Bar */}
+     
       <nav className="h-16 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-4">
           <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl" />
@@ -75,9 +75,9 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
+    
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - File Explorer */}
+       
         <aside className="w-80 bg-[#0a0a0f] border-r border-white/5 p-6 overflow-y-auto">
           <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Project Explorer</h3>
           <div className="space-y-2 text-sm">
@@ -88,7 +88,7 @@ const Dashboard = () => {
           </div>
         </aside>
 
-        {/* Chat Area */}
+      
         <main className="flex-1 flex flex-col">
           <div className="flex-1 overflow-y-auto p-8 space-y-6">
             {messages.map((msg, i) => (
@@ -117,7 +117,7 @@ const Dashboard = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
+        
           <div className="p-6 border-t border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
             <div className="relative max-w-4xl mx-auto">
               <textarea
