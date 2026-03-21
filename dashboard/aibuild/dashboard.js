@@ -7,6 +7,10 @@ const presets=document.getElementById('presets')
 const projectsList=document.getElementById('projectsList')
 const addGameBtn=document.getElementById('addGameBtn')
 const modal=document.getElementById('addGameModal')
+const newChatBtn=document.getElementById('newChatBtn')
+const chatHistory=document.getElementById('chatHistory')
+
+let currentChat = [];
 
 function addMessage(content,isUser){
   const msg=document.createElement('div')
@@ -14,6 +18,19 @@ function addMessage(content,isUser){
   msg.textContent=content
   chatArea.appendChild(msg)
   chatArea.scrollTop=chatArea.scrollHeight
+  if(isUser) currentChat.push(content)
+}
+
+newChatBtn.onclick=()=>{
+    if(currentChat.length > 0){
+        const item = document.createElement('div')
+        item.className = 'history-item'
+        item.textContent = currentChat[0].substring(0, 30) + '...'
+        chatHistory.prepend(item)
+    }
+    chatArea.innerHTML = ''
+    presets.style.display = 'flex'
+    currentChat = []
 }
 
 sendBtn.onclick=async()=>{
