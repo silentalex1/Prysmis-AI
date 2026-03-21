@@ -25,7 +25,7 @@ sendBtn.onclick=async()=>{
   addMessage(text,true)
   input.value=''
   presets.style.display='none'
-  intro.style.display='none'
+  if(intro) intro.style.display='none'
   try{
     const res=await fetch(`/v1/chat/completions?model=${encodeURIComponent(modelSelect.value.toLowerCase().replace(/\s+/g,'-'))}`,{
       method:'POST',
@@ -70,10 +70,10 @@ connectBtn.onclick=()=>{
 }
 
 function showTab(tab){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
-  document.querySelectorAll('.tab-content').forEach(c=>c.style.display='none')
+  document.querySelectorAll('.tab-link').forEach(t=>t.classList.remove('active'))
+  document.querySelectorAll('.viewport').forEach(c=>c.style.display='none')
   event.target.classList.add('active')
-  document.getElementById(tab+'Tab').style.display='block'
+  document.getElementById(tab+'Tab').style.display='flex'
   if(tab==='projects')loadProjects()
 }
 
@@ -88,7 +88,7 @@ async function loadProjects(){
       <h3>${p.title}</h3>
       <p>${p.about}</p>
       <a href="${p.link}" target="_blank">Play on Roblox</a>
-      <small>Posted by ${p.username}</small>
+      <div style="margin-top:10px"><small style="color:#64748b">Posted by ${p.username}</small></div>
     `
     projectsList.appendChild(card)
   })
@@ -96,6 +96,10 @@ async function loadProjects(){
 
 addGameBtn.onclick=()=>{
   modal.style.display='flex'
+}
+
+function closeModal(){
+  modal.style.display='none'
 }
 
 postGameBtn.onclick=async()=>{
