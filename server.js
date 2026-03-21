@@ -8,13 +8,11 @@ const client = new OpenAI({
   apiKey: process.env.PUTER_TOKEN
 });
 
-let db = { users: {}, sessions: {} };
-if (fs.existsSync('db.json')) {
-  db = JSON.parse(fs.readFileSync('db.json'));
-}
+let db = { users: {}, sessions: {}, tokens: {} };
+if (fs.existsSync('db.json')) db = JSON.parse(fs.readFileSync('db.json'));
 
 function saveDb() {
-  fs.writeFileSync('db.json', JSON.stringify(db));
+  fs.writeFileSync('db.json', JSON.stringify(db, null, 2));
 }
 
 const models = [
@@ -24,23 +22,32 @@ const models = [
   "anthropic/claude-sonnet-4-5",
   "anthropic/claude-haiku-4-5",
   "openai/gpt-5.4",
-  "openai/gpt-5.2",
+  "openai/gpt-5.4-mini",
+  "openai/gpt-5.4-nano",
   "openai/o3",
   "openai/o4-mini",
   "openai/o1",
+  "openai/gpt-4o",
   "google/gemini-3.2-pro",
   "google/gemini-3.1-pro",
   "google/gemini-2.5-pro",
+  "google/gemini-1.5-pro",
   "x-ai/grok-4",
   "x-ai/grok-4-reasoning",
+  "x-ai/grok-4-fast",
   "deepseek/deepseek-r1",
   "deepseek/deepseek-v3",
+  "deepseek/deepseek-coder",
   "meta-llama/llama-4-maverick",
   "meta-llama/llama-4",
+  "meta-llama/llama-3.3",
   "mistral/mistral-large",
+  "mistral/mistral-large-2",
   "minimax/minimax-m2.7",
   "qwen/qwen-3-coder",
-  "qwen/qwen-3"
+  "qwen/qwen-3",
+  "qwen/qwen-2.5",
+  "byte-dance/seed-1.5"
 ];
 
 http.createServer((req, res) => {
@@ -63,11 +70,35 @@ http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Username already exists' }));
           return;
         }
-        db.users[username] = { password, created: Date.now() };
-        db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false };
+        const token = Buffer.from(`${username}:${password}:${Date.now()}`).toString('base64');
+        db.users[username] = { password, token, created: Date.now() };
+        db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false, lastActive: Date.now() };
+        db.tokens[token] = { username, expires: Date.now() + 30*24*60*60*1000 };
         saveDb();
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, token }));
+      } catch (e) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/login') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { username, password } = JSON.parse(body);
+        if (db.users[username] && db.users[username].password === password) {
+          const token = db.users[username].token;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, token }));
+        } else {
+          res.writeHead(401);
+          res.end(JSON.stringify({ error: 'Invalid credentials' }));
+        }
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
@@ -83,16 +114,22 @@ http.createServer((req, res) => {
   }
 
   if (req.method === 'GET' && pathname === '/status') {
-    const user = url.searchParams.get('user');
-    if (!user || !db.sessions[user]) {
+    const token = url.searchParams.get('token');
+    if (!token || !db.tokens[token] || db.tokens[token].expires < Date.now()) {
       res.writeHead(401);
+      res.end(JSON.stringify({ status: 'disconnected' }));
+      return;
+    }
+    const username = db.tokens[token].username;
+    if (!db.sessions[username]) {
+      res.writeHead(404);
       res.end(JSON.stringify({ status: 'disconnected' }));
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      status: db.sessions[user].connected ? 'connected' : 'disconnected',
-      model: db.sessions[user].model
+      status: db.sessions[username].connected ? 'connected' : 'disconnected',
+      model: db.sessions[username].model
     }));
     return;
   }
