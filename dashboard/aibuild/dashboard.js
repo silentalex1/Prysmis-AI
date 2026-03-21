@@ -22,6 +22,8 @@ userNameEl.textContent = storedUser || 'User';
 var currentMessages = [];
 var activeChatId = null;
 
+var SYSTEM_PROMPT = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations.';
+
 document.querySelectorAll('.tab-link').forEach(function(btn) {
   btn.addEventListener('click', function() {
     showTab(btn.dataset.tab, btn);
@@ -36,13 +38,311 @@ function escHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-function fmtText(text) {
+var LUA_KW = ['local','function','end','if','then','else','elseif','for','do','while','repeat','until','return','true','false','nil','and','or','not','in','break'];
+var JS_KW = ['var','let','const','function','return','if','else','for','while','do','new','this','true','false','null','undefined','class','extends','import','export','from','of','in','typeof','instanceof','break','continue','switch','case','default','try','catch','finally','throw','async','await','yield'];
+var PY_KW = ['def','class','return','if','elif','else','for','while','import','from','as','with','pass','break','continue','True','False','None','and','or','not','in','is','lambda','global','nonlocal','try','except','finally','raise','assert','del','yield'];
+
+function tokenizeLine(line, lang) {
+  var result = '';
+  var i = 0;
+  var kw = lang === 'lua' ? LUA_KW : (lang === 'python' || lang === 'py' ? PY_KW : JS_KW);
+
+  while (i < line.length) {
+    if (line[i] === '-' && line[i+1] === '-' && (lang === 'lua')) {
+      result += '<span class="tok-cmt">' + escHtml(line.slice(i)) + '</span>';
+      break;
+    }
+    if ((line[i] === '/' && line[i+1] === '/') && lang !== 'lua' && lang !== 'python') {
+      result += '<span class="tok-cmt">' + escHtml(line.slice(i)) + '</span>';
+      break;
+    }
+    if (line[i] === '#' && (lang === 'python' || lang === 'py')) {
+      result += '<span class="tok-cmt">' + escHtml(line.slice(i)) + '</span>';
+      break;
+    }
+    if (line[i] === '"' || line[i] === "'") {
+      var q = line[i];
+      var j = i + 1;
+      while (j < line.length && line[j] !== q) { if (line[j] === '\\') j++; j++; }
+      result += '<span class="tok-str">' + escHtml(line.slice(i, j + 1)) + '</span>';
+      i = j + 1;
+      continue;
+    }
+    if (line[i] === '[' && line[i+1] === '[' && lang === 'lua') {
+      var end = line.indexOf(']]', i + 2);
+      if (end === -1) end = line.length - 2;
+      result += '<span class="tok-str">' + escHtml(line.slice(i, end + 2)) + '</span>';
+      i = end + 2;
+      continue;
+    }
+    if (/[0-9]/.test(line[i]) && (i === 0 || /\W/.test(line[i-1]))) {
+      var k = i;
+      while (k < line.length && /[0-9._xXa-fA-F]/.test(line[k])) k++;
+      result += '<span class="tok-num">' + escHtml(line.slice(i, k)) + '</span>';
+      i = k;
+      continue;
+    }
+    if (/[a-zA-Z_]/.test(line[i])) {
+      var m = i;
+      while (m < line.length && /[a-zA-Z0-9_]/.test(line[m])) m++;
+      var word = line.slice(i, m);
+      var after = line[m];
+      if (kw.indexOf(word) !== -1) {
+        result += '<span class="tok-kw">' + escHtml(word) + '</span>';
+      } else if (after === '(') {
+        result += '<span class="tok-fn">' + escHtml(word) + '</span>';
+      } else {
+        result += '<span class="tok-plain">' + escHtml(word) + '</span>';
+      }
+      i = m;
+      continue;
+    }
+    result += escHtml(line[i]);
+    i++;
+  }
+  return result;
+}
+
+function highlightCode(code, lang) {
+  var lines = code.split('\n');
+  return lines.map(function(line) {
+    return tokenizeLine(line, (lang || '').toLowerCase());
+  }).join('\n');
+}
+
+function buildCodeBlock(code, lang) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'code-block';
+
+  var header = document.createElement('div');
+  header.className = 'code-block-header';
+
+  var langLabel = document.createElement('span');
+  langLabel.className = 'code-lang';
+  langLabel.textContent = lang || 'code';
+
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = 'Copy code';
+
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(code).then(function() {
+      copyBtn.textContent = 'Copied';
+      copyBtn.classList.add('copied');
+      setTimeout(function() {
+        copyBtn.textContent = 'Copy code';
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.textContent = 'Copied';
+      copyBtn.classList.add('copied');
+      setTimeout(function() {
+        copyBtn.textContent = 'Copy code';
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    });
+  });
+
+  header.appendChild(langLabel);
+  header.appendChild(copyBtn);
+
+  var pre = document.createElement('pre');
+  var codeEl = document.createElement('code');
+  codeEl.innerHTML = highlightCode(code, lang);
+  pre.appendChild(codeEl);
+
+  wrapper.appendChild(header);
+  wrapper.appendChild(pre);
+  return wrapper;
+}
+
+function buildChecklistBlock(tasks) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'checklist-block';
+
+  var header = document.createElement('div');
+  header.className = 'checklist-header';
+
+  var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('class', 'checklist-icon');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '2');
+  icon.setAttribute('stroke-linecap', 'round');
+  icon.setAttribute('stroke-linejoin', 'round');
+  icon.style.color = '#4f8ef7';
+  var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', '9 11 12 14 22 4');
+  var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11');
+  icon.appendChild(polyline);
+  icon.appendChild(path);
+
+  var titleEl = document.createElement('span');
+  titleEl.className = 'checklist-title';
+  titleEl.textContent = 'Build Plan';
+
+  var countEl = document.createElement('span');
+  countEl.className = 'checklist-count';
+  countEl.textContent = tasks.length;
+
+  header.appendChild(icon);
+  header.appendChild(titleEl);
+  header.appendChild(countEl);
+
+  var itemsContainer = document.createElement('div');
+  itemsContainer.className = 'checklist-items';
+
+  tasks.forEach(function(task, idx) {
+    var item = document.createElement('div');
+    item.className = 'checklist-item';
+    item.dataset.idx = idx;
+
+    var circle = document.createElement('div');
+    circle.className = 'check-circle';
+
+    var checkSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    checkSvg.setAttribute('width', '10');
+    checkSvg.setAttribute('height', '10');
+    checkSvg.setAttribute('viewBox', '0 0 24 24');
+    checkSvg.setAttribute('fill', 'none');
+    checkSvg.setAttribute('stroke', 'white');
+    checkSvg.setAttribute('stroke-width', '3');
+    checkSvg.setAttribute('stroke-linecap', 'round');
+    checkSvg.setAttribute('stroke-linejoin', 'round');
+    var pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    pl.setAttribute('points', '20 6 9 17 4 12');
+    checkSvg.appendChild(pl);
+    circle.appendChild(checkSvg);
+
+    var label = document.createElement('span');
+    label.className = 'check-label';
+    label.textContent = task;
+
+    item.appendChild(circle);
+    item.appendChild(label);
+    itemsContainer.appendChild(item);
+  });
+
+  wrapper.appendChild(header);
+  wrapper.appendChild(itemsContainer);
+
+  var items = itemsContainer.querySelectorAll('.checklist-item');
+  var current = 0;
+
+  function tickNext() {
+    if (current >= items.length) return;
+    var item = items[current];
+    item.classList.add('active');
+    item.querySelector('.check-circle').classList.add('active');
+
+    var delay = 600 + Math.random() * 400;
+    setTimeout(function() {
+      item.classList.remove('active');
+      item.classList.add('done');
+      var circle = item.querySelector('.check-circle');
+      circle.classList.remove('active');
+      circle.classList.add('done');
+      current++;
+      if (current < items.length) {
+        setTimeout(tickNext, 200);
+      }
+    }, delay);
+  }
+
+  setTimeout(tickNext, 300);
+
+  return wrapper;
+}
+
+function parseAndRenderContent(rawText, container) {
+  var taskMatch = rawText.match(/\[TASKS\]([\s\S]*?)\[\/TASKS\]/);
+  var tasks = [];
+  var bodyText = rawText;
+
+  if (taskMatch) {
+    var taskLines = taskMatch[1].trim().split('\n');
+    tasks = taskLines.map(function(l) {
+      return l.replace(/^\d+\.\s*/, '').trim();
+    }).filter(function(l) { return l.length > 0; });
+    bodyText = rawText.replace(/\[TASKS\][\s\S]*?\[\/TASKS\]/, '').trim();
+  }
+
+  if (tasks.length > 0) {
+    container.appendChild(buildChecklistBlock(tasks));
+  }
+
+  var segments = bodyText.split(/(```[\s\S]*?```)/g);
+  segments.forEach(function(seg) {
+    var codeMatch = seg.match(/^```(\w*)\n?([\s\S]*?)```$/);
+    if (codeMatch) {
+      var lang = codeMatch[1] || 'lua';
+      var code = codeMatch[2];
+      container.appendChild(buildCodeBlock(code, lang));
+    } else if (seg.trim().length > 0) {
+      var textDiv = document.createElement('div');
+      textDiv.innerHTML = renderInlineMarkdown(seg);
+      container.appendChild(textDiv);
+    }
+  });
+}
+
+function renderInlineMarkdown(text) {
+  var lines = text.split('\n');
+  var html = '';
+  var inList = false;
+
+  lines.forEach(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) {
+      if (inList) { html += '</ul>'; inList = false; }
+      return;
+    }
+    var listMatch = trimmed.match(/^[-*]\s+(.+)/);
+    var numMatch = trimmed.match(/^\d+\.\s+(.+)/);
+    var h3 = trimmed.match(/^###\s+(.+)/);
+    var h2 = trimmed.match(/^##\s+(.+)/);
+    var h1 = trimmed.match(/^#\s+(.+)/);
+
+    if (h1) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<h1>' + inlineFormat(h1[1]) + '</h1>';
+    } else if (h2) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<h2>' + inlineFormat(h2[1]) + '</h2>';
+    } else if (h3) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<h3>' + inlineFormat(h3[1]) + '</h3>';
+    } else if (listMatch) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += '<li>' + inlineFormat(listMatch[1]) + '</li>';
+    } else if (numMatch) {
+      if (!inList) { html += '<ol>'; inList = true; }
+      html += '<li>' + inlineFormat(numMatch[1]) + '</li>';
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<p>' + inlineFormat(trimmed) + '</p>';
+    }
+  });
+
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function inlineFormat(text) {
   return text
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>');
+    .replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
 
 function addMessage(content, isUser) {
@@ -57,9 +357,12 @@ function addMessage(content, isUser) {
     var tag = document.createElement('span');
     tag.className = 'ai-tag';
     tag.textContent = 'PrysmisAI';
+
     var body = document.createElement('div');
     body.className = 'ai-msg-body';
-    body.innerHTML = fmtText(content);
+
+    parseAndRenderContent(content, body);
+
     msg.appendChild(tag);
     msg.appendChild(body);
   }
@@ -91,6 +394,12 @@ function getModel() {
   return map[modelSelect.value] || 'anthropic/claude-sonnet-4-6';
 }
 
+function buildMessages() {
+  var msgs = [{ role: 'system', content: SYSTEM_PROMPT }];
+  currentMessages.forEach(function(m) { msgs.push(m); });
+  return msgs;
+}
+
 function doSend() {
   var text = inputEl.value.trim();
   if (!text) return;
@@ -105,7 +414,7 @@ function doSend() {
   fetch('/v1/chat/completions?model=' + encodeURIComponent(getModel()), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: currentMessages, temperature: 0.7, max_tokens: 2048 })
+    body: JSON.stringify({ messages: buildMessages(), temperature: 0.7, max_tokens: 4096 })
   }).then(function(r) {
     return r.json();
   }).then(function(data) {
@@ -171,9 +480,7 @@ function loadChatHistory() {
     .then(function(chats) {
       chatHistoryEl.innerHTML = '';
       if (!Array.isArray(chats)) return;
-      chats.forEach(function(chat) {
-        renderHistoryItem(chat);
-      });
+      chats.forEach(function(chat) { renderHistoryItem(chat); });
     }).catch(function() {});
 }
 
@@ -208,7 +515,6 @@ function loadChat(chat) {
   chatArea.innerHTML = '';
   currentMessages = [];
   activeChatId = chat.id;
-
   if (!chat.messages || chat.messages.length === 0) return;
   chat.messages.forEach(function(m) {
     addMessage(m.content, m.role === 'user');
@@ -337,9 +643,7 @@ function renderProjectCard(p) {
     var delBtn = document.createElement('button');
     delBtn.className = 'delete-card-btn';
     delBtn.textContent = 'Delete';
-    delBtn.addEventListener('click', function() {
-      deleteProject(p.id, card);
-    });
+    delBtn.addEventListener('click', function() { deleteProject(p.id, card); });
     footer.appendChild(delBtn);
   }
 
