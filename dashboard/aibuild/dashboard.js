@@ -991,3 +991,146 @@ if (pluginTokenStored) {
     pluginTokenStored = '';
   });
 }
+
+var generateTokenBtn = document.getElementById('generateTokenBtn');
+var settingsBtn = document.getElementById('settingsBtn');
+var settingsModal = document.getElementById('settingsModal');
+var settingsClose = document.getElementById('settingsClose');
+var tokenNotif = document.getElementById('tokenNotif');
+var tokenNotifInput = document.getElementById('tokenNotifInput');
+var tokenNotifClose = document.getElementById('tokenNotifClose');
+var tokenNotifHide = document.getElementById('tokenNotifHide');
+var tokenNotifCopy = document.getElementById('tokenNotifCopy');
+var settingsTokenInput = document.getElementById('settingsTokenInput');
+var settingsShowToken = document.getElementById('settingsShowToken');
+var settingsCopyToken = document.getElementById('settingsCopyToken');
+
+var currentAuthToken = '';
+var tokenVisible = false;
+
+function showTokenNotif(tokenUrl) {
+  tokenNotifInput.value = tokenUrl;
+  tokenNotifInput.type = 'text';
+  tokenVisible = true;
+  tokenNotifHide.textContent = 'Hide';
+  tokenNotif.style.display = 'block';
+}
+
+function hideTokenNotif() {
+  tokenNotif.style.display = 'none';
+}
+
+tokenNotifClose.addEventListener('click', hideTokenNotif);
+
+tokenNotifHide.addEventListener('click', function() {
+  if (tokenVisible) {
+    tokenNotifInput.type = 'password';
+    tokenNotifHide.textContent = 'Show';
+    tokenVisible = false;
+  } else {
+    tokenNotifInput.type = 'text';
+    tokenNotifHide.textContent = 'Hide';
+    tokenVisible = true;
+  }
+});
+
+tokenNotifCopy.addEventListener('click', function() {
+  var val = tokenNotifInput.value;
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(function() {
+    tokenNotifCopy.textContent = 'Copied';
+    setTimeout(function() { tokenNotifCopy.textContent = 'Copy Token'; }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = val;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    tokenNotifCopy.textContent = 'Copied';
+    setTimeout(function() { tokenNotifCopy.textContent = 'Copy Token'; }, 2000);
+  });
+});
+
+generateTokenBtn.addEventListener('click', function() {
+  generateTokenBtn.textContent = '...';
+  generateTokenBtn.disabled = true;
+  fetch('/auth-token/generate?token=' + encodeURIComponent(storedToken), { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      generateTokenBtn.textContent = 'Generate Token';
+      generateTokenBtn.disabled = false;
+      if (data.success) {
+        currentAuthToken = data.authToken;
+        settingsTokenInput.value = data.authToken;
+        showTokenNotif(data.url);
+      } else {
+        generateTokenBtn.textContent = data.error || 'Error';
+        setTimeout(function() { generateTokenBtn.textContent = 'Generate Token'; }, 3000);
+      }
+    })
+    .catch(function() {
+      generateTokenBtn.textContent = 'Generate Token';
+      generateTokenBtn.disabled = false;
+    });
+});
+
+function loadExistingAuthToken() {
+  fetch('/auth-token?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.authToken) {
+        currentAuthToken = data.authToken;
+        settingsTokenInput.value = data.authToken;
+      }
+    })
+    .catch(function() {});
+}
+
+settingsBtn.addEventListener('click', function() {
+  loadExistingAuthToken();
+  settingsModal.style.display = 'flex';
+});
+
+settingsClose.addEventListener('click', function() {
+  settingsModal.style.display = 'none';
+});
+
+settingsModal.addEventListener('click', function(e) {
+  if (e.target === settingsModal) settingsModal.style.display = 'none';
+});
+
+var settingsTokenShown = false;
+
+settingsShowToken.addEventListener('click', function() {
+  if (!currentAuthToken) return;
+  if (settingsTokenShown) {
+    settingsTokenInput.type = 'password';
+    settingsShowToken.textContent = 'Show Token';
+    settingsTokenShown = false;
+  } else {
+    settingsTokenInput.type = 'text';
+    settingsTokenInput.value = currentAuthToken;
+    settingsShowToken.textContent = 'Hide Token';
+    settingsTokenShown = true;
+  }
+});
+
+settingsCopyToken.addEventListener('click', function() {
+  if (!currentAuthToken) return;
+  navigator.clipboard.writeText(currentAuthToken).then(function() {
+    settingsCopyToken.textContent = 'Copied';
+    setTimeout(function() { settingsCopyToken.textContent = 'Copy Token'; }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = currentAuthToken;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    settingsCopyToken.textContent = 'Copied';
+    setTimeout(function() { settingsCopyToken.textContent = 'Copy Token'; }, 2000);
+  });
+});
