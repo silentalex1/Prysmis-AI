@@ -9,16 +9,66 @@ const client = new OpenAI({
   apiKey: process.env.PUTER_TOKEN
 });
 
+const DB_FILE = 'db.json';
+
 let db = { users: {}, projects: [], sessions: {}, tokens: {} };
-if (fs.existsSync('db.json')) db = JSON.parse(fs.readFileSync('db.json'));
+
+function loadDb() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      db = {
+        users: parsed.users || {},
+        projects: parsed.projects || [],
+        sessions: parsed.sessions || {},
+        tokens: parsed.tokens || {}
+      };
+    }
+  } catch (e) {
+    db = { users: {}, projects: [], sessions: {}, tokens: {} };
+  }
+}
 
 function saveDb() {
-  fs.writeFileSync('db.json', JSON.stringify(db, null, 2));
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
+loadDb();
+
 function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
+  return crypto.createHash('sha256').update(password + 'prysmis_salt_2025').digest('hex');
 }
+
+function generateToken() {
+  return crypto.randomBytes(48).toString('hex');
+}
+
+function getTokenData(token) {
+  if (!token) return null;
+  const td = db.tokens[token];
+  if (!td) return null;
+  if (td.expires < Date.now()) {
+    delete db.tokens[token];
+    saveDb();
+    return null;
+  }
+  return td;
+}
+
+function pruneExpiredTokens() {
+  const now = Date.now();
+  let changed = false;
+  for (const t in db.tokens) {
+    if (db.tokens[t].expires < now) {
+      delete db.tokens[t];
+      changed = true;
+    }
+  }
+  if (changed) saveDb();
+}
+
+setInterval(pruneExpiredTokens, 60 * 60 * 1000);
 
 const models = [
   "anthropic/claude-opus-4-6",
@@ -55,134 +105,166 @@ const models = [
   "byte-dance/seed-1.5"
 ];
 
-http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
+function sendJson(res, status, data) {
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+  res.end(JSON.stringify(data));
+}
 
-  if (req.method === 'POST' && pathname === '/account') {
+function readBody(req) {
+  return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
-      try {
-        const { username, password } = JSON.parse(body);
-        if (!username || !password) {
-          res.writeHead(400);
-          res.end(JSON.stringify({ error: 'Missing username or password' }));
-          return;
-        }
-        if (db.users[username]) {
-          res.writeHead(409);
-          res.end(JSON.stringify({ error: 'Username already exists' }));
-          return;
-        }
-        const hashed = hashPassword(password);
-        const token = crypto.randomBytes(32).toString('hex');
-        db.users[username] = { hashed, token, created: Date.now() };
-        db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false };
-        db.tokens[token] = { username, expires: Date.now() + 30*24*60*60*1000 };
-        saveDb();
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true, token }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
+      try { resolve(JSON.parse(body)); }
+      catch (e) { reject(e); }
     });
+    req.on('error', reject);
+  });
+}
+
+http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,DELETE', 'Access-Control-Allow-Headers': 'Content-Type,Authorization' });
+    res.end();
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/account') {
+    try {
+      const { username, password } = await readBody(req);
+      if (!username || !password) return sendJson(res, 400, { error: 'Missing username or password' });
+      if (username.length < 3 || username.length > 24) return sendJson(res, 400, { error: 'Username must be 3-24 characters' });
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) return sendJson(res, 400, { error: 'Username can only contain letters, numbers, underscores' });
+      if (password.length < 6) return sendJson(res, 400, { error: 'Password must be at least 6 characters' });
+      if (db.users[username]) return sendJson(res, 409, { error: 'Username already exists' });
+      const hashed = hashPassword(password);
+      const token = generateToken();
+      db.users[username] = { hashed, created: Date.now(), projects: 0 };
+      db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false };
+      db.tokens[token] = { username, expires: Date.now() + 30 * 24 * 60 * 60 * 1000 };
+      saveDb();
+      sendJson(res, 200, { success: true, token, username });
+    } catch (e) {
+      sendJson(res, 400, { error: 'Invalid request' });
+    }
     return;
   }
 
   if (req.method === 'POST' && pathname === '/login') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const { username, password } = JSON.parse(body);
-        if (!username || !password) {
-          res.writeHead(400);
-          res.end(JSON.stringify({ error: 'Missing username or password' }));
-          return;
-        }
-        if (!db.users[username]) {
-          res.writeHead(401);
-          res.end(JSON.stringify({ error: 'Username wrong' }));
-          return;
-        }
-        const hashed = hashPassword(password);
-        if (db.users[username].hashed !== hashed) {
-          res.writeHead(401);
-          res.end(JSON.stringify({ error: 'Password wrong' }));
-          return;
-        }
-        const token = db.users[username].token;
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true, token }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
-    });
+    try {
+      const { username, password } = await readBody(req);
+      if (!username || !password) return sendJson(res, 400, { error: 'Missing username or password' });
+      if (!db.users[username]) return sendJson(res, 401, { error: 'Username not found' });
+      const hashed = hashPassword(password);
+      if (db.users[username].hashed !== hashed) return sendJson(res, 401, { error: 'Incorrect password' });
+      const token = generateToken();
+      db.tokens[token] = { username, expires: Date.now() + 30 * 24 * 60 * 60 * 1000 };
+      saveDb();
+      sendJson(res, 200, { success: true, token, username });
+    } catch (e) {
+      sendJson(res, 400, { error: 'Invalid request' });
+    }
     return;
   }
 
   if (req.method === 'GET' && pathname === '/models') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(models));
+    sendJson(res, 200, models);
     return;
   }
 
   if (req.method === 'GET' && pathname === '/status') {
     const token = url.searchParams.get('token');
-    if (!token || !db.tokens[token] || db.tokens[token].expires < Date.now()) {
-      res.writeHead(401);
-      res.end(JSON.stringify({ status: 'disconnected', model: 'anthropic/claude-sonnet-4-6' }));
-      return;
+    const td = getTokenData(token);
+    if (!td) return sendJson(res, 401, { status: 'disconnected', model: 'anthropic/claude-sonnet-4-6' });
+    const session = db.sessions[td.username] || { connected: false, model: 'anthropic/claude-sonnet-4-6' };
+    sendJson(res, 200, { status: session.connected ? 'connected' : 'disconnected', model: session.model, username: td.username });
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/stats') {
+    const totalUsers = Object.keys(db.users).length;
+    const totalProjects = db.projects.length;
+    const now = Date.now();
+    const activeThreshold = 30 * 60 * 1000;
+    const active = Object.values(db.tokens).filter(t => t.expires > now && (now - (t.expires - 30 * 24 * 60 * 60 * 1000)) < activeThreshold).length;
+    sendJson(res, 200, { users: totalUsers, active: Math.max(active, 1), projects: totalProjects });
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/projects') {
+    sendJson(res, 200, db.projects);
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/projects') {
+    try {
+      const token = url.searchParams.get('token') || req.headers['authorization'];
+      const td = getTokenData(token);
+      if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+      const { title, link, about } = await readBody(req);
+      if (!title || !link || !about) return sendJson(res, 400, { error: 'Missing fields' });
+      if (title.length > 80) return sendJson(res, 400, { error: 'Title too long' });
+      if (about.length > 500) return sendJson(res, 400, { error: 'Description too long' });
+      const id = crypto.randomBytes(8).toString('hex');
+      const project = { id, title, link, about, author: td.username, created: Date.now() };
+      db.projects.unshift(project);
+      if (db.users[td.username]) db.users[td.username].projects = (db.users[td.username].projects || 0) + 1;
+      saveDb();
+      sendJson(res, 200, { success: true, project });
+    } catch (e) {
+      sendJson(res, 400, { error: 'Invalid request' });
     }
-    const username = db.tokens[token].username;
-    const session = db.sessions[username] || { connected: false, model: 'anthropic/claude-sonnet-4-6' };
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: session.connected ? 'connected' : 'disconnected',
-      model: session.model
-    }));
+    return;
+  }
+
+  if (req.method === 'DELETE' && pathname.startsWith('/projects/')) {
+    try {
+      const id = pathname.split('/projects/')[1];
+      const token = url.searchParams.get('token') || req.headers['authorization'];
+      const td = getTokenData(token);
+      if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+      const idx = db.projects.findIndex(p => p.id === id);
+      if (idx === -1) return sendJson(res, 404, { error: 'Project not found' });
+      if (db.projects[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your project' });
+      db.projects.splice(idx, 1);
+      if (db.users[td.username] && db.users[td.username].projects > 0) db.users[td.username].projects--;
+      saveDb();
+      sendJson(res, 200, { success: true });
+    } catch (e) {
+      sendJson(res, 400, { error: 'Invalid request' });
+    }
     return;
   }
 
   if (req.method === 'POST' && (pathname === '/v1/chat/completions' || pathname === '/chat/completions')) {
     const modelFromQuery = url.searchParams.get('model');
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const data = JSON.parse(body);
-        const model = modelFromQuery || data.model || 'anthropic/claude-sonnet-4-6';
-        const completion = await client.chat.completions.create({
-          model,
-          messages: data.messages || [],
-          stream: data.stream || false,
-          temperature: data.temperature,
-          max_tokens: data.max_tokens
-        });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(completion));
-      } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
-      }
-    });
+    try {
+      const data = await readBody(req);
+      const model = modelFromQuery || data.model || 'anthropic/claude-sonnet-4-6';
+      const completion = await client.chat.completions.create({
+        model,
+        messages: data.messages || [],
+        stream: false,
+        temperature: data.temperature,
+        max_tokens: data.max_tokens
+      });
+      sendJson(res, 200, completion);
+    } catch (e) {
+      sendJson(res, 500, { error: e.message });
+    }
     return;
   }
 
-  if (req.method === 'GET' && !pathname.startsWith('/v1/') && !pathname.startsWith('/chat/')) {
+  if (req.method === 'GET') {
     let filePath = '.' + (pathname === '/' ? '/index.html' : pathname);
     if (filePath.endsWith('/')) filePath += 'index.html';
     const ext = path.extname(filePath);
-    const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript' }[ext] || 'text/plain';
+    const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon' }[ext] || 'text/plain';
     fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(404);
-        res.end();
-        return;
-      }
+      if (err) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': mime });
       res.end(data);
     });
