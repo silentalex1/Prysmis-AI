@@ -129,6 +129,16 @@ input.addEventListener('keydown', e => {
     }
 });
 
+function usePreset(i) {
+    const texts = [
+        "Create me a map that is ",
+        "Make me a character that animates ",
+        "Make me an advanced loading startup screen that does "
+    ];
+    input.value = texts[i];
+    input.focus();
+}
+
 function toggleExplorer() {
     document.getElementById('explorer').classList.toggle('open');
 }
