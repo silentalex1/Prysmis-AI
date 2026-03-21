@@ -6,9 +6,9 @@
     <title>PrysmisAI</title>
     <link rel="stylesheet" href="style.css">
     <script src="puterv2.js"></script>
+    <script src="script.js"></script>
 </head>
 <body>
-
 <div id="onboarding-overlay" class="overlay">
     <div class="modal">
         <div class="modal-header">
@@ -22,7 +22,6 @@
             <h2>Welcome to PrysmisAI</h2>
             <p>Your AI-powered Roblox game development assistant</p>
         </div>
-        
         <div class="modal-content">
             <div class="setup-steps">
                 <div class="step-item">
@@ -48,7 +47,6 @@
                 </div>
             </div>
         </div>
-        
         <div class="modal-footer">
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="dont-show-again">
@@ -61,7 +59,6 @@
         </div>
     </div>
 </div>
-
 <div id="settings-overlay" class="overlay" style="display: none;">
     <div class="settings-container">
         <div class="settings-modal-floating">
@@ -105,18 +102,16 @@
         </div>
     </div>
 </div>
-
 <nav class="navbar">
     <div class="brand-section">
         <button id="toggle-sidebar" class="icon-btn">☰</button>
         <div class="brand">PrysmisAI</div>
     </div>
     <div class="nav-links">
-        <button class="btn-connect-blue" onclick="this.innerText='Connected'">Connect</button>
+        <button class="btn-connect-blue" id="connect-btn">Connect</button>
         <button class="btn-green-nav" onclick="window.open('https://www.roblox.com/library/create', '_blank')">Install plugin</button>
     </div>
 </nav>
-
 <div class="app-shell">
     <aside class="sidebar" id="app-sidebar">
         <div class="history-container" id="chat-history"></div>
@@ -125,7 +120,6 @@
             <button id="settings-btn" class="sidebar-btn btn-settings-red" onclick="toggleSettings()">settings</button>
         </div>
     </aside>
-
     <main class="chat-viewport">
         <div id="chat-flow" class="chat-flow">
             <div class="hero-section" id="hero-presets">
@@ -137,7 +131,6 @@
                 </div>
             </div>
         </div>
-
         <div class="input-anchor">
             <div class="input-stack" id="input-stack-container">
                 <div class="model-picker-outer">
@@ -157,7 +150,5 @@
         </div>
     </main>
 </div>
-
-<script src="script.js"></script>
 </body>
 </html>
