@@ -5,6 +5,7 @@ const modelSelect = document.getElementById('modelSelect');
 const presets = document.getElementById('presets');
 const projectsList = document.getElementById('projectsList');
 const modal = document.getElementById('addGameModal');
+const postGameBtn = document.getElementById('postGameBtn');
 const newChatBtn = document.getElementById('newChatBtn');
 const chatHistory = document.getElementById('chatHistory');
 
@@ -41,7 +42,7 @@ function showThinking() {
     loader.id = 'ai-thinking';
     loader.className = 'thinking-anim';
     loader.innerHTML = `
-        <div class="thinking-text">PrysmisAI is thinking...</div>
+        <div class="thinking-text">PrysmisAI is processing...</div>
         <div class="thinking-bar"></div>
     `;
     chatArea.appendChild(loader);
@@ -84,6 +85,29 @@ sendBtn.onclick = async () => {
     }
 };
 
+postGameBtn.onclick = () => {
+    const title = document.getElementById('gameTitle').value;
+    const link = document.getElementById('gameLink').value;
+    const about = document.getElementById('gameAbout').value;
+
+    if (!title || !link || !about) return;
+
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+        <h3>${title}</h3>
+        <p>${about}</p>
+        <a href="${link}" target="_blank">${link}</a>
+    `;
+
+    projectsList.prepend(card);
+    closeModal();
+    
+    document.getElementById('gameTitle').value = '';
+    document.getElementById('gameLink').value = '';
+    document.getElementById('gameAbout').value = '';
+};
+
 newChatBtn.onclick = () => {
     if (currentChat.length > 0) {
         const item = document.createElement('div');
@@ -105,16 +129,6 @@ input.addEventListener('keydown', e => {
     }
 });
 
-function usePreset(i) {
-    const texts = [
-        "Create me a map that is ",
-        "Make me a character that animates ",
-        "Make me an advanced loading startup screen that does "
-    ];
-    input.value = texts[i];
-    input.focus();
-}
-
 function toggleExplorer() {
     document.getElementById('explorer').classList.toggle('open');
 }
@@ -122,7 +136,7 @@ function toggleExplorer() {
 function showTab(tab) {
     document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.viewport').forEach(c => c.style.display = 'none');
-    event.target.classList.add('active');
+    event.currentTarget.classList.add('active');
     document.getElementById(tab + 'Tab').style.display = 'flex';
 }
 
