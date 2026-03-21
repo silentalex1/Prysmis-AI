@@ -1,50 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Prysmi's AI - Free Claude Wrapper (Static)</title>
-  <script src="https://js.puter.com/v2/"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #0f0f1a; color: #e0e0ff; }
-    textarea, input, button { width: 100%; margin: 10px 0; padding: 10px; }
-    #response { white-space: pre-wrap; background: #1a1a2e; padding: 15px; border-radius: 8px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prysmi AI</title>
+<script src="https://js.puter.com/v2/"></script>
+<script src="script.js" defer></script>
+<style>
+:root{--bg:#0d0d17;--text:#e0e0ff;--accent:#7a5af8;--input:#1a1a2e;--border:#333}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px;line-height:1.5}
+.container{max-width:800px;margin:0 auto}
+h1{font-size:2rem;margin:0 0 1rem;text-align:center}
+select,textarea,button{display:block;width:100%;margin:1rem 0;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:1rem}
+select,textarea{background:var(--input);color:var(--text)}
+button{background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600}
+button:hover{opacity:0.9}
+#response{background:var(--input);padding:16px;border-radius:8px;min-height:150px;white-space:pre-wrap;word-break:break-word}
+#loading{display:none;text-align:center;color:#aaa;margin:1rem 0}
+@media (max-width:600px){body{padding:12px}h1{font-size:1.6rem}}
+</style>
 </head>
 <body>
-  <h1>Prysmi's Free Claude AI (No Key Needed)</h1>
-  <p>Powered by Puter.js • Models like claude-opus-4-6, claude-sonnet-4-5, etc. • Truly static & automatic</p>
-
-  <label>Model:</label>
-  <select id="model">
-    <option value="claude-opus-4-6">Claude Opus 4.6 (flagship)</option>
-    <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 (best balance)</option>
-    <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
-    <option value="claude-opus-4-5">Claude Opus 4.5</option>
-    <option value="claude-haiku-4-5">Claude Haiku 4.5 (fast)</option>
-  </select>
-
-  <textarea id="prompt" rows="6" placeholder="Ask anything... e.g., 'Explain quantum entanglement like I'm 5'"></textarea>
-  <button onclick="sendPrompt()">Send to Claude</button>
-
-  <div id="response">Response will appear here...</div>
-
-  <script>
-    async function sendPrompt() {
-      const prompt = document.getElementById('prompt').value.trim();
-      const model = document.getElementById('model').value;
-      const respDiv = document.getElementById('response');
-      if (!prompt) return alert("Enter a prompt!");
-
-      respDiv.innerHTML = "Thinking... (user-pays model via Puter — free for you)";
-
-      try {
-        const response = await puter.ai.chat(prompt, { model });
-        respDiv.innerHTML = response.message.content[0].text;
-      } catch (err) {
-        respDiv.innerHTML = "Error: " + err.message + "\n\n(Puter.js may require user auth on first use — check console)";
-      }
-    }
-  </script>
+<div class="container">
+<h1>Prysmi AI</h1>
+<p style="text-align:center;opacity:0.8;margin-bottom:2rem">Free • No key • Multi-model</p>
+<select id="m"></select>
+<textarea id="p" rows="5" placeholder="Ask..."></textarea>
+<button onclick="s()">Send</button>
+<div id="l">Thinking...</div>
+<div id="r"></div>
+</div>
 </body>
 </html>
