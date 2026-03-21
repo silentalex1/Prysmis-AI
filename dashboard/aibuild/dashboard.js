@@ -8,8 +8,6 @@ const intro=document.querySelector('.intro')
 const projectsList=document.getElementById('projectsList')
 const addGameBtn=document.getElementById('addGameBtn')
 const modal=document.getElementById('addGameModal')
-const postGameBtn=document.getElementById('postGameBtn')
-const closeModalBtns=document.querySelectorAll('.modal button:not(#postGameBtn)')
 
 function addMessage(content,isUser){
   const msg=document.createElement('div')
@@ -119,6 +117,6 @@ postGameBtn.onclick=async()=>{
   }
 }
 
-closeModalBtns.forEach(b=>b.onclick=()=>modal.style.display='none')
+document.querySelectorAll('.modal button:not(#postGameBtn)').forEach(b=>b.onclick=()=>modal.style.display='none')
 
 loadProjects()
