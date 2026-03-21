@@ -21,7 +21,7 @@ function addMessage(content, isUser) {
     if (!isUser) {
         const tag = document.createElement('span');
         tag.className = 'ai-tag';
-        tag.textContent = '<PrysmisAI>';
+        tag.textContent = 'PrysmisAI';
         msg.appendChild(tag);
         
         const textNode = document.createElement('div');
@@ -40,7 +40,10 @@ function showThinking() {
     const loader = document.createElement('div');
     loader.id = 'ai-thinking';
     loader.className = 'thinking-anim';
-    loader.textContent = 'PrysmisAI is processing...';
+    loader.innerHTML = `
+        <div class="thinking-text">PrysmisAI is thinking...</div>
+        <div class="thinking-bar"></div>
+    `;
     chatArea.appendChild(loader);
     chatArea.scrollTop = chatArea.scrollHeight;
 }
@@ -77,7 +80,7 @@ sendBtn.onclick = async () => {
         addMessage(reply, false);
     } catch (e) {
         removeThinking();
-        addMessage('Error: ' + e.message, false);
+        addMessage('System Error: ' + e.message, false);
     }
 };
 
