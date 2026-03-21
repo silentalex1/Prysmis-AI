@@ -7,15 +7,17 @@
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
-    <div class="bg-glow"></div>
+    <div class="animated-bg"></div>
+    <div class="scanline"></div>
     <header>
         <div class="brand">
             <div class="logo">PrysmisAI</div>
-            <span class="badge">Builder</span>
+            <span class="badge">BETA</span>
         </div>
         <div class="header-actions">
             <nav class="nav-links">
                 <a href="#" class="nav-item">API Doc</a>
+                <a href="#" class="nav-item donate-link">Donate to me?</a>
             </nav>
             <div class="select-wrapper">
                 <select id="modelSelect">
@@ -29,6 +31,16 @@
     </header>
 
     <div class="app-container">
+        <aside class="chat-sidebar">
+            <div class="sidebar-header">
+                <button id="newChatBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    New Chat
+                </button>
+            </div>
+            <div id="chatHistory" class="history-list"></div>
+        </aside>
+
         <main class="content-area">
             <nav class="navigation-tabs">
                 <button class="tab-link active" onclick="showTab('chat')">AI Chat</button>
@@ -69,7 +81,7 @@
             <section id="projectsTab" class="viewport" style="display:none">
                 <div class="projects-header">
                     <h2>Showcase</h2>
-                    <button id="addGameBtn">Post Your Game</button>
+                    <button id="addGameBtn">+ Post Your Game</button>
                 </div>
                 <div class="projects-list" id="projectsList"></div>
             </section>
@@ -80,12 +92,19 @@
                 <span>Explorer</span>
             </div>
             <div class="sidebar-inner">
-                <div class="connection-status">
-                    <span id="statusDot" class="dot"></span>
-                    <span id="statusText">Disconnected</span>
-                </div>
-                <div id="workspace" class="workspace-empty">
-                    Connect Roblox Studio to view Explorer
+                <div class="explorer-content">
+                    <div class="connection-status">
+                        <span id="statusDot" class="dot"></span>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                    <div class="explorer-brand">Studio Explorer</div>
+                    <div class="block-design">
+                        <div class="rect"></div>
+                        <div class="rect-blur"></div>
+                    </div>
+                    <div id="workspace" class="workspace-centered">
+                        Studio Explorer
+                    </div>
                 </div>
             </div>
         </aside>
@@ -95,15 +114,25 @@
         <div class="modal-card">
             <div class="modal-header">
                 <h2>Share Project</h2>
+                <div class="modal-divider"></div>
             </div>
             <div class="modal-body">
-                <input type="text" id="gameTitle" placeholder="Project Title">
-                <textarea id="gameAbout" placeholder="Description..."></textarea>
-                <input type="text" id="gameLink" placeholder="Link">
+                <div class="input-group">
+                    <label>Project Title</label>
+                    <input type="text" id="gameTitle" placeholder="Enter game title...">
+                </div>
+                <div class="input-group">
+                    <label>Roblox Link</label>
+                    <input type="text" id="gameLink" placeholder="https://roblox.com/games/...">
+                </div>
+                <div class="input-group">
+                    <label>Description</label>
+                    <textarea id="gameAbout" placeholder="What is your game about?"></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button onclick="closeModal()" class="btn-secondary">Cancel</button>
-                <button id="postGameBtn" class="btn-primary">Publish</button>
+                <button id="postGameBtn" class="btn-primary">Publish Project</button>
             </div>
         </div>
     </div>
