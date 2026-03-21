@@ -18,6 +18,7 @@
             <nav class="nav-links">
                 <a href="#" class="nav-item">API Doc</a>
                 <a href="#" class="nav-item donate-link">Donate to me?</a>
+                <a href="#" class="nav-item">Our Plugin</a>
             </nav>
             <div class="select-wrapper">
                 <select id="modelSelect">
@@ -42,10 +43,13 @@
         </aside>
 
         <main class="content-area">
-            <nav class="navigation-tabs">
-                <button class="tab-link active" onclick="showTab('chat')">AI Chat</button>
-                <button class="tab-link" onclick="showTab('projects')">Community Projects</button>
-            </nav>
+            <div class="top-nav-container">
+                <nav class="navigation-tabs">
+                    <button class="tab-link active" onclick="showTab('chat')">AI Chat</button>
+                    <button class="tab-link" onclick="showTab('projects')">Community Projects</button>
+                </nav>
+                <div class="welcome-tag">Welcome <span id="userName">User</span></div>
+            </div>
 
             <section id="chatTab" class="viewport active-viewport">
                 <div id="chatArea" class="messages-container">
@@ -94,7 +98,7 @@
             <div class="sidebar-inner">
                 <div class="explorer-content">
                     <div class="connection-status">
-                        <span id="statusDot" class="dot"></span>
+                        <span id="statusDot" class="dot red"></span>
                         <span id="statusText">Disconnected</span>
                     </div>
                     <div class="explorer-brand">Studio Explorer</div>
