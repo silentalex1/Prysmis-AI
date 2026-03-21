@@ -10,35 +10,56 @@ const chatHistory = document.getElementById('chatHistory');
 
 let currentChat = [];
 
+function formatText(text) {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
 function addMessage(content, isUser) {
     const msg = document.createElement('div');
     msg.className = isUser ? 'user-msg' : 'ai-msg';
-    msg.textContent = content;
+    
+    if (!isUser) {
+        const tag = document.createElement('span');
+        tag.className = 'ai-tag';
+        tag.textContent = '<PrysmisAI>';
+        msg.appendChild(tag);
+        
+        const textNode = document.createElement('div');
+        textNode.innerHTML = formatText(content);
+        msg.appendChild(textNode);
+    } else {
+        msg.textContent = content;
+    }
+    
     chatArea.appendChild(msg);
     chatArea.scrollTop = chatArea.scrollHeight;
     if (isUser) currentChat.push(content);
 }
 
-newChatBtn.onclick = () => {
-    if (currentChat.length > 0) {
-        const item = document.createElement('div');
-        item.className = 'history-item';
-        item.textContent = currentChat[0].substring(0, 25) + (currentChat[0].length > 25 ? '...' : '');
-        chatHistory.prepend(item);
-    }
-    chatArea.innerHTML = '';
-    chatArea.appendChild(presets);
-    presets.style.display = 'block';
-    currentChat = [];
-    input.value = '';
-};
+function showThinking() {
+    const loader = document.createElement('div');
+    loader.id = 'ai-thinking';
+    loader.className = 'thinking-anim';
+    loader.textContent = 'PrysmisAI is processing...';
+    chatArea.appendChild(loader);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeThinking() {
+    const loader = document.getElementById('ai-thinking');
+    if (loader) loader.remove();
+}
 
 sendBtn.onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
+    
     addMessage(text, true);
     input.value = '';
     presets.style.display = 'none';
+    
+    showThinking();
+    
     try {
         const res = await fetch(`/v1/chat/completions?model=${encodeURIComponent(modelSelect.value.toLowerCase().replace(/\s+/g, '-'))}`, {
             method: 'POST',
@@ -49,12 +70,29 @@ sendBtn.onclick = async () => {
                 max_tokens: 2048
             })
         });
+        
         const data = await res.json();
+        removeThinking();
         const reply = data.choices?.[0]?.message?.content || 'No response';
         addMessage(reply, false);
     } catch (e) {
+        removeThinking();
         addMessage('Error: ' + e.message, false);
     }
+};
+
+newChatBtn.onclick = () => {
+    if (currentChat.length > 0) {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.textContent = currentChat[0].substring(0, 25) + '...';
+        chatHistory.prepend(item);
+    }
+    chatArea.innerHTML = '';
+    chatArea.appendChild(presets);
+    presets.style.display = 'block';
+    currentChat = [];
+    input.value = '';
 };
 
 input.addEventListener('keydown', e => {
@@ -83,24 +121,7 @@ function showTab(tab) {
     document.querySelectorAll('.viewport').forEach(c => c.style.display = 'none');
     event.target.classList.add('active');
     document.getElementById(tab + 'Tab').style.display = 'flex';
-    if (tab === 'projects') loadProjects();
 }
 
 function openModal() { modal.style.display = 'flex'; }
 function closeModal() { modal.style.display = 'none'; }
-
-async function loadProjects() {
-    try {
-        const res = await fetch('/projects');
-        const projects = await res.json();
-        projectsList.innerHTML = '';
-        projects.forEach(p => {
-            const card = document.createElement('div');
-            card.className = 'project-card';
-            card.innerHTML = `<h3>${p.title}</h3><p>${p.about}</p><a href="${p.link}" target="_blank">Play on Roblox</a>`;
-            projectsList.appendChild(card);
-        });
-    } catch (e) {}
-}
-
-loadProjects();
