@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrysmisAI Builder</title>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header>
+<div class="logo">PrysmisAI Builder</div>
+<div class="right">
+<select id="modelSelect">
+<option>Claude Opus 4.6</option>
+<option>Gemini 3.2</option>
+<option>ChatGPT 5.2</option>
+</select>
+<button id="connectBtn">Connect Plugin</button>
+</div>
+</header>
+<div class="main">
+<aside class="sidebar" id="explorer">
+<div class="toggle" onclick="toggleExplorer()">Explorer</div>
+<div class="content">
+<div class="status"><span id="statusDot" class="dot"></span>Disconnected</div>
+<div id="workspace">Connect Roblox Studio to view Explorer</div>
+</div>
+</aside>
+<main>
+<div id="presets">
+<p class="intro">Tell PrysmisAI to build anything..</p>
+<div class="preset" onclick="usePreset(0)">Create me a map that is ____</div>
+<div class="preset" onclick="usePreset(1)">Make me a character that animates ____</div>
+<div class="preset" onclick="usePreset(2)">Make me an advanced loading startup screen that does ____</div>
+</div>
+<div id="chatArea"></div>
+<div class="input-area">
+<textarea id="input" placeholder="Ask PrysmisAI Anything.."></textarea>
+<button id="sendBtn">Send</button>
+</div>
+</main>
+</div>
+<script src="dashboard.js"></script>
+</body>
+</html>
