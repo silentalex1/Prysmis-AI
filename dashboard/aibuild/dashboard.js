@@ -2,10 +2,8 @@ const chatArea=document.getElementById('chatArea')
 const input=document.getElementById('input')
 const sendBtn=document.getElementById('sendBtn')
 const modelSelect=document.getElementById('modelSelect')
-const connectBtn=document.getElementById('connectBtn')
 const presets=document.getElementById('presets')
 const projectsList=document.getElementById('projectsList')
-const addGameBtn=document.getElementById('addGameBtn')
 const modal=document.getElementById('addGameModal')
 const newChatBtn=document.getElementById('newChatBtn')
 const chatHistory=document.getElementById('chatHistory')
@@ -29,7 +27,8 @@ newChatBtn.onclick=()=>{
         chatHistory.prepend(item)
     }
     chatArea.innerHTML = ''
-    presets.style.display = 'flex'
+    chatArea.appendChild(presets)
+    presets.style.display = 'block'
     currentChat = []
 }
 
@@ -78,10 +77,6 @@ function toggleExplorer(){
   document.getElementById('explorer').classList.toggle('open')
 }
 
-connectBtn.onclick=()=>{
-  alert('Plugin connection coming soon.')
-}
-
 function showTab(tab){
   document.querySelectorAll('.tab-link').forEach(t=>t.classList.remove('active'))
   document.querySelectorAll('.viewport').forEach(c=>c.style.display='none')
@@ -89,6 +84,9 @@ function showTab(tab){
   document.getElementById(tab+'Tab').style.display='flex'
   if(tab==='projects')loadProjects()
 }
+
+function openModal(){ modal.style.display='flex' }
+function closeModal(){ modal.style.display='none' }
 
 async function loadProjects(){
   const res=await fetch('/projects')
@@ -100,25 +98,6 @@ async function loadProjects(){
     card.innerHTML=`<h3>${p.title}</h3><p>${p.about}</p><a href="${p.link}" target="_blank">Play on Roblox</a>`
     projectsList.appendChild(card)
   })
-}
-
-addGameBtn.onclick=()=>modal.style.display='flex'
-function closeModal(){modal.style.display='none'}
-
-postGameBtn.onclick=async()=>{
-  const title=document.getElementById('gameTitle').value.trim()
-  const about=document.getElementById('gameAbout').value.trim()
-  const link=document.getElementById('gameLink').value.trim()
-  if(!title||!about||!link)return alert('Fill all fields')
-  const res=await fetch('/project',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({token:localStorage.getItem('token'),title,about,link})
-  })
-  if(res.ok){
-    modal.style.display='none'
-    loadProjects()
-  }
 }
 
 loadProjects()
