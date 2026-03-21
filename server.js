@@ -276,6 +276,87 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true });
   }
 
+  if (req.method === 'GET' && pathname === '/status') {
+    const user = url.searchParams.get('user') || '';
+    const pluginToken = url.searchParams.get('pluginToken') || '';
+    let status = 'disconnected';
+    let model = 'anthropic/claude-opus-4-6';
+    let username = user || 'unknown';
+    if (pluginToken) {
+      for (const uname in db.users) {
+        const u = db.users[uname];
+        if (u.pluginToken && u.pluginToken === pluginToken) {
+          status = u.pluginConnected ? 'connected' : 'disconnected';
+          model = u.pluginModel || 'anthropic/claude-opus-4-6';
+          username = uname;
+          break;
+        }
+      }
+    }
+    return sendJson(res, 200, { status, model, user: username });
+  }
+
+  if (req.method === 'POST' && pathname === '/plugin/connect') {
+    let body;
+    try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: 'Invalid request body' }); }
+    const td = getTokenData(getToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const pluginToken = crypto.randomBytes(24).toString('hex');
+    user.pluginToken = pluginToken;
+    user.pluginConnected = true;
+    user.pluginModel = body.model || 'anthropic/claude-opus-4-6';
+    user.pluginConnectedAt = Date.now();
+    saveDb();
+    return sendJson(res, 200, { success: true, pluginToken, username: td.username, model: user.pluginModel });
+  }
+
+  if (req.method === 'POST' && pathname === '/plugin/disconnect') {
+    const td = getTokenData(getToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (user) {
+      user.pluginConnected = false;
+      saveDb();
+    }
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'POST' && pathname === '/plugin/verify') {
+    let body;
+    try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: 'Invalid request body' }); }
+    const { pluginToken } = body;
+    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const uname in db.users) {
+      const u = db.users[uname];
+      if (u.pluginToken === pluginToken) {
+        u.pluginConnected = true;
+        u.pluginLastPing = Date.now();
+        saveDb();
+        return sendJson(res, 200, { success: true, username: uname, model: u.pluginModel || 'anthropic/claude-opus-4-6', connected: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'POST' && pathname === '/plugin/ping') {
+    let body;
+    try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: 'Invalid request body' }); }
+    const { pluginToken } = body;
+    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const uname in db.users) {
+      const u = db.users[uname];
+      if (u.pluginToken === pluginToken) {
+        u.pluginLastPing = Date.now();
+        u.pluginConnected = true;
+        saveDb();
+        return sendJson(res, 200, { ok: true, model: u.pluginModel || 'anthropic/claude-opus-4-6' });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
   if (req.method === 'GET' && pathname === '/stats') {
     const now = Date.now();
     const activeTokens = Object.values(db.tokens).filter(t => t.expires > now).length;
