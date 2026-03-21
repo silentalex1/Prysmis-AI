@@ -1,65 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrysmisAI Builder</title>
-<link rel="stylesheet" href="dashboard.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrysmisAI Builder</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-<div class="logo">PrysmisAI Builder</div>
-<div class="right">
-<select id="modelSelect">
-<option>Claude Opus 4.6</option>
-<option>Gemini 3.2</option>
-<option>ChatGPT 5.2</option>
-</select>
-<button id="connectBtn">Connect Plugin</button>
-</div>
-</header>
-<div class="main">
-<aside class="sidebar" id="explorer">
-<div class="toggle" onclick="toggleExplorer()">Explorer</div>
-<div class="content">
-<div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Disconnected</span></div>
-<div id="workspace">Connect Roblox Studio to view Explorer</div>
-</div>
-</aside>
-<main>
-<nav class="tabs">
-<button class="tab active" onclick="showTab('chat')">AI Chat</button>
-<button class="tab" onclick="showTab('projects')">Users Projects</button>
-</nav>
-<div id="chatTab" class="tab-content">
-<div id="presets">
-<p class="intro">Tell PrysmisAI to build anything..</p>
-<div class="preset" onclick="usePreset(0)">Create me a map that is ____</div>
-<div class="preset" onclick="usePreset(1)">Make me a character that animates ____</div>
-<div class="preset" onclick="usePreset(2)">Make me an advanced loading startup screen that does ____</div>
-</div>
-<div id="chatArea"></div>
-<div class="input-area">
-<textarea id="input" placeholder="Ask PrysmisAI Anything.."></textarea>
-<button id="sendBtn">Send</button>
-</div>
-</div>
-<div id="projectsTab" class="tab-content" style="display:none">
-<div class="projects-list" id="projectsList"></div>
-<button id="addGameBtn">+ Add Game</button>
-</div>
-</main>
-</div>
-<div id="addGameModal" class="modal" style="display:none">
-<div class="modal-content">
-<h2>Add Game</h2>
-<input type="text" id="gameTitle" placeholder="Roblox Game Title">
-<textarea id="gameAbout" placeholder="Roblox Game About"></textarea>
-<input type="text" id="gameLink" placeholder="Roblox Game Link">
-<button id="postGameBtn">Post Game</button>
-<button onclick="closeModal()">Cancel</button>
-</div>
-</div>
-<script src="dashboard.js"></script>
+    <header>
+        <div class="brand">
+            <div class="logo">PrysmisAI</div>
+            <span class="badge">Builder</span>
+        </div>
+        <div class="header-actions">
+            <div class="select-wrapper">
+                <select id="modelSelect">
+                    <option>Claude Opus 4.6</option>
+                    <option>Gemini 3.2</option>
+                    <option>ChatGPT 5.2</option>
+                </select>
+            </div>
+            <button id="connectBtn">Connect Plugin</button>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <aside class="sidebar" id="explorer">
+            <div class="sidebar-toggle" onclick="toggleExplorer()">
+                <span>Explorer</span>
+            </div>
+            <div class="sidebar-inner">
+                <div class="connection-status">
+                    <span id="statusDot" class="dot"></span>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                <div id="workspace" class="workspace-empty">
+                    Connect Roblox Studio to view Explorer
+                </div>
+            </div>
+        </aside>
+
+        <main class="content-area">
+            <nav class="navigation-tabs">
+                <button class="tab-link active" onclick="showTab('chat')">AI Chat</button>
+                <button class="tab-link" onclick="showTab('projects')">Community Projects</button>
+            </nav>
+
+            <section id="chatTab" class="viewport active-viewport">
+                <div id="chatArea" class="messages-container">
+                    <div id="presets">
+                        <h1 class="intro">What are we building today?</h1>
+                        <div class="preset-grid">
+                            <div class="preset-card" onclick="usePreset(0)">
+                                <span>Create Map</span>
+                                <p>Generate a custom environment...</p>
+                            </div>
+                            <div class="preset-card" onclick="usePreset(1)">
+                                <span>Animate Character</span>
+                                <p>Set up advanced movements...</p>
+                            </div>
+                            <div class="preset-card" onclick="usePreset(2)">
+                                <span>Loading Screen</span>
+                                <p>Create a UI startup flow...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea id="input" rows="1" placeholder="Ask PrysmisAI Anything.."></textarea>
+                        <button id="sendBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="projectsTab" class="viewport" style="display:none">
+                <div class="projects-header">
+                    <h2>Showcase</h2>
+                    <button id="addGameBtn">Post Your Game</button>
+                </div>
+                <div class="projects-list" id="projectsList"></div>
+            </section>
+        </main>
+    </div>
+
+    <div id="addGameModal" class="modal" style="display:none">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Share Project</h2>
+                <p>Post your Roblox creation to the community.</p>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="gameTitle" placeholder="Project Title">
+                <textarea id="gameAbout" placeholder="Brief description of your game..."></textarea>
+                <input type="text" id="gameLink" placeholder="Roblox Experience Link">
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn-secondary">Cancel</button>
+                <button id="postGameBtn" class="btn-primary">Publish Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
