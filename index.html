@@ -4,26 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prysmi AI</title>
+<link rel="stylesheet" href="style.css">
 <script src="https://js.puter.com/v2/"></script>
 <script src="script.js" defer></script>
-<style>
-:root{--bg:#0d0d17;--text:#e0e0ff;--accent:#7a5af8;--input:#1a1a2e;--border:#333}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px;line-height:1.5}
-.container{max-width:800px;margin:0 auto}
-h1{font-size:2rem;margin:0 0 1rem;text-align:center}
-select,textarea,button{display:block;width:100%;margin:1rem 0;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:1rem}
-select,textarea{background:var(--input);color:var(--text)}
-button{background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600}
-button:hover{opacity:0.9}
-#response{background:var(--input);padding:16px;border-radius:8px;min-height:150px;white-space:pre-wrap;word-break:break-word}
-#loading{display:none;text-align:center;color:#aaa;margin:1rem 0}
-@media (max-width:600px){body{padding:12px}h1{font-size:1.6rem}}
-</style>
 </head>
 <body>
 <div class="container">
 <h1>Prysmi AI</h1>
-<p style="text-align:center;opacity:0.8;margin-bottom:2rem">Free • No key • Multi-model</p>
+<p class="tag">Free • No key • Any model</p>
 <select id="m"></select>
 <textarea id="p" rows="5" placeholder="Ask..."></textarea>
 <button onclick="s()">Send</button>
