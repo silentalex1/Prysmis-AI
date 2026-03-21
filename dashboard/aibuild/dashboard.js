@@ -454,22 +454,14 @@ function saveChat(firstMsg) {
 function updateChat() {
   if (!activeChatId) return;
   fetch('/chats/' + activeChatId + '?token=' + encodeURIComponent(storedToken), {
-    method: 'DELETE'
-  }).then(function() {
-    var title = currentMessages[0]
-      ? currentMessages[0].content.substring(0, 38) + (currentMessages[0].content.length > 38 ? '...' : '')
-      : 'Untitled';
-    return fetch('/chats?token=' + encodeURIComponent(storedToken), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title, messages: currentMessages })
-    });
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: currentMessages })
   }).then(function(r) {
     return r.json();
   }).then(function(data) {
-    if (data.success && data.chat) {
-      activeChatId = data.chat.id;
-      loadChatHistory();
+    if (!data.success) {
+      saveChat(currentMessages[0] ? currentMessages[0].content : 'Chat');
     }
   }).catch(function() {});
 }
