@@ -454,6 +454,15 @@ var connectBtn = document.getElementById('connectBtn');
 var statusDot = document.getElementById('statusDot');
 var statusText = document.getElementById('statusText');
 
+function getModelValue() {
+  var map = {
+    'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
+    'Gemini 3.2': 'google/gemini-3.2-pro',
+    'ChatGPT 5.2': 'openai/gpt-5.4'
+  };
+  return map[modelSelect.value] || 'anthropic/claude-opus-4-6';
+}
+
 function setExplorerStatus(connected, model) {
   pluginConnected = connected;
   if (statusDot) {
@@ -476,18 +485,12 @@ function connectPlugin() {
         pluginTokenStored = '';
         localStorage.removeItem('pluginToken');
         setExplorerStatus(false, '');
+        hidePluginTokenBox();
       }).catch(function() {});
     return;
   }
 
-  var model = (function() {
-    var map = {
-      'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
-      'Gemini 3.2': 'google/gemini-3.2-pro',
-      'ChatGPT 5.2': 'openai/gpt-5.4'
-    };
-    return map[modelSelect.value] || 'anthropic/claude-opus-4-6';
-  })();
+  var model = getModelValue();
 
   fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
     method: 'POST',
@@ -500,13 +503,73 @@ function connectPlugin() {
       pluginTokenStored = data.pluginToken;
       localStorage.setItem('pluginToken', data.pluginToken);
       setExplorerStatus(true, data.model);
+      showPluginTokenBox(data.pluginToken);
     }
   }).catch(function() {});
+}
+
+function showPluginTokenBox(token) {
+  var existing = document.getElementById('pluginTokenBox');
+  if (existing) { existing.remove(); }
+  var box = document.createElement('div');
+  box.id = 'pluginTokenBox';
+  box.style.cssText = 'position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);width:240px;background:#0a0a14;border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:0.75rem;z-index:10;';
+  var label = document.createElement('div');
+  label.style.cssText = 'font-size:0.65rem;font-weight:700;color:#5a5a72;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;';
+  label.textContent = 'Paste in Studio Plugin';
+  var tokenEl = document.createElement('div');
+  tokenEl.style.cssText = 'font-size:0.7rem;color:#93c5fd;font-family:monospace;word-break:break-all;margin-bottom:0.5rem;line-height:1.4;';
+  tokenEl.textContent = token;
+  var copyBtn = document.createElement('button');
+  copyBtn.style.cssText = 'width:100%;padding:0.35rem;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.25);border-radius:6px;color:#4f8ef7;font-size:0.72rem;font-weight:700;cursor:pointer;';
+  copyBtn.textContent = 'Copy Token';
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(token).then(function() {
+      copyBtn.textContent = 'Copied';
+      setTimeout(function() { copyBtn.textContent = 'Copy Token'; }, 2000);
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = token;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.textContent = 'Copied';
+      setTimeout(function() { copyBtn.textContent = 'Copy Token'; }, 2000);
+    });
+  });
+  box.appendChild(label);
+  box.appendChild(tokenEl);
+  box.appendChild(copyBtn);
+  var explorerEl = document.getElementById('explorer');
+  if (explorerEl) {
+    explorerEl.style.position = 'relative';
+    explorerEl.appendChild(box);
+    if (!explorerEl.classList.contains('open')) {
+      explorerEl.classList.add('open');
+    }
+  }
+}
+
+function hidePluginTokenBox() {
+  var existing = document.getElementById('pluginTokenBox');
+  if (existing) existing.remove();
 }
 
 if (connectBtn) {
   connectBtn.addEventListener('click', connectPlugin);
 }
+
+modelSelect.addEventListener('change', function() {
+  if (pluginConnected && storedToken) {
+    fetch('/plugin/update-model?token=' + encodeURIComponent(storedToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModelValue() })
+    }).catch(function() {});
+  }
+});
 
 if (pluginTokenStored) {
   fetch('/plugin/ping', {
@@ -518,6 +581,7 @@ if (pluginTokenStored) {
   }).then(function(data) {
     if (data.ok) {
       setExplorerStatus(true, data.model);
+      showPluginTokenBox(pluginTokenStored);
     } else {
       localStorage.removeItem('pluginToken');
       pluginTokenStored = '';
@@ -790,6 +854,15 @@ var connectBtn = document.getElementById('connectBtn');
 var statusDot = document.getElementById('statusDot');
 var statusText = document.getElementById('statusText');
 
+function getModelValue() {
+  var map = {
+    'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
+    'Gemini 3.2': 'google/gemini-3.2-pro',
+    'ChatGPT 5.2': 'openai/gpt-5.4'
+  };
+  return map[modelSelect.value] || 'anthropic/claude-opus-4-6';
+}
+
 function setExplorerStatus(connected, model) {
   pluginConnected = connected;
   if (statusDot) {
@@ -812,18 +885,12 @@ function connectPlugin() {
         pluginTokenStored = '';
         localStorage.removeItem('pluginToken');
         setExplorerStatus(false, '');
+        hidePluginTokenBox();
       }).catch(function() {});
     return;
   }
 
-  var model = (function() {
-    var map = {
-      'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
-      'Gemini 3.2': 'google/gemini-3.2-pro',
-      'ChatGPT 5.2': 'openai/gpt-5.4'
-    };
-    return map[modelSelect.value] || 'anthropic/claude-opus-4-6';
-  })();
+  var model = getModelValue();
 
   fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
     method: 'POST',
@@ -836,13 +903,73 @@ function connectPlugin() {
       pluginTokenStored = data.pluginToken;
       localStorage.setItem('pluginToken', data.pluginToken);
       setExplorerStatus(true, data.model);
+      showPluginTokenBox(data.pluginToken);
     }
   }).catch(function() {});
+}
+
+function showPluginTokenBox(token) {
+  var existing = document.getElementById('pluginTokenBox');
+  if (existing) { existing.remove(); }
+  var box = document.createElement('div');
+  box.id = 'pluginTokenBox';
+  box.style.cssText = 'position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);width:240px;background:#0a0a14;border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:0.75rem;z-index:10;';
+  var label = document.createElement('div');
+  label.style.cssText = 'font-size:0.65rem;font-weight:700;color:#5a5a72;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;';
+  label.textContent = 'Paste in Studio Plugin';
+  var tokenEl = document.createElement('div');
+  tokenEl.style.cssText = 'font-size:0.7rem;color:#93c5fd;font-family:monospace;word-break:break-all;margin-bottom:0.5rem;line-height:1.4;';
+  tokenEl.textContent = token;
+  var copyBtn = document.createElement('button');
+  copyBtn.style.cssText = 'width:100%;padding:0.35rem;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.25);border-radius:6px;color:#4f8ef7;font-size:0.72rem;font-weight:700;cursor:pointer;';
+  copyBtn.textContent = 'Copy Token';
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(token).then(function() {
+      copyBtn.textContent = 'Copied';
+      setTimeout(function() { copyBtn.textContent = 'Copy Token'; }, 2000);
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = token;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.textContent = 'Copied';
+      setTimeout(function() { copyBtn.textContent = 'Copy Token'; }, 2000);
+    });
+  });
+  box.appendChild(label);
+  box.appendChild(tokenEl);
+  box.appendChild(copyBtn);
+  var explorerEl = document.getElementById('explorer');
+  if (explorerEl) {
+    explorerEl.style.position = 'relative';
+    explorerEl.appendChild(box);
+    if (!explorerEl.classList.contains('open')) {
+      explorerEl.classList.add('open');
+    }
+  }
+}
+
+function hidePluginTokenBox() {
+  var existing = document.getElementById('pluginTokenBox');
+  if (existing) existing.remove();
 }
 
 if (connectBtn) {
   connectBtn.addEventListener('click', connectPlugin);
 }
+
+modelSelect.addEventListener('change', function() {
+  if (pluginConnected && storedToken) {
+    fetch('/plugin/update-model?token=' + encodeURIComponent(storedToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModelValue() })
+    }).catch(function() {});
+  }
+});
 
 if (pluginTokenStored) {
   fetch('/plugin/ping', {
@@ -854,6 +981,7 @@ if (pluginTokenStored) {
   }).then(function(data) {
     if (data.ok) {
       setExplorerStatus(true, data.model);
+      showPluginTokenBox(pluginTokenStored);
     } else {
       localStorage.removeItem('pluginToken');
       pluginTokenStored = '';
