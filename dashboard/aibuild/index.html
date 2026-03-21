@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PrysmisAI Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
@@ -33,7 +36,7 @@
 <aside class="chat-sidebar">
 <div class="sidebar-header">
 <button id="newChatBtn">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
 New Chat
 </button>
 </div>
@@ -42,52 +45,53 @@ New Chat
 <main class="content-area">
 <div class="top-nav-container">
 <nav class="navigation-tabs">
-<button class="tab-link active" onclick="showTab('chat', event)">AI Chat</button>
-<button class="tab-link" onclick="showTab('projects', event)">Community Projects</button>
+<button class="tab-link active" data-tab="chat">AI Chat</button>
+<button class="tab-link" data-tab="projects">Community Projects</button>
 </nav>
-<div class="welcome-tag">Welcome <span id="userName">User</span></div>
+<div class="welcome-tag">Welcome back, <span class="uname" id="userName">User</span></div>
 </div>
 <section id="chatTab" class="viewport">
 <div id="chatArea" class="messages-container">
-<div id="presets">
+<div id="presets" class="presets-wrap">
 <h1 class="intro">What are we building today?</h1>
+<p class="intro-sub">Describe your idea or pick a starting point below</p>
 <div class="preset-grid">
 <div class="preset-card" onclick="usePreset(0)">
-<span>Create Map</span>
-<p>Generate custom environments</p>
+<span class="preset-label">Create Map</span>
+<p>Generate custom Roblox environments with terrain and props</p>
 </div>
 <div class="preset-card" onclick="usePreset(1)">
-<span>Animate Character</span>
-<p>Advanced movement setup</p>
+<span class="preset-label">Animate Character</span>
+<p>Advanced movement rigs and animation scripts</p>
 </div>
 <div class="preset-card" onclick="usePreset(2)">
-<span>Loading Screen</span>
-<p>UI startup flow builder</p>
+<span class="preset-label">Loading Screen</span>
+<p>Build a polished UI startup flow for your game</p>
 </div>
 </div>
 </div>
 </div>
 <div class="input-container">
 <div class="input-wrapper">
-<textarea id="input" rows="1" placeholder="Ask PrysmisAI Anything.."></textarea>
+<textarea id="input" rows="1" placeholder="Ask PrysmisAI anything about Roblox scripting..."></textarea>
 <button id="sendBtn">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
 </button>
 </div>
 </div>
 </section>
 <section id="projectsTab" class="viewport" style="display:none">
+<div class="viewport-scroll">
 <div class="projects-header">
 <h2>Showcase</h2>
 <button id="addGameBtn" onclick="openModal()">+ Post Your Game</button>
 </div>
 <div class="projects-grid" id="projectsList"></div>
+</div>
 </section>
 </main>
 <aside class="sidebar-right" id="explorer">
-<div class="sidebar-toggle" onclick="toggleExplorer()">
-<span>Explorer</span>
-</div>
+<div class="sidebar-toggle" onclick="toggleExplorer()">Explorer</div>
 <div class="sidebar-inner">
 <div class="explorer-content">
 <div class="connection-status">
@@ -103,13 +107,14 @@ New Chat
 <div id="addGameModal" class="modal" style="display:none">
 <div class="modal-card">
 <div class="modal-header">
-<h2>Share Project</h2>
-<div class="modal-divider"></div>
+<h2>Share Your Project</h2>
+<p>Post your game so the community can check it out</p>
 </div>
+<div class="modal-divider"></div>
 <div class="modal-body">
 <div class="input-group">
 <label>Project Title</label>
-<input type="text" id="gameTitle" placeholder="Enter game title...">
+<input type="text" id="gameTitle" placeholder="My awesome game...">
 </div>
 <div class="input-group">
 <label>Roblox Link</label>
@@ -117,7 +122,7 @@ New Chat
 </div>
 <div class="input-group">
 <label>Description</label>
-<textarea id="gameAbout" placeholder="What is your game about?"></textarea>
+<textarea id="gameAbout" placeholder="Tell the community what your game is about..."></textarea>
 </div>
 </div>
 <div class="modal-footer">
