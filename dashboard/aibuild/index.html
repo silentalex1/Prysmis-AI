@@ -22,11 +22,16 @@
 <aside class="sidebar" id="explorer">
 <div class="toggle" onclick="toggleExplorer()">Explorer</div>
 <div class="content">
-<div class="status"><span id="statusDot" class="dot"></span>Disconnected</div>
+<div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Disconnected</span></div>
 <div id="workspace">Connect Roblox Studio to view Explorer</div>
 </div>
 </aside>
 <main>
+<nav class="tabs">
+<button class="tab active" onclick="showTab('chat')">AI Chat</button>
+<button class="tab" onclick="showTab('projects')">Users Projects</button>
+</nav>
+<div id="chatTab" class="tab-content">
 <div id="presets">
 <p class="intro">Tell PrysmisAI to build anything..</p>
 <div class="preset" onclick="usePreset(0)">Create me a map that is ____</div>
@@ -38,7 +43,22 @@
 <textarea id="input" placeholder="Ask PrysmisAI Anything.."></textarea>
 <button id="sendBtn">Send</button>
 </div>
+</div>
+<div id="projectsTab" class="tab-content" style="display:none">
+<div class="projects-list" id="projectsList"></div>
+<button id="addGameBtn">+ Add Game</button>
+</div>
 </main>
+</div>
+<div id="addGameModal" class="modal" style="display:none">
+<div class="modal-content">
+<h2>Add Game</h2>
+<input type="text" id="gameTitle" placeholder="Roblox Game Title">
+<textarea id="gameAbout" placeholder="Roblox Game About"></textarea>
+<input type="text" id="gameLink" placeholder="Roblox Game Link">
+<button id="postGameBtn">Post Game</button>
+<button onclick="closeModal()">Cancel</button>
+</div>
 </div>
 <script src="dashboard.js"></script>
 </body>
