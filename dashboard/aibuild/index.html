@@ -29,6 +29,7 @@
 <option>ChatGPT 5.2</option>
 </select>
 </div>
+<button id="generateTokenBtn">Generate Token</button>
 <button id="connectBtn">Connect Plugin</button>
 </div>
 </header>
@@ -41,6 +42,12 @@ New Chat
 </button>
 </div>
 <div id="chatHistory" class="history-list"></div>
+<div class="sidebar-footer">
+<button id="settingsBtn" class="settings-btn">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+Settings
+</button>
+</div>
 </aside>
 <main class="content-area">
 <div class="top-nav-container">
@@ -131,6 +138,49 @@ New Chat
 </div>
 </div>
 </div>
+<div id="tokenNotif" class="token-notif" style="display:none">
+<div class="token-notif-inner">
+<div class="token-notif-top">
+<span class="token-notif-label">Token created.</span>
+<button class="token-notif-close" id="tokenNotifClose">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+</button>
+</div>
+<div class="token-notif-field">
+<input type="text" id="tokenNotifInput" readonly>
+<button class="token-notif-hide" id="tokenNotifHide">Hide</button>
+<button class="token-notif-copy" id="tokenNotifCopy">Copy Token</button>
+</div>
+</div>
+</div>
+
+<div id="settingsModal" class="settings-overlay" style="display:none">
+<div class="settings-panel">
+<div class="settings-sidebar">
+<button class="settings-nav-btn active" id="settingsNavAccount">User Account</button>
+</div>
+<div class="settings-content">
+<div class="settings-page" id="settingsPageAccount">
+<div class="settings-page-header">
+<h2>User Account</h2>
+<button class="settings-close" id="settingsClose">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+</button>
+</div>
+<div class="settings-field-group">
+<label class="settings-label">Account Auth Token</label>
+<div class="settings-token-row">
+<input type="password" id="settingsTokenInput" class="settings-token-input" readonly placeholder="No token generated yet">
+<button class="settings-token-btn" id="settingsShowToken">Show Token</button>
+<button class="settings-token-btn settings-token-btn-copy" id="settingsCopyToken">Copy Token</button>
+</div>
+<p class="settings-token-hint">You can generate a new auth token after 24 hours. Do NOT share your account auth token to anyone.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
 <script src="dashboard.js"></script>
 </body>
 </html>
