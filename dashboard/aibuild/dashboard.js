@@ -4,7 +4,6 @@ const sendBtn=document.getElementById('sendBtn')
 const modelSelect=document.getElementById('modelSelect')
 const connectBtn=document.getElementById('connectBtn')
 const presets=document.getElementById('presets')
-const intro=document.querySelector('.intro')
 const projectsList=document.getElementById('projectsList')
 const addGameBtn=document.getElementById('addGameBtn')
 const modal=document.getElementById('addGameModal')
@@ -17,15 +16,12 @@ function addMessage(content,isUser){
   chatArea.scrollTop=chatArea.scrollHeight
 }
 
-addMessage('PrysmisAI online. Ready to build.',false)
-
 sendBtn.onclick=async()=>{
   if(!input.value.trim())return
   const text=input.value.trim()
   addMessage(text,true)
   input.value=''
   presets.style.display='none'
-  if(intro) intro.style.display='none'
   try{
     const res=await fetch(`/v1/chat/completions?model=${encodeURIComponent(modelSelect.value.toLowerCase().replace(/\s+/g,'-'))}`,{
       method:'POST',
@@ -84,23 +80,13 @@ async function loadProjects(){
   projects.forEach(p=>{
     const card=document.createElement('div')
     card.className='project-card'
-    card.innerHTML=`
-      <h3>${p.title}</h3>
-      <p>${p.about}</p>
-      <a href="${p.link}" target="_blank">Play on Roblox</a>
-      <div style="margin-top:10px"><small style="color:#64748b">Posted by ${p.username}</small></div>
-    `
+    card.innerHTML=`<h3>${p.title}</h3><p>${p.about}</p><a href="${p.link}" target="_blank">Play on Roblox</a>`
     projectsList.appendChild(card)
   })
 }
 
-addGameBtn.onclick=()=>{
-  modal.style.display='flex'
-}
-
-function closeModal(){
-  modal.style.display='none'
-}
+addGameBtn.onclick=()=>modal.style.display='flex'
+function closeModal(){modal.style.display='none'}
 
 postGameBtn.onclick=async()=>{
   const title=document.getElementById('gameTitle').value.trim()
@@ -115,12 +101,7 @@ postGameBtn.onclick=async()=>{
   if(res.ok){
     modal.style.display='none'
     loadProjects()
-    alert('Game posted!')
-  }else{
-    alert('Failed to post game')
   }
 }
-
-document.querySelectorAll('.modal button:not(#postGameBtn)').forEach(b=>b.onclick=()=>modal.style.display='none')
 
 loadProjects()
