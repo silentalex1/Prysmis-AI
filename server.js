@@ -312,6 +312,41 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, pluginToken, username: td.username, model: user.pluginModel });
   }
 
+  if (req.method === 'POST' && pathname === '/auth-token/generate') {
+    const td = getTokenData(getToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const now = Date.now();
+    if (user.authToken && user.authTokenCreated && (now - user.authTokenCreated) < 24 * 60 * 60 * 1000) {
+      const remaining = Math.ceil((user.authTokenCreated + 24 * 60 * 60 * 1000 - now) / 3600000);
+      return sendJson(res, 429, { error: 'You can generate a new token in ' + remaining + ' hour' + (remaining === 1 ? '' : 's') });
+    }
+    const seg1 = crypto.randomBytes(4).toString('hex');
+    const seg2 = crypto.randomBytes(4).toString('hex');
+    const seg3 = crypto.randomBytes(4).toString('hex');
+    const authToken = seg1 + '-' + seg2 + '-' + seg3;
+    user.authToken = authToken;
+    user.authTokenCreated = now;
+    saveDb();
+    return sendJson(res, 200, { success: true, authToken: authToken, url: 'prysmisai.wtf/token/' + authToken });
+  }
+
+  if (req.method === 'GET' && pathname === '/auth-token') {
+    const td = getTokenData(getToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const now = Date.now();
+    const canGenerate = !user.authTokenCreated || (now - user.authTokenCreated) >= 24 * 60 * 60 * 1000;
+    return sendJson(res, 200, {
+      authToken: user.authToken || null,
+      authTokenCreated: user.authTokenCreated || null,
+      canGenerate: canGenerate,
+      url: user.authToken ? 'prysmisai.wtf/token/' + user.authToken : null
+    });
+  }
+
   if (req.method === 'POST' && pathname === '/plugin/update-model') {
     let body;
     try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: 'Invalid request body' }); }
