@@ -1,236 +1,223 @@
-:root {
-    --bg-deep: #030306;
-    --bg-surface: #0a0a0f;
-    --bg-card: rgba(20, 20, 35, 0.7);
-    --accent: #3b82f6;
-    --accent-glow: rgba(59, 130, 246, 0.4);
-    --border: rgba(255, 255, 255, 0.08);
-    --text-main: #e0e0ff;
-    --text-dim: #71717a;
+const chatArea = document.getElementById('chatArea');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const modelSelect = document.getElementById('modelSelect');
+const presets = document.getElementById('presets');
+const projectsList = document.getElementById('projectsList');
+const modal = document.getElementById('addGameModal');
+const postGameBtn = document.getElementById('postGameBtn');
+const newChatBtn = document.getElementById('newChatBtn');
+const chatHistory = document.getElementById('chatHistory');
+
+const storedUser = localStorage.getItem('user');
+const storedToken = localStorage.getItem('token');
+
+if (!storedUser || !storedToken) {
+  location.href = '/accountauth/index.html';
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+document.getElementById('userName').textContent = storedUser || 'User';
 
-body {
-    background: var(--bg-deep);
-    color: var(--text-main);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
+let currentChat = [];
+
+function formatText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
 }
 
-.animated-bg {
-    position: fixed;
-    inset: 0;
-    background: 
-        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.06) 0%, transparent 40%);
-    z-index: -1;
+function addMessage(content, isUser) {
+  const msg = document.createElement('div');
+  msg.className = isUser ? 'user-msg' : 'ai-msg';
+
+  if (!isUser) {
+    const tag = document.createElement('span');
+    tag.className = 'ai-tag';
+    tag.textContent = 'PrysmisAI';
+    msg.appendChild(tag);
+    const textNode = document.createElement('div');
+    textNode.innerHTML = formatText(content);
+    msg.appendChild(textNode);
+  } else {
+    msg.textContent = content;
+  }
+
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  if (isUser) currentChat.push(content);
 }
 
-header {
-    height: 64px;
-    background: rgba(3, 3, 6, 0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 1.5rem;
-    z-index: 100;
+function showThinking() {
+  const loader = document.createElement('div');
+  loader.id = 'ai-thinking';
+  loader.className = 'thinking-anim';
+  loader.innerHTML = `<div class="thinking-text">PrysmisAI is processing...</div><div class="thinking-bar"></div>`;
+  chatArea.appendChild(loader);
+  chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-.brand { display: flex; align-items: center; gap: 0.75rem; }
-.logo { font-size: 1.2rem; font-weight: 900; color: white; }
-.badge { font-size: 0.65rem; background: var(--accent); padding: 2px 8px; border-radius: 4px; color: white; font-weight: 900; }
-
-.header-actions { display: flex; gap: 1.5rem; align-items: center; }
-.nav-links { display: flex; gap: 1.25rem; }
-.nav-item { color: var(--text-dim); text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: 0.2s; }
-.nav-item:hover { color: white; }
-.donate-link { color: #fbbf24; }
-
-#modelSelect { appearance: none; padding: 0.5rem 1rem; background: #12121e; border: 1px solid var(--border); border-radius: 8px; color: white; font-size: 0.85rem; cursor: pointer; }
-#connectBtn { padding: 0.5rem 1.25rem; background: var(--accent); border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 0.85rem; cursor: pointer; box-shadow: 0 4px 12px var(--accent-glow); }
-
-.app-container { display: flex; flex: 1; overflow: hidden; }
-
-.chat-sidebar {
-    width: 240px;
-    background: rgba(5, 5, 10, 0.4);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
+function removeThinking() {
+  const loader = document.getElementById('ai-thinking');
+  if (loader) loader.remove();
 }
 
-.sidebar-header { padding: 1.2rem; }
-#newChatBtn {
-    width: 100%;
-    padding: 0.7rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text-dim);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    font-size: 0.85rem;
-    transition: all 0.3s ease;
+function getSelectedModel() {
+  const val = modelSelect.value;
+  const map = {
+    'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
+    'Gemini 3.2': 'google/gemini-3.2-pro',
+    'ChatGPT 5.2': 'openai/gpt-5.4'
+  };
+  return map[val] || 'anthropic/claude-sonnet-4-6';
 }
 
-#newChatBtn:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px var(--accent-glow);
+sendBtn.onclick = async () => {
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage(text, true);
+  input.value = '';
+  presets.style.display = 'none';
+  showThinking();
+
+  try {
+    const model = getSelectedModel();
+    const res = await fetch(`/v1/chat/completions?model=${encodeURIComponent(model)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: text }],
+        temperature: 0.7,
+        max_tokens: 2048
+      })
+    });
+    const data = await res.json();
+    removeThinking();
+    const reply = data.choices?.[0]?.message?.content || data.error || 'No response';
+    addMessage(reply, false);
+  } catch (e) {
+    removeThinking();
+    addMessage('System Error: ' + e.message, false);
+  }
+};
+
+async function loadProjects() {
+  try {
+    const res = await fetch('/projects');
+    const projects = await res.json();
+    projectsList.innerHTML = '';
+    projects.forEach(p => renderProjectCard(p));
+  } catch (e) {
+    projectsList.innerHTML = '';
+  }
 }
 
-.history-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
-.history-item { padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; color: var(--text-dim); cursor: pointer; transition: 0.2s; margin-bottom: 2px; }
-.history-item:hover { background: rgba(59, 130, 246, 0.1); color: white; }
+function renderProjectCard(p) {
+  const card = document.createElement('div');
+  card.className = 'game-card';
+  card.dataset.id = p.id;
 
-.content-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+  const isOwner = p.author === storedUser;
+  const deleteBtn = isOwner ? `<button class="delete-card-btn" onclick="deleteProject('${p.id}', this)">Delete</button>` : '';
 
-.top-nav-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-right: 2rem;
-    border-bottom: 1px solid var(--border);
-    background: rgba(0,0,0,0.1);
+  card.innerHTML = `
+    <h3>${escapeHtml(p.title)}</h3>
+    <p>${escapeHtml(p.about)}</p>
+    <a href="${escapeHtml(p.link)}" target="_blank">${escapeHtml(p.link)}</a>
+    ${deleteBtn}
+  `;
+  projectsList.appendChild(card);
 }
 
-.welcome-tag { font-size: 0.8rem; color: var(--text-dim); font-weight: 500; }
-.welcome-tag span { color: white; font-weight: 700; }
-
-.navigation-tabs { display: flex; gap: 2rem; padding: 0 2rem; }
-.tab-link { padding: 1.2rem 0; background: none; border: none; color: var(--text-dim); font-weight: 600; font-size: 0.85rem; cursor: pointer; position: relative; }
-.tab-link.active { color: white; }
-.tab-link.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
-
-.viewport { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 2rem; }
-.messages-container { flex: 1; max-width: 900px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 2.5rem; }
-
-.user-msg, .ai-msg { max-width: 85%; line-height: 1.6; font-size: 0.95rem; }
-.user-msg { align-self: flex-end; color: white; opacity: 0; animation: msgSlide 0.4s forwards; }
-.ai-msg { align-self: flex-start; color: var(--text-main); opacity: 0; animation: msgSlide 0.6s forwards; }
-
-@keyframes msgSlide {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-.ai-tag { color: var(--accent); font-weight: 900; font-size: 0.75rem; margin-bottom: 8px; display: block; letter-spacing: 1px; text-transform: uppercase; }
-
-.thinking-anim {
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    color: var(--text-dim);
+async function deleteProject(id, btn) {
+  try {
+    const res = await fetch(`/projects/${id}?token=${encodeURIComponent(storedToken)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      const card = projectsList.querySelector(`[data-id="${id}"]`);
+      if (card) card.remove();
+    } else {
+      alert(data.error || 'Could not delete');
+    }
+  } catch (e) {
+    alert('Error deleting project');
+  }
 }
 
-.thinking-text {
-    font-size: 0.85rem;
-    font-weight: 600;
-    animation: pulseFade 2s infinite;
+postGameBtn.onclick = async () => {
+  const title = document.getElementById('gameTitle').value.trim();
+  const link = document.getElementById('gameLink').value.trim();
+  const about = document.getElementById('gameAbout').value.trim();
+
+  if (!title || !link || !about) return;
+
+  try {
+    const res = await fetch(`/projects?token=${encodeURIComponent(storedToken)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, link, about })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeModal();
+      document.getElementById('gameTitle').value = '';
+      document.getElementById('gameLink').value = '';
+      document.getElementById('gameAbout').value = '';
+      loadProjects();
+    } else {
+      alert(data.error || 'Failed to post project');
+    }
+  } catch (e) {
+    alert('Error posting project');
+  }
+};
+
+newChatBtn.onclick = () => {
+  if (currentChat.length > 0) {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.textContent = currentChat[0].substring(0, 25) + '...';
+    chatHistory.prepend(item);
+  }
+  chatArea.innerHTML = '';
+  chatArea.appendChild(presets);
+  presets.style.display = 'block';
+  currentChat = [];
+  input.value = '';
+};
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendBtn.click();
+  }
+});
+
+function usePreset(i) {
+  const texts = [
+    "Create me a map that is ",
+    "Make me a character that animates ",
+    "Make me an advanced loading startup screen that does "
+  ];
+  input.value = texts[i];
+  input.focus();
 }
 
-.thinking-bar {
-    width: 120px;
-    height: 3px;
-    background: rgba(59, 130, 246, 0.1);
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
+function toggleExplorer() {
+  document.getElementById('explorer').classList.toggle('open');
 }
 
-.thinking-bar::after {
-    content: '';
-    position: absolute;
-    height: 100%;
-    width: 40%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
-    animation: barMove 1.5s infinite ease-in-out;
+function showTab(tab) {
+  document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.viewport').forEach(c => c.style.display = 'none');
+  event.currentTarget.classList.add('active');
+  document.getElementById(tab + 'Tab').style.display = 'flex';
+  if (tab === 'projects') loadProjects();
 }
 
-@keyframes pulseFade { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-@keyframes barMove { from { left: -40%; } to { left: 100%; } }
-
-.intro { text-align: center; font-size: 1.8rem; margin: 4rem 0 3rem; color: white; letter-spacing: -0.5px; }
-.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; width: 100%; max-width: 850px; margin: 0 auto; }
-.preset-card { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; border-radius: 16px; cursor: pointer; transition: 0.3s; }
-.preset-card:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.05); transform: translateY(-4px); }
-.preset-card span { display: block; font-weight: 800; margin-bottom: 0.5rem; color: var(--accent); font-size: 0.95rem; }
-.preset-card p { font-size: 0.8rem; color: var(--text-dim); line-height: 1.4; }
-
-.input-container { padding: 2.5rem; display: flex; justify-content: center; }
-.input-wrapper { 
-    width: 440px; transition: 0.5s; background: #0f0f1a; border: 1px solid var(--border); border-radius: 16px; padding: 10px; display: flex; align-items: flex-end;
-}
-.input-wrapper:focus-within { width: 780px; border-color: var(--accent); }
-
-#input { flex: 1; background: transparent; border: none; outline: none; color: white; padding: 10px 14px; resize: none; font-size: 0.95rem; }
-#sendBtn { background: var(--accent); color: white; border: none; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-.sidebar-right { width: 0; background: #050508; border-left: 1px solid var(--border); transition: 0.4s; position: relative; }
-.sidebar-right.open { width: 300px; }
-.sidebar-toggle { position: absolute; top: 50%; left: -32px; transform: translateY(-50%); background: #050508; border: 1px solid var(--border); padding: 14px 6px; border-radius: 10px 0 0 10px; cursor: pointer; writing-mode: vertical-rl; font-size: 11px; color: var(--text-dim); }
-
-.explorer-content { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 3rem; opacity: 0; }
-.sidebar-right.open .explorer-content { opacity: 1; }
-
-.connection-status { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
-.dot.red { width: 10px; height: 10px; border-radius: 50%; background: #ff4d4d; box-shadow: 0 0 10px #ff4d4d; }
-#statusText { font-size: 0.8rem; color: #ff4d4d; font-weight: 700; text-transform: uppercase; }
-
-.explorer-brand { font-size: 0.95rem; font-weight: 800; color: white; margin-bottom: 0.8rem; }
-.block-design { width: 140px; height: 5px; background: var(--accent); border-radius: 10px; box-shadow: 0 0 15px var(--accent-glow); }
-
-.projects-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; }
-#addGameBtn { 
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 0.7rem 1.4rem;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: 0.2s;
-    box-shadow: 0 4px 15px var(--accent-glow);
-}
-#addGameBtn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-
-.projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-.game-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    aspect-ratio: 1 / 1;
-    transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.game-card:hover { border-color: var(--accent); transform: translateY(-5px); }
-.game-card h3 { font-size: 1.1rem; margin-bottom: 0.75rem; color: white; }
-.game-card p { font-size: 0.85rem; color: var(--text-dim); flex: 1; line-height: 1.5; overflow: hidden; }
-.game-card a { margin-top: 1rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; font-weight: 700; word-break: break-all; }
-.game-card a:hover { text-decoration: underline; }
-
-.modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-card { background: #0c0c14; border: 1px solid var(--border); border-radius: 20px; width: 480px; padding: 2.2rem; }
-.modal-divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
-.input-group { margin-bottom: 1.2rem; }
-.input-group label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.5rem; font-weight: 800; text-transform: uppercase; }
-.input-group input, .input-group textarea { width: 100%; background: #141421; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; color: white; outline: none; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
-.btn-primary { background: var(--accent); border: none; color: white; padding: 0.8rem 1.8rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
-.btn-secondary { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+function openModal() { modal.style.display = 'flex'; }
+function closeModal() { modal.style.display = 'none'; }
