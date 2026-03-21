@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { OpenAI } = require('openai');
 
 const client = new OpenAI({
@@ -8,11 +9,15 @@ const client = new OpenAI({
   apiKey: process.env.PUTER_TOKEN
 });
 
-let db = { users: {}, projects: [], sessions: {} };
+let db = { users: {}, projects: [], sessions: {}, tokens: {} };
 if (fs.existsSync('db.json')) db = JSON.parse(fs.readFileSync('db.json'));
 
 function saveDb() {
   fs.writeFileSync('db.json', JSON.stringify(db, null, 2));
+}
+
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 const models = [
@@ -70,9 +75,11 @@ http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Username already exists' }));
           return;
         }
-        const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
-        db.users[username] = { password, token, created: Date.now() };
+        const hashed = hashPassword(password);
+        const token = crypto.randomBytes(32).toString('hex');
+        db.users[username] = { hashed, token, created: Date.now() };
         db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false };
+        db.tokens[token] = { username, expires: Date.now() + 30*24*60*60*1000 };
         saveDb();
         res.writeHead(200);
         res.end(JSON.stringify({ success: true, token }));
@@ -84,50 +91,36 @@ http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && pathname === '/project') {
+  if (req.method === 'POST' && pathname === '/login') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { token, title, about, link } = JSON.parse(body);
-        if (!token || !db.tokens || !db.tokens[token]) {
-          res.writeHead(401);
-          res.end(JSON.stringify({ error: 'Invalid token' }));
+        const { username, password } = JSON.parse(body);
+        if (!username || !password) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ error: 'Missing username or password' }));
           return;
         }
-        const username = db.tokens[token].username;
-        db.projects.push({
-          id: Date.now(),
-          username,
-          title,
-          about,
-          link,
-          postedAt: Date.now()
-        });
-        saveDb();
+        if (!db.users[username]) {
+          res.writeHead(401);
+          res.end(JSON.stringify({ error: 'Username wrong' }));
+          return;
+        }
+        const hashed = hashPassword(password);
+        if (db.users[username].hashed !== hashed) {
+          res.writeHead(401);
+          res.end(JSON.stringify({ error: 'Password wrong' }));
+          return;
+        }
+        const token = db.users[username].token;
         res.writeHead(200);
-        res.end(JSON.stringify({ success: true }));
+        res.end(JSON.stringify({ success: true, token }));
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
       }
     });
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/projects') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(db.projects));
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/stats') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      users: Object.keys(db.users).length,
-      projects: db.projects.length,
-      active: Object.keys(db.sessions).length
-    }));
     return;
   }
 
@@ -139,7 +132,7 @@ http.createServer((req, res) => {
 
   if (req.method === 'GET' && pathname === '/status') {
     const token = url.searchParams.get('token');
-    if (!token || !db.tokens || !db.tokens[token]) {
+    if (!token || !db.tokens[token] || db.tokens[token].expires < Date.now()) {
       res.writeHead(401);
       res.end(JSON.stringify({ status: 'disconnected', model: 'anthropic/claude-sonnet-4-6' }));
       return;
@@ -181,10 +174,15 @@ http.createServer((req, res) => {
 
   if (req.method === 'GET' && !pathname.startsWith('/v1/') && !pathname.startsWith('/chat/')) {
     let filePath = '.' + (pathname === '/' ? '/index.html' : pathname);
+    if (filePath.endsWith('/')) filePath += 'index.html';
     const ext = path.extname(filePath);
     const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript' }[ext] || 'text/plain';
     fs.readFile(filePath, (err, data) => {
-      if (err) { res.writeHead(404); res.end(); return; }
+      if (err) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
       res.writeHead(200, { 'Content-Type': mime });
       res.end(data);
     });
