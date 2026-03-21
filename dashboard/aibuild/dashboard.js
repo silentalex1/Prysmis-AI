@@ -447,6 +447,86 @@ function saveChat(firstMsg) {
     if (data.success && data.chat) {
       activeChatId = data.chat.id;
       loadChatHistory();
+
+var pluginConnected = false;
+var pluginTokenStored = localStorage.getItem('pluginToken') || '';
+var connectBtn = document.getElementById('connectBtn');
+var statusDot = document.getElementById('statusDot');
+var statusText = document.getElementById('statusText');
+
+function setExplorerStatus(connected, model) {
+  pluginConnected = connected;
+  if (statusDot) {
+    statusDot.className = 'dot ' + (connected ? 'green' : 'red');
+  }
+  if (statusText) {
+    statusText.textContent = connected ? 'Connected' : 'Disconnected';
+    statusText.style.color = connected ? '#10b981' : '#f43f5e';
+  }
+  if (connectBtn) {
+    connectBtn.textContent = connected ? 'Plugin Connected' : 'Connect Plugin';
+    connectBtn.style.opacity = connected ? '0.7' : '1';
+  }
+}
+
+function connectPlugin() {
+  if (pluginConnected) {
+    fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' })
+      .then(function() {
+        pluginTokenStored = '';
+        localStorage.removeItem('pluginToken');
+        setExplorerStatus(false, '');
+      }).catch(function() {});
+    return;
+  }
+
+  var model = (function() {
+    var map = {
+      'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
+      'Gemini 3.2': 'google/gemini-3.2-pro',
+      'ChatGPT 5.2': 'openai/gpt-5.4'
+    };
+    return map[modelSelect.value] || 'anthropic/claude-opus-4-6';
+  })();
+
+  fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model })
+  }).then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    if (data.success && data.pluginToken) {
+      pluginTokenStored = data.pluginToken;
+      localStorage.setItem('pluginToken', data.pluginToken);
+      setExplorerStatus(true, data.model);
+    }
+  }).catch(function() {});
+}
+
+if (connectBtn) {
+  connectBtn.addEventListener('click', connectPlugin);
+}
+
+if (pluginTokenStored) {
+  fetch('/plugin/ping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pluginToken: pluginTokenStored })
+  }).then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    if (data.ok) {
+      setExplorerStatus(true, data.model);
+    } else {
+      localStorage.removeItem('pluginToken');
+      pluginTokenStored = '';
+    }
+  }).catch(function() {
+    localStorage.removeItem('pluginToken');
+    pluginTokenStored = '';
+  });
+}
     }
   }).catch(function() {});
 }
@@ -703,3 +783,83 @@ modal.addEventListener('click', function(e) {
 });
 
 loadChatHistory();
+
+var pluginConnected = false;
+var pluginTokenStored = localStorage.getItem('pluginToken') || '';
+var connectBtn = document.getElementById('connectBtn');
+var statusDot = document.getElementById('statusDot');
+var statusText = document.getElementById('statusText');
+
+function setExplorerStatus(connected, model) {
+  pluginConnected = connected;
+  if (statusDot) {
+    statusDot.className = 'dot ' + (connected ? 'green' : 'red');
+  }
+  if (statusText) {
+    statusText.textContent = connected ? 'Connected' : 'Disconnected';
+    statusText.style.color = connected ? '#10b981' : '#f43f5e';
+  }
+  if (connectBtn) {
+    connectBtn.textContent = connected ? 'Plugin Connected' : 'Connect Plugin';
+    connectBtn.style.opacity = connected ? '0.7' : '1';
+  }
+}
+
+function connectPlugin() {
+  if (pluginConnected) {
+    fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' })
+      .then(function() {
+        pluginTokenStored = '';
+        localStorage.removeItem('pluginToken');
+        setExplorerStatus(false, '');
+      }).catch(function() {});
+    return;
+  }
+
+  var model = (function() {
+    var map = {
+      'Claude Opus 4.6': 'anthropic/claude-opus-4-6',
+      'Gemini 3.2': 'google/gemini-3.2-pro',
+      'ChatGPT 5.2': 'openai/gpt-5.4'
+    };
+    return map[modelSelect.value] || 'anthropic/claude-opus-4-6';
+  })();
+
+  fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model })
+  }).then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    if (data.success && data.pluginToken) {
+      pluginTokenStored = data.pluginToken;
+      localStorage.setItem('pluginToken', data.pluginToken);
+      setExplorerStatus(true, data.model);
+    }
+  }).catch(function() {});
+}
+
+if (connectBtn) {
+  connectBtn.addEventListener('click', connectPlugin);
+}
+
+if (pluginTokenStored) {
+  fetch('/plugin/ping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pluginToken: pluginTokenStored })
+  }).then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    if (data.ok) {
+      setExplorerStatus(true, data.model);
+    } else {
+      localStorage.removeItem('pluginToken');
+      pluginTokenStored = '';
+    }
+  }).catch(function() {
+    localStorage.removeItem('pluginToken');
+    pluginTokenStored = '';
+  });
+}
