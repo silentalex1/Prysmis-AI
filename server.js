@@ -8,7 +8,7 @@ const client = new OpenAI({
   apiKey: process.env.PUTER_TOKEN
 });
 
-let db = { users: {}, sessions: {}, tokens: {} };
+let db = { users: {}, projects: [], sessions: {} };
 if (fs.existsSync('db.json')) db = JSON.parse(fs.readFileSync('db.json'));
 
 function saveDb() {
@@ -70,12 +70,11 @@ http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Username already exists' }));
           return;
         }
-        const token = Buffer.from(`${username}:${password}:${Date.now()}`).toString('base64');
+        const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
         db.users[username] = { password, token, created: Date.now() };
-        db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false, lastActive: Date.now() };
-        db.tokens[token] = { username, expires: Date.now() + 30*24*60*60*1000 };
+        db.sessions[username] = { model: 'anthropic/claude-sonnet-4-6', connected: false };
         saveDb();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200);
         res.end(JSON.stringify({ success: true, token }));
       } catch (e) {
         res.writeHead(400);
@@ -85,25 +84,50 @@ http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && pathname === '/login') {
+  if (req.method === 'POST' && pathname === '/project') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { username, password } = JSON.parse(body);
-        if (db.users[username] && db.users[username].password === password) {
-          const token = db.users[username].token;
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, token }));
-        } else {
+        const { token, title, about, link } = JSON.parse(body);
+        if (!token || !db.tokens || !db.tokens[token]) {
           res.writeHead(401);
-          res.end(JSON.stringify({ error: 'Invalid credentials' }));
+          res.end(JSON.stringify({ error: 'Invalid token' }));
+          return;
         }
+        const username = db.tokens[token].username;
+        db.projects.push({
+          id: Date.now(),
+          username,
+          title,
+          about,
+          link,
+          postedAt: Date.now()
+        });
+        saveDb();
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true }));
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
       }
     });
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/projects') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(db.projects));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/stats') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      users: Object.keys(db.users).length,
+      projects: db.projects.length,
+      active: Object.keys(db.sessions).length
+    }));
     return;
   }
 
@@ -115,21 +139,17 @@ http.createServer((req, res) => {
 
   if (req.method === 'GET' && pathname === '/status') {
     const token = url.searchParams.get('token');
-    if (!token || !db.tokens[token] || db.tokens[token].expires < Date.now()) {
+    if (!token || !db.tokens || !db.tokens[token]) {
       res.writeHead(401);
-      res.end(JSON.stringify({ status: 'disconnected' }));
+      res.end(JSON.stringify({ status: 'disconnected', model: 'anthropic/claude-sonnet-4-6' }));
       return;
     }
     const username = db.tokens[token].username;
-    if (!db.sessions[username]) {
-      res.writeHead(404);
-      res.end(JSON.stringify({ status: 'disconnected' }));
-      return;
-    }
+    const session = db.sessions[username] || { connected: false, model: 'anthropic/claude-sonnet-4-6' };
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      status: db.sessions[username].connected ? 'connected' : 'disconnected',
-      model: db.sessions[username].model
+      status: session.connected ? 'connected' : 'disconnected',
+      model: session.model
     }));
     return;
   }
@@ -142,7 +162,6 @@ http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         const model = modelFromQuery || data.model || 'anthropic/claude-sonnet-4-6';
-
         const completion = await client.chat.completions.create({
           model,
           messages: data.messages || [],
@@ -150,7 +169,6 @@ http.createServer((req, res) => {
           temperature: data.temperature,
           max_tokens: data.max_tokens
         });
-
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(completion));
       } catch (e) {
@@ -166,11 +184,7 @@ http.createServer((req, res) => {
     const ext = path.extname(filePath);
     const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript' }[ext] || 'text/plain';
     fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(404);
-        res.end();
-        return;
-      }
+      if (err) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': mime });
       res.end(data);
     });
