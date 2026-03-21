@@ -7,12 +7,16 @@
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
+    <div class="bg-glow"></div>
     <header>
         <div class="brand">
             <div class="logo">PrysmisAI</div>
             <span class="badge">Builder</span>
         </div>
         <div class="header-actions">
+            <nav class="nav-links">
+                <a href="#" class="nav-item">API Doc</a>
+            </nav>
             <div class="select-wrapper">
                 <select id="modelSelect">
                     <option>Claude Opus 4.6</option>
@@ -25,21 +29,6 @@
     </header>
 
     <div class="app-container">
-        <aside class="sidebar" id="explorer">
-            <div class="sidebar-toggle" onclick="toggleExplorer()">
-                <span>Explorer</span>
-            </div>
-            <div class="sidebar-inner">
-                <div class="connection-status">
-                    <span id="statusDot" class="dot"></span>
-                    <span id="statusText">Disconnected</span>
-                </div>
-                <div id="workspace" class="workspace-empty">
-                    Connect Roblox Studio to view Explorer
-                </div>
-            </div>
-        </aside>
-
         <main class="content-area">
             <nav class="navigation-tabs">
                 <button class="tab-link active" onclick="showTab('chat')">AI Chat</button>
@@ -53,15 +42,15 @@
                         <div class="preset-grid">
                             <div class="preset-card" onclick="usePreset(0)">
                                 <span>Create Map</span>
-                                <p>Generate a custom environment...</p>
+                                <p>Generate custom environments</p>
                             </div>
                             <div class="preset-card" onclick="usePreset(1)">
                                 <span>Animate Character</span>
-                                <p>Set up advanced movements...</p>
+                                <p>Advanced movement setup</p>
                             </div>
                             <div class="preset-card" onclick="usePreset(2)">
                                 <span>Loading Screen</span>
-                                <p>Create a UI startup flow...</p>
+                                <p>UI startup flow builder</p>
                             </div>
                         </div>
                     </div>
@@ -71,7 +60,7 @@
                     <div class="input-wrapper">
                         <textarea id="input" rows="1" placeholder="Ask PrysmisAI Anything.."></textarea>
                         <button id="sendBtn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
                     </div>
                 </div>
@@ -85,22 +74,36 @@
                 <div class="projects-list" id="projectsList"></div>
             </section>
         </main>
+
+        <aside class="sidebar-right" id="explorer">
+            <div class="sidebar-toggle" onclick="toggleExplorer()">
+                <span>Explorer</span>
+            </div>
+            <div class="sidebar-inner">
+                <div class="connection-status">
+                    <span id="statusDot" class="dot"></span>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                <div id="workspace" class="workspace-empty">
+                    Connect Roblox Studio to view Explorer
+                </div>
+            </div>
+        </aside>
     </div>
 
     <div id="addGameModal" class="modal" style="display:none">
         <div class="modal-card">
             <div class="modal-header">
                 <h2>Share Project</h2>
-                <p>Post your Roblox creation to the community.</p>
             </div>
             <div class="modal-body">
                 <input type="text" id="gameTitle" placeholder="Project Title">
-                <textarea id="gameAbout" placeholder="Brief description of your game..."></textarea>
-                <input type="text" id="gameLink" placeholder="Roblox Experience Link">
+                <textarea id="gameAbout" placeholder="Description..."></textarea>
+                <input type="text" id="gameLink" placeholder="Link">
             </div>
             <div class="modal-footer">
                 <button onclick="closeModal()" class="btn-secondary">Cancel</button>
-                <button id="postGameBtn" class="btn-primary">Publish Game</button>
+                <button id="postGameBtn" class="btn-primary">Publish</button>
             </div>
         </div>
     </div>
