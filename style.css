@@ -1,0 +1,87 @@
+* { margin:0; padding:0; box-sizing:border-box }
+body { 
+  font-family: system-ui, sans-serif; 
+  background:#050505; 
+  color:#e0e0ff; 
+  min-height:100vh; 
+  overflow-x:hidden 
+}
+#root { min-height:100vh }
+header { 
+  height:4rem; 
+  background:#0a0a0f80; 
+  backdrop-filter:blur(12px); 
+  border-bottom:1px solid #ffffff10; 
+  position:sticky; 
+  top:0; 
+  z-index:100; 
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between; 
+  padding:0 2rem 
+}
+.logo { 
+  display:flex; 
+  align-items:center; 
+  gap:1rem; 
+  font-size:1.5rem; 
+  font-weight:800; 
+  letter-spacing:-1px 
+}
+.logo span { background:linear-gradient(90deg,#3b82f6,#a855f7); -webkit-background-clip:text; -webkit-text-fill-color:transparent }
+nav button { 
+  padding:.6rem 1.4rem; 
+  background:#3b82f6; 
+  color:white; 
+  border:none; 
+  border-radius:999px; 
+  font-weight:600; 
+  cursor:pointer; 
+  transition:.2s 
+}
+nav button:hover { background:#2563eb; transform:scale(1.04) }
+.landing { 
+  height:100vh; 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+  justify-content:center; 
+  text-align:center; 
+  padding:0 1rem 
+}
+.landing h1 { 
+  font-size:clamp(4rem,12vw,10rem); 
+  font-weight:900; 
+  background:linear-gradient(90deg,#ffffff,#a5b4fc,#c084fc); 
+  -webkit-background-clip:text; 
+  -webkit-text-fill-color:transparent; 
+  line-height:1 
+}
+.landing p { 
+  margin:1.5rem 0 2.5rem; 
+  font-size:1.4rem; 
+  color:#94a3b8; 
+  max-width:42rem 
+}
+.cta { 
+  padding:1.2rem 3rem; 
+  font-size:1.3rem; 
+  font-weight:700; 
+  background:linear-gradient(90deg,#3b82f6,#8b5cf6); 
+  border:none; 
+  border-radius:999px; 
+  color:white; 
+  cursor:pointer; 
+  transition:.3s 
+}
+.cta:hover { transform:scale(1.05); box-shadow:0 0 40px #3b82f660 }
+.stats { 
+  display:grid; 
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); 
+  gap:3rem; 
+  max-width:80rem; 
+  margin:6rem auto; 
+  text-align:center 
+}
+.stat h2 { font-size:4.5rem; font-weight:800 }
+.stat p { margin-top:.8rem; font-size:.9rem; color:#64748b; text-transform:uppercase; letter-spacing:.1em }
