@@ -17,6 +17,7 @@ document.getElementById('createBtn').onclick = async () => {
   const data = await res.json();
   if (res.ok) {
     localStorage.setItem('user', username);
+    localStorage.setItem('token', data.token);
     location.href = '/dashboard/aibuild';
   } else {
     alert(data.error || 'Failed to create account');
