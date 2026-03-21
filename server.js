@@ -312,6 +312,19 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, pluginToken, username: td.username, model: user.pluginModel });
   }
 
+  if (req.method === 'POST' && pathname === '/plugin/update-model') {
+    let body;
+    try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: 'Invalid request body' }); }
+    const td = getTokenData(getToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    if (!body.model || typeof body.model !== 'string') return sendJson(res, 400, { error: 'model required' });
+    user.pluginModel = body.model;
+    saveDb();
+    return sendJson(res, 200, { success: true, model: user.pluginModel });
+  }
+
   if (req.method === 'POST' && pathname === '/plugin/disconnect') {
     const td = getTokenData(getToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -351,7 +364,7 @@ const server = http.createServer(async (req, res) => {
         u.pluginLastPing = Date.now();
         u.pluginConnected = true;
         saveDb();
-        return sendJson(res, 200, { ok: true, model: u.pluginModel || 'anthropic/claude-opus-4-6' });
+        return sendJson(res, 200, { ok: true, model: u.pluginModel || 'anthropic/claude-opus-4-6', user: uname });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
