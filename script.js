@@ -1,83 +1,86 @@
-const overlay = document.getElementById('onboarding-overlay');
-const iKnowBtn = document.getElementById('btn-i-know');
-const checkbox = document.getElementById('dont-show-again');
-const sidebar = document.getElementById('app-sidebar');
-const modeToggle = document.getElementById('mode-toggle');
-const heroTitle = document.getElementById('hero-title');
-const presetGrid = document.getElementById('preset-grid');
-const saveBar = document.getElementById('settings-save-bar');
-const nameInput = document.getElementById('name-input');
-const userInput = document.getElementById('user-input');
-const inputContainer = document.getElementById('input-container');
-const inputStack = document.getElementById('input-stack-container');
-const chatFlow = document.getElementById('chat-flow');
-const modelSelect = document.getElementById('model-select');
-const historyList = document.getElementById('chat-history');
-const pfpPreview = document.getElementById('pfp-preview');
-const sidePfp = document.getElementById('sidebar-pfp-small');
-const sideNameLabel = document.getElementById('sidebar-name-label');
-const newChatBtn = document.getElementById('new-chat-btn');
+const overlay = document.getElementById('onboarding-overlay')
+const iKnowBtn = document.getElementById('btn-i-know')
+const checkbox = document.getElementById('dont-show-again')
+const sidebar = document.getElementById('app-sidebar')
+const modeToggle = document.getElementById('mode-toggle')
+const heroTitle = document.getElementById('hero-title')
+const presetGrid = document.getElementById('preset-grid')
+const saveBar = document.getElementById('settings-save-bar')
+const nameInput = document.getElementById('name-input')
+const userInput = document.getElementById('user-input')
+const inputContainer = document.getElementById('input-container')
+const inputStack = document.getElementById('input-stack-container')
+const chatFlow = document.getElementById('chat-flow')
+const modelSelect = document.getElementById('model-select')
+const historyList = document.getElementById('chat-history')
+const pfpPreview = document.getElementById('pfp-preview')
+const sidePfp = document.getElementById('sidebar-pfp-small')
+const sideNameLabel = document.getElementById('sidebar-name-label')
+const newChatBtn = document.getElementById('new-chat-btn')
+const connectBtn = document.getElementById('connect-btn')
 
-let isChatMode = false;
-let userDisplayName = "Guest";
-let hasUnsavedChanges = false;
-let pendingPfp = null;
-let currentChatId = Date.now();
-let chatHistory = [];
-let attachedImages = [];
+let isChatMode = false
+let userDisplayName = "Guest"
+let hasUnsavedChanges = false
+let pendingPfp = null
+let currentChatId = Date.now()
+let chatHistory = []
+let attachedImages = []
+let isPluginConnected = false
+let connectionInterval = null
 
 if (localStorage.getItem('prysmis_hide_intro')) {
-    overlay.style.display = 'none';
+    overlay.style.display = 'none'
 }
 
 checkbox.addEventListener('change', () => {
-    iKnowBtn.disabled = !checkbox.checked;
-    if (checkbox.checked) iKnowBtn.classList.add('btn-blue');
-    else iKnowBtn.classList.remove('btn-blue');
-});
+    iKnowBtn.disabled = !checkbox.checked
+    if (checkbox.checked) iKnowBtn.classList.add('btn-blue')
+    else iKnowBtn.classList.remove('btn-blue')
+})
 
 iKnowBtn.addEventListener('click', () => {
-    if (checkbox.checked) localStorage.setItem('prysmis_hide_intro', 'true');
-    overlay.style.display = 'none';
-});
+    if (checkbox.checked) localStorage.setItem('prysmis_hide_intro', 'true')
+    overlay.style.display = 'none'
+})
 
 document.getElementById('btn-install').addEventListener('click', () => {
-    window.open('https://www.roblox.com/library/create', '_blank');
-    overlay.style.display = 'none';
-});
+    window.open('https://www.roblox.com/library/create', '_blank')
+    overlay.style.display = 'none'
+})
 
 document.getElementById('toggle-sidebar').addEventListener('click', () => {
-    sidebar.classList.toggle('hidden');
-});
+    sidebar.classList.toggle('hidden')
+})
 
 modeToggle.addEventListener('click', () => {
-    isChatMode = !isChatMode;
+    isChatMode = !isChatMode
     if (isChatMode) {
-        modeToggle.innerText = 'Switch to Game Maker';
-        heroTitle.innerText = 'Ask PrysmisAI anything..';
-        presetGrid.style.display = 'none';
-        userInput.placeholder = 'Chat with AI normally...';
+        modeToggle.innerText = 'Switch to Game Maker'
+        heroTitle.innerText = 'Ask PrysmisAI anything..'
+        presetGrid.style.display = 'none'
+        userInput.placeholder = 'Chat with AI normally...'
     } else {
-        modeToggle.innerText = 'Switch to Chat';
-        heroTitle.innerText = 'What are we building today?';
-        presetGrid.style.display = 'flex';
-        userInput.placeholder = 'Ask PrysmiAI to make anything for your game..';
+        modeToggle.innerText = 'Switch to Chat'
+        heroTitle.innerText = 'What are we building today?'
+        presetGrid.style.display = 'flex'
+        userInput.placeholder = 'Ask PrysmiAI to make anything for your game..'
     }
-});
+})
 
 userInput.addEventListener('focus', () => {
-    inputStack.style.width = '850px';
-});
+    inputStack.style.width = '850px'
+})
 
 userInput.addEventListener('blur', () => {
     if (!userInput.value.trim()) {
-        inputStack.style.width = '600px';
+        inputStack.style.width = '600px'
     }
-});
+})
 
 newChatBtn.addEventListener('click', () => {
-    startNewChat();
-});
+    startNewChat()
+})
 
 function startNewChat() {
     chatFlow.innerHTML = `
@@ -88,40 +91,37 @@ function startNewChat() {
                 <div class="preset-item" data-prompt="make me a good map that is" onclick="handlePresetClick(this)">make me a good map that is</div>
                 <div class="preset-item" data-prompt="create me a complex game that is about" onclick="handlePresetClick(this)">create me a complex game that is about</div>
             </div>
-        </div>`;
-    currentChatId = Date.now();
-    userInput.value = '';
-    userInput.style.height = '24px';
-    inputStack.style.width = '600px';
-    attachedImages = [];
-    clearImagePreview();
-    
+        </div>`
+    currentChatId = Date.now()
+    userInput.value = ''
+    userInput.style.height = '24px'
+    inputStack.style.width = '600px'
+    attachedImages = []
+    clearImagePreview()
     document.querySelectorAll('.preset-item').forEach(item => {
         item.addEventListener('mouseenter', () => {
-            item.style.background = '#252528';
-            item.style.color = 'white';
-            item.style.borderColor = '#555';
-        });
-        
+            item.style.background = '#252528'
+            item.style.color = 'white'
+            item.style.borderColor = '#555'
+        })
         item.addEventListener('mouseleave', () => {
-            item.style.background = '#1e1e20';
-            item.style.color = '#888';
-            item.style.borderColor = 'var(--border)';
-        });
-        
+            item.style.background = '#1e1e20'
+            item.style.color = '#888'
+            item.style.borderColor = 'var(--border)'
+        })
         item.addEventListener('click', () => {
-            const text = item.dataset.prompt.trim();
-            userInput.value = text;
-            userInput.focus();
-        });
-    });
+            const text = item.dataset.prompt.trim()
+            userInput.value = text
+            userInput.focus()
+        })
+    })
 }
 
 function createImagePreview() {
-    let previewContainer = document.getElementById('image-preview-container');
+    let previewContainer = document.getElementById('image-preview-container')
     if (!previewContainer) {
-        previewContainer = document.createElement('div');
-        previewContainer.id = 'image-preview-container';
+        previewContainer = document.createElement('div')
+        previewContainer.id = 'image-preview-container'
         previewContainer.style.cssText = `
             display: flex;
             gap: 10px;
@@ -133,42 +133,39 @@ function createImagePreview() {
             min-height: 80px;
             align-items: center;
             flex-wrap: wrap;
-        `;
-        inputStack.insertBefore(previewContainer, inputStack.firstChild);
+        `
+        inputStack.insertBefore(previewContainer, inputStack.firstChild)
     }
-    return previewContainer;
+    return previewContainer
 }
 
 function clearImagePreview() {
-    const previewContainer = document.getElementById('image-preview-container');
+    const previewContainer = document.getElementById('image-preview-container')
     if (previewContainer) {
-        previewContainer.innerHTML = '';
-        previewContainer.style.display = 'none';
+        previewContainer.innerHTML = ''
+        previewContainer.style.display = 'none'
     }
 }
 
 function addImageToPreview(imageData, fileName) {
-    const previewContainer = createImagePreview();
-    previewContainer.style.display = 'flex';
-    
-    const imageWrapper = document.createElement('div');
+    const previewContainer = createImagePreview()
+    previewContainer.style.display = 'flex'
+    const imageWrapper = document.createElement('div')
     imageWrapper.style.cssText = `
         position: relative;
         display: inline-block;
-    `;
-    
-    const img = document.createElement('img');
-    img.src = imageData;
+    `
+    const img = document.createElement('img')
+    img.src = imageData
     img.style.cssText = `
         max-width: 100px;
         max-height: 60px;
         border-radius: 8px;
         object-fit: cover;
         border: 1px solid var(--border);
-    `;
-    
-    const removeBtn = document.createElement('button');
-    removeBtn.innerHTML = '×';
+    `
+    const removeBtn = document.createElement('button')
+    removeBtn.innerHTML = '×'
     removeBtn.style.cssText = `
         position: absolute;
         top: -8px;
@@ -184,228 +181,189 @@ function addImageToPreview(imageData, fileName) {
         display: flex;
         align-items: center;
         justify-content: center;
-    `;
-    
+    `
     removeBtn.onclick = () => {
-        const index = attachedImages.findIndex(img => img.data === imageData);
-        if (index > -1) {
-            attachedImages.splice(index, 1);
-        }
-        imageWrapper.remove();
-        if (attachedImages.length === 0) {
-            clearImagePreview();
-        }
-    };
-    
-    imageWrapper.appendChild(img);
-    imageWrapper.appendChild(removeBtn);
-    previewContainer.appendChild(imageWrapper);
-    
+        const index = attachedImages.findIndex(img => img.data === imageData)
+        if (index > -1) attachedImages.splice(index, 1)
+        imageWrapper.remove()
+        if (attachedImages.length === 0) clearImagePreview()
+    }
+    imageWrapper.appendChild(img)
+    imageWrapper.appendChild(removeBtn)
+    previewContainer.appendChild(imageWrapper)
     attachedImages.push({
         data: imageData,
         name: fileName || 'image'
-    });
+    })
 }
 
 document.addEventListener('paste', (e) => {
-    const items = e.clipboardData.items;
-    let foundImage = false;
-    
+    const items = e.clipboardData.items
+    let foundImage = false
     for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
-            e.preventDefault();
-            foundImage = true;
-            
-            const blob = items[i].getAsFile();
-            const reader = new FileReader();
-            
+            e.preventDefault()
+            foundImage = true
+            const blob = items[i].getAsFile()
+            const reader = new FileReader()
             reader.onload = (event) => {
-                addImageToPreview(event.target.result, 'pasted-image');
-            };
-            
-            reader.readAsDataURL(blob);
-            break;
+                addImageToPreview(event.target.result, 'pasted-image')
+            }
+            reader.readAsDataURL(blob)
+            break
         }
     }
-});
+})
 
 userInput.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-});
+    e.preventDefault()
+    e.stopPropagation()
+})
 
 userInput.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const files = e.dataTransfer.files;
+    e.preventDefault()
+    e.stopPropagation()
+    const files = e.dataTransfer.files
     for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        const file = files[i]
         if (file.type.indexOf('image') !== -1) {
-            const reader = new FileReader();
+            const reader = new FileReader()
             reader.onload = (event) => {
-                addImageToPreview(event.target.result, file.name);
-            };
-            reader.readAsDataURL(file);
+                addImageToPreview(event.target.result, file.name)
+            }
+            reader.readAsDataURL(file)
         }
     }
-});
+})
 
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        const sets = document.getElementById('settings-overlay');
-        if (sets.style.display === 'flex') attemptCloseSettings();
+        const sets = document.getElementById('settings-overlay')
+        if (sets.style.display === 'flex') attemptCloseSettings()
     }
-});
+})
 
 document.getElementById('sign-in').addEventListener('click', async () => {
     try {
         if (typeof puter === 'undefined') {
-            showNotification('PuterJS not loaded. Please refresh the page.', 'error');
-            return;
+            showNotification('PuterJS not loaded. Please refresh the page.', 'error')
+            return
         }
-        
-        const loginBtn = document.getElementById('sign-in');
-        loginBtn.innerText = 'Signing in...';
-        loginBtn.disabled = true;
-        
-        // PuterJS v2 uses message passing for authentication
-        // Open the Puter authentication popup
-        const authWindow = window.open('https://puter.com/auth', 'puter-auth', 'width=500,height=600');
-        
-        // Listen for authentication message
-        const messageHandler = async (event) => {
-            if (event.origin === 'https://puter.com' && event.data.msg === 'puter.token') {
-                window.removeEventListener('message', messageHandler);
-                
-                // Set the auth token
-                puter.setAuthToken(event.data.token);
-                puter.setAppID(event.data.app_uid);
-                
-                // Get user info
-                const user = await puter.getUser();
-                userDisplayName = user.username;
-                if (sideNameLabel) sideNameLabel.innerText = user.username;
-                
-                loginBtn.style.display = 'none';
-                authWindow.close();
-                
-                showNotification(`Welcome ${user.username}!`);
-            }
-        };
-        
-        window.addEventListener('message', messageHandler);
-        
-        // Timeout after 5 minutes
-        setTimeout(() => {
-            window.removeEventListener('message', messageHandler);
-            loginBtn.innerText = 'login';
-            loginBtn.disabled = false;
-            showNotification('Authentication timed out', 'error');
-        }, 300000);
-        
+        const loginBtn = document.getElementById('sign-in')
+        loginBtn.innerText = 'Signing in...'
+        loginBtn.disabled = true
+        await puter.auth.signIn()
+        const user = await puter.auth.getUser()
+        userDisplayName = user.username
+        if (sideNameLabel) sideNameLabel.innerText = user.username
+        loginBtn.style.display = 'none'
+        showNotification(`Welcome ${user.username}!`)
     } catch (err) {
-        console.error('Login error:', err);
-        
-        const loginBtn = document.getElementById('sign-in');
-        loginBtn.innerText = 'login';
-        loginBtn.disabled = false;
-        
-        if (err.message && err.message.includes('popup')) {
-            showNotification('Popup was blocked. Please allow popups and try again.', 'error');
-        } else if (err.message && err.message.includes('network')) {
-            showNotification('Network error. Please check your connection.', 'error');
-        } else {
-            showNotification('Login failed. Please try again.', 'error');
-        }
+        console.error('Login error:', err)
+        const loginBtn = document.getElementById('sign-in')
+        loginBtn.innerText = 'login'
+        loginBtn.disabled = false
+        showNotification('Login failed. Please allow popups and try again.', 'error')
     }
-});
+})
 
-document.querySelector('.btn-connect-blue').addEventListener('click', async () => {
-    const connectBtn = document.querySelector('.btn-connect-blue');
-    
-    if (connectBtn.textContent === 'Connected') {
-        connectBtn.textContent = 'Connect';
-        connectBtn.style.background = 'var(--accent-blue)';
-        showNotification('Disconnected from plugin', 'error');
-        
-        localStorage.removeItem('prysmis_plugin_connected');
+connectBtn.addEventListener('click', async () => {
+    if (isPluginConnected) {
+        disconnectPlugin()
     } else {
-        try {
-            connectBtn.textContent = 'Connecting...';
-            connectBtn.disabled = true;
-            
-            await simulatePluginConnection();
-            
-            connectBtn.textContent = 'Connected';
-            connectBtn.style.background = '#27ae60';
-            connectBtn.disabled = false;
-            
-            localStorage.setItem('prysmis_plugin_connected', 'true');
-            
-            showNotification('Plugin connected successfully! Enjoy using PrysmiAI :)', 'success');
-        } catch (err) {
-            console.error('Plugin connection error:', err);
-            connectBtn.textContent = 'Connect';
-            connectBtn.style.background = 'var(--accent-blue)';
-            connectBtn.disabled = false;
-            showNotification('Failed to connect to plugin', 'error');
-        }
+        connectToPlugin()
     }
-});
+})
 
-async function simulatePluginConnection() {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const pluginAvailable = true;
-            
-            if (pluginAvailable) {
-                resolve();
-            } else {
-                reject(new Error('Plugin not found'));
-            }
-        }, 1500);
-    });
+async function connectToPlugin() {
+    connectBtn.innerText = 'Connecting...'
+    connectBtn.disabled = true
+    try {
+        const res = await fetch('https://puter.com/ping', { method: 'GET', mode: 'cors' })
+        if (res.ok) {
+            isPluginConnected = true
+            connectBtn.innerText = 'Connected'
+            connectBtn.style.background = '#27ae60'
+            localStorage.setItem('prysmis_plugin_connected', 'true')
+            showNotification('Plugin connected successfully! Enjoy using PrysmiAI :)', 'success')
+            startConnectionPolling()
+        } else {
+            throw new Error('Ping failed')
+        }
+    } catch (err) {
+        connectBtn.innerText = 'Connect'
+        connectBtn.style.background = 'var(--accent-blue)'
+        connectBtn.disabled = false
+        showNotification('Failed to connect to plugin – make sure plugin is running', 'error')
+    }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (typeof puter === 'undefined') {
-        console.error('PuterJS not loaded');
-        showNotification('PuterJS not loaded. Please refresh the page.', 'error');
-        return;
+function disconnectPlugin() {
+    isPluginConnected = false
+    connectBtn.innerText = 'Connect'
+    connectBtn.style.background = 'var(--accent-blue)'
+    connectBtn.disabled = false
+    localStorage.removeItem('prysmis_plugin_connected')
+    if (connectionInterval) {
+        clearInterval(connectionInterval)
+        connectionInterval = null
     }
-    
-    // Check if user is already authenticated
-    puter.getUser().then(user => {
-        console.log('PuterJS initialized successfully');
-        
-        if (user) {
-            userDisplayName = user.username;
-            if (sideNameLabel) sideNameLabel.innerText = user.username;
-            const loginBtn = document.getElementById('sign-in');
-            if (loginBtn) loginBtn.style.display = 'none';
-            showNotification('Welcome back!');
+    showNotification('Disconnected from plugin', 'error')
+}
+
+function startConnectionPolling() {
+    if (connectionInterval) clearInterval(connectionInterval)
+    connectionInterval = setInterval(async () => {
+        try {
+            const res = await fetch('https://puter.com/ping', { method: 'GET', mode: 'cors' })
+            if (!res.ok) throw new Error()
+        } catch {
+            disconnectPlugin()
         }
-        
-        if (localStorage.getItem('prysmis_plugin_connected') === 'true') {
-            const connectBtn = document.querySelector('.btn-connect-blue');
-            connectBtn.textContent = 'Connected';
-            connectBtn.style.background = '#27ae60';
+    }, 20000)
+}
+
+async function sendToPlugin(data) {
+    if (!isPluginConnected) return
+    try {
+        await fetch('https://puter.com/plugin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+    } catch (err) {
+        console.error('Failed to send to plugin:', err)
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof puter === 'undefined') {
+        showNotification('PuterJS not loaded. Please refresh the page.', 'error')
+        return
+    }
+    try {
+        const isSignedIn = await puter.auth.isSignedIn()
+        if (isSignedIn) {
+            const user = await puter.auth.getUser()
+            userDisplayName = user.username
+            if (sideNameLabel) sideNameLabel.innerText = user.username
+            const loginBtn = document.getElementById('sign-in')
+            if (loginBtn) loginBtn.style.display = 'none'
+            showNotification('Welcome back!')
         }
-    }).catch(err => {
-        // 401 error means user is not authenticated, which is expected
-        if (err.status === 401) {
-            console.log('User not authenticated - login required');
-        } else {
-            console.error('PuterJS initialization failed:', err);
-            showNotification('Failed to initialize PuterJS', 'error');
+    } catch (err) {
+        if (err.status !== 401) {
+            console.error('Auth check failed:', err)
         }
-    });
-});
+    }
+    if (localStorage.getItem('prysmis_plugin_connected') === 'true') {
+        connectToPlugin()
+    }
+})
 
 function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    const bgColor = type === 'error' ? '#ed4245' : '#2ecc71';
+    const notification = document.createElement('div')
+    const bgColor = type === 'error' ? '#ed4245' : '#2ecc71'
     notification.style.cssText = `
         position: fixed;
         top: 70px;
@@ -421,223 +379,214 @@ function showNotification(message, type = 'success') {
         z-index: 1000;
         opacity: 0;
         transition: all 0.3s ease;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
+    `
+    notification.textContent = message
+    document.body.appendChild(notification)
     setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(-50%) translateY(0)';
-    }, 100);
-    
+        notification.style.opacity = '1'
+        notification.style.transform = 'translateX(-50%) translateY(0)'
+    }, 100)
     setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(-50%) translateY(-10px)';
+        notification.style.opacity = '0'
+        notification.style.transform = 'translateX(-50%) translateY(-10px)'
         setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
+            document.body.removeChild(notification)
+        }, 300)
+    }, 3000)
 }
 
 userInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const text = userInput.value.trim();
-        if (!text && attachedImages.length === 0) return;
-
-        const hero = document.getElementById('hero-presets');
-        if (hero) hero.style.display = 'none';
-        
-        await sendMessageWithImages(text);
-        
-        userInput.value = '';
-        userInput.style.height = '24px';
-        clearImagePreview();
-        attachedImages = [];
-
-        const isGameMode = !isChatMode;
+        e.preventDefault()
+        const text = userInput.value.trim()
+        if (!text && attachedImages.length === 0) return
+        const hero = document.getElementById('hero-presets')
+        if (hero) hero.style.display = 'none'
+        await sendMessageWithImages(text)
+        userInput.value = ''
+        userInput.style.height = '24px'
+        clearImagePreview()
+        attachedImages = []
+        const isGameMode = !isChatMode
         if (!chatHistory.find(c => c.id === currentChatId)) {
-            addToHistory(text, isGameMode);
+            addToHistory(text, isGameMode)
         }
     }
-});
+})
 
 async function sendMessageWithImages(text) {
-    let messageContent = text;
-    
+    let messageContent = text
     if (attachedImages.length > 0) {
-        const imageHtml = attachedImages.map(img => 
+        const imageHtml = attachedImages.map(img =>
             `<img src="${img.data}" style="max-width: 200px; max-height: 150px; border-radius: 8px; margin: 5px 0; display: block;" alt="${img.name}">`
-        ).join('');
-        
-        renderMsg('user', text + (text ? '\n\n' : '') + imageHtml);
+        ).join('')
+        renderMsg('user', text + (text ? '\n\n' : '') + imageHtml)
     } else {
-        renderMsg('user', text);
+        renderMsg('user', text)
     }
-
-    const systemPrompt = isChatMode 
-        ? `You are a professional AI. Chat naturally. The user's name is ${userDisplayName}.` 
-        : `You are a Roblox Luau Expert. Provide clear explanations and code blocks for game making. The user's name is ${userDisplayName}.`;
-    
+    const systemPrompt = isChatMode
+        ? `You are a professional AI. Chat naturally. The user's name is ${userDisplayName}.`
+        : `You are a Roblox Luau Expert. Provide clear explanations and code blocks for game making. The user's name is ${userDisplayName}.`
     try {
-        let aiRequest = text;
-        if (attachedImages.length > 0) {
-            aiRequest += '\n\n[User has attached ' + attachedImages.length + ' image(s). Please analyze any images provided.]';
+        if (!(await puter.auth.isSignedIn())) {
+            await puter.auth.signIn()
         }
-        
+        let aiRequest = text
+        if (attachedImages.length > 0) {
+            aiRequest += '\n\n[User has attached ' + attachedImages.length + ' image(s). Please analyze any images provided.]'
+        }
         const response = await puter.ai.chat(aiRequest, {
             model: modelSelect.value === 'claude-4-6-opus' ? 'claude-3-5-sonnet' : modelSelect.value,
             system_prompt: systemPrompt
-        });
-        renderMsg('ai', response.message.content);
+        })
+        renderMsg('ai', response.message.content)
+        if (isPluginConnected && !isChatMode) {
+            sendToPlugin({ type: 'ai_response', content: response.message.content })
+        }
     } catch (err) {
-        console.error('AI Error:', err);
-        renderMsg('ai', "Error: Ensure you are logged in to use PrysmisAI.");
+        console.error('AI Error:', err)
+        renderMsg('ai', "Error: " + (err.message || "Failed to get response. Try signing in again."))
     }
 }
 
 function addToHistory(text, isGameMode) {
-    const chatObj = { id: currentChatId, title: text, isGame: isGameMode };
-    chatHistory.unshift(chatObj);
-    refreshHistoryUI();
+    const chatObj = { id: currentChatId, title: text, isGame: isGameMode }
+    chatHistory.unshift(chatObj)
+    refreshHistoryUI()
 }
 
 function refreshHistoryUI() {
-    historyList.innerHTML = '';
+    historyList.innerHTML = ''
     chatHistory.forEach(chat => {
-        const item = document.createElement('div');
-        item.className = `sidebar-item ${chat.isGame ? 'game-mode' : ''}`;
+        const item = document.createElement('div')
+        item.className = `sidebar-item ${chat.isGame ? 'game-mode' : ''}`
         item.innerHTML = `
             <span class="item-text" id="title-${chat.id}">${chat.title}</span>
             <div class="actions">
                 <span onclick="renameChat(${chat.id})">✎</span>
                 <span onclick="deleteChat(${chat.id})">🗑</span>
             </div>
-        `;
+        `
         item.onclick = (e) => {
-            if (e.target.tagName !== 'SPAN') loadChat(chat.id);
-        };
-        historyList.appendChild(item);
-    });
+            if (e.target.tagName !== 'SPAN') loadChat(chat.id)
+        }
+        historyList.appendChild(item)
+    })
 }
 
 function renameChat(id) {
-    const newTitle = prompt("Enter new name:");
+    const newTitle = prompt("Enter new name:")
     if (newTitle) {
-        const chat = chatHistory.find(c => c.id === id);
+        const chat = chatHistory.find(c => c.id === id)
         if (chat) {
-            chat.title = newTitle;
-            refreshHistoryUI();
+            chat.title = newTitle
+            refreshHistoryUI()
         }
     }
 }
 
 function deleteChat(id) {
-    chatHistory = chatHistory.filter(c => c.id !== id);
-    refreshHistoryUI();
-    if (currentChatId === id) startNewChat();
+    chatHistory = chatHistory.filter(c => c.id !== id)
+    refreshHistoryUI()
+    if (currentChatId === id) startNewChat()
 }
 
 function loadChat(id) {
-    currentChatId = id;
-    chatFlow.innerHTML = '<div style="color:#555; text-align:center; padding:50px;">Chat content would load here...</div>';
+    currentChatId = id
+    chatFlow.innerHTML = '<div style="color:#555; text-align:center; padding:50px;">Chat content would load here...</div>'
 }
 
 function renderMsg(role, content) {
-    const div = document.createElement('div');
-    div.className = `message ${role}-msg`;
-    div.style.width = '100%';
-    
+    const div = document.createElement('div')
+    div.className = `message ${role}-msg`
+    div.style.width = '100%'
     let html = content
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/```([\s\S]*?)```/g, (match, code) => {
-            return `<code>${code.trim()}</code>`;
-        });
-
+            return `<code>${code.trim()}</code>`
+        })
     div.innerHTML = `
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
             <div style="width:24px; height:24px; background:${role === 'user' ? '#7289da' : '#2ecc71'}; border-radius:6px;"></div>
             <span style="font-size:12px; color:#888; font-weight:800;">${role === 'user' ? 'YOU' : 'PRYSMISAI'}</span>
         </div>
         <div class="message-content" style="padding-left:34px; color:#e0e0e0;">${html}</div>
-    `;
-    
-    chatFlow.appendChild(div);
-    chatFlow.scrollTop = chatFlow.scrollHeight;
+    `
+    chatFlow.appendChild(div)
+    chatFlow.scrollTop = chatFlow.scrollHeight
 }
 
 userInput.addEventListener('input', () => {
-    userInput.style.height = 'auto';
-    userInput.style.height = userInput.scrollHeight + 'px';
-});
+    userInput.style.height = 'auto'
+    userInput.style.height = userInput.scrollHeight + 'px'
+})
 
 function handleFileSelect(event) {
-    const file = event.target.files[0];
+    const file = event.target.files[0]
     if (file && file.type.startsWith("image/")) {
-        const reader = new FileReader();
+        const reader = new FileReader()
         reader.onload = (e) => {
-            pendingPfp = e.target.result;
-            pfpPreview.src = pendingPfp;
-            showSettingsSave();
-        };
-        reader.readAsDataURL(file);
+            pendingPfp = e.target.result
+            pfpPreview.src = pendingPfp
+            showSettingsSave()
+        }
+        reader.readAsDataURL(file)
     }
 }
 
 function toggleSettings() {
-    const sets = document.getElementById('settings-overlay');
+    const sets = document.getElementById('settings-overlay')
     if (sets.style.display === 'flex') {
-        attemptCloseSettings();
+        attemptCloseSettings()
     } else {
-        sets.style.display = 'flex';
-        hideSettingsSave();
+        sets.style.display = 'flex'
+        hideSettingsSave()
     }
 }
 
 function attemptCloseSettings() {
     if (hasUnsavedChanges) {
-        saveBar.classList.add('flash-red');
-        document.body.classList.add('shaking');
+        saveBar.classList.add('flash-red')
+        document.body.classList.add('shaking')
         setTimeout(() => {
-            saveBar.classList.remove('flash-red');
-            document.body.classList.remove('shaking');
-        }, 600);
-        return;
+            saveBar.classList.remove('flash-red')
+            document.body.classList.remove('shaking')
+        }, 600)
+        return
     }
-    document.getElementById('settings-overlay').style.display = 'none';
+    document.getElementById('settings-overlay').style.display = 'none'
 }
 
-function showSettingsSave() { 
-    hasUnsavedChanges = true; 
-    saveBar.classList.add('visible'); 
+function showSettingsSave() {
+    hasUnsavedChanges = true
+    saveBar.classList.add('visible')
 }
 
-function hideSettingsSave() { 
-    hasUnsavedChanges = false; 
-    saveBar.classList.remove('visible'); 
-    pendingPfp = null;
-    nameInput.value = userDisplayName === "Guest" ? "" : userDisplayName;
+function hideSettingsSave() {
+    hasUnsavedChanges = false
+    saveBar.classList.remove('visible')
+    pendingPfp = null
+    nameInput.value = userDisplayName === "Guest" ? "" : userDisplayName
 }
 
 function saveSettings() {
-    userDisplayName = nameInput.value || userDisplayName;
-    if (sideNameLabel) sideNameLabel.innerText = userDisplayName;
+    userDisplayName = nameInput.value || userDisplayName
+    if (sideNameLabel) sideNameLabel.innerText = userDisplayName
     if (pendingPfp && sidePfp) {
-        sidePfp.src = pendingPfp;
+        sidePfp.src = pendingPfp
     }
-    hideSettingsSave();
-    showNotification('Settings saved successfully');
+    hideSettingsSave()
+    showNotification('Settings saved successfully')
     setTimeout(() => {
-        document.getElementById('settings-overlay').style.display = 'none';
-    }, 1500);
+        document.getElementById('settings-overlay').style.display = 'none'
+    }, 1500)
 }
 
 function handlePresetClick(element) {
-    const prompt = element.getAttribute('data-prompt');
-    const userInput = document.getElementById('user-input');
-    userInput.value = prompt;
-    userInput.focus();
-    
-    userInput.style.height = 'auto';
-    userInput.style.height = userInput.scrollHeight + 'px';
+    const prompt = element.getAttribute('data-prompt')
+    const userInput = document.getElementById('user-input')
+    userInput.value = prompt
+    userInput.focus()
+    userInput.style.height = 'auto'
+    userInput.style.height = userInput.scrollHeight + 'px'
 }
