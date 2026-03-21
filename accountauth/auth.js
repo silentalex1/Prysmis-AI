@@ -18,7 +18,7 @@ document.getElementById('createBtn').onclick = async () => {
   if (res.ok) {
     localStorage.setItem('user', username);
     localStorage.setItem('token', data.token);
-    location.href = '/dashboard/aibuild';
+    location.href = '/dashboard/aibuild/index.html';
   } else {
     alert(data.error || 'Failed to create account');
   }
@@ -37,7 +37,7 @@ document.getElementById('loginBtn').onclick = async () => {
   if (res.ok) {
     localStorage.setItem('user', username);
     localStorage.setItem('token', data.token);
-    location.href = '/dashboard/aibuild';
+    location.href = '/dashboard/aibuild/index.html';
   } else {
     alert(data.error || 'Login failed');
   }
