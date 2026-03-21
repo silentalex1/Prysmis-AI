@@ -11,12 +11,12 @@ document.getElementById('createBtn').onclick = async () => {
   if (!username || !password) return alert('Fill both fields');
   const res = await fetch('/account', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username, password})
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
   });
   const data = await res.json();
   if (res.ok) {
-    localStorage.setItem('user', username);
+    localStorage.setItem('user', data.username || username);
     localStorage.setItem('token', data.token);
     location.href = '/dashboard/aibuild/index.html';
   } else {
@@ -30,12 +30,12 @@ document.getElementById('loginBtn').onclick = async () => {
   if (!username || !password) return alert('Fill both fields');
   const res = await fetch('/login', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username, password})
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
   });
   const data = await res.json();
   if (res.ok) {
-    localStorage.setItem('user', username);
+    localStorage.setItem('user', data.username || username);
     localStorage.setItem('token', data.token);
     location.href = '/dashboard/aibuild/index.html';
   } else {
