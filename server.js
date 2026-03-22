@@ -25,6 +25,7 @@ let db = {
   tokens: {},
   communityChat: [],
   admins: {},
+  adminCodes: {},
   meta: { version: 4, created: Date.now() }
 };
 let saveScheduled = false;
@@ -39,6 +40,7 @@ function loadDb() {
       db.tokens = parsed.tokens || {};
       db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
       db.admins = parsed.admins || {};
+      db.adminCodes = parsed.adminCodes || {};
       db.meta = parsed.meta || { version: 4, created: Date.now() };
       for (const u in db.users) {
         if (typeof db.users[u].hashed !== 'string') { delete db.users[u]; continue; }
@@ -287,6 +289,41 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, token, username: uname });
   }
 
+  if (req.method === 'POST' && pt === '/admin/create') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { username, password, code } = body;
+    if (!username || !password || !code) return sendJson(res, 400, { error: 'Username, password and code required' });
+    const uname = username.trim().toLowerCase();
+    const codeClean = code.trim();
+    if (!db.adminCodes || !db.adminCodes[uname]) return sendJson(res, 401, { error: 'No verification code found for this username. Use /generatecode in Discord first.' });
+    const codeData = db.adminCodes[uname];
+    if (codeData.expires < Date.now()) {
+      delete db.adminCodes[uname];
+      saveDb();
+      return sendJson(res, 401, { error: 'Code has expired. Request a new one via Discord.' });
+    }
+    if (codeData.code !== codeClean) return sendJson(res, 401, { error: 'Invalid code.' });
+    if (codeData.used) return sendJson(res, 401, { error: 'Code already used.' });
+    const pErr = validatePassword(password);
+    if (pErr) return sendJson(res, 400, { error: pErr });
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account found for this username.' });
+    db.adminCodes[uname].used = true;
+    db.admins[uname] = {
+      hashed: hash(password),
+      linkedUsername: uname,
+      grantedBy: codeData.grantedBy || 'discord',
+      created: Date.now(),
+      lastLogin: null,
+      verified: true
+    };
+    saveDb();
+    const token = randToken();
+    const now = Date.now();
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
+  }
+
   if (req.method === 'POST' && pt === '/admin/login') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
@@ -300,6 +337,64 @@ const server = http.createServer(async (req, res) => {
     admin.lastLogin = now;
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/generate-code') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, username } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account found for ' + uname + '. They must register first.' });
+    const digits = '0123456789';
+    const symbols = '!@-_=+?';
+    const all = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const len = 6 + Math.floor(Math.random() * 3);
+    let suffix = '';
+    for (let i = 0; i < len; i++) {
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) suffix += digits[Math.floor(Math.random() * digits.length)];
+      else if (pick === 1) suffix += symbols[Math.floor(Math.random() * symbols.length)];
+      else suffix += all[Math.floor(Math.random() * all.length)];
+    }
+    const code = 'PrysmisAI_admin' + suffix;
+    if (!db.adminCodes) db.adminCodes = {};
+    db.adminCodes[uname] = {
+      code,
+      grantedBy: discordUserId,
+      created: Date.now(),
+      expires: Date.now() + 30 * 60 * 1000,
+      used: false
+    };
+    saveDb();
+    return sendJson(res, 200, { success: true, code, username: uname, expiresIn: '30 minutes' });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/verify-code') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { code, discordUserId } = body;
+    if (!code) return sendJson(res, 400, { error: 'code required' });
+    if (!db.adminCodes) return sendJson(res, 404, { error: 'No codes found' });
+    let foundUname = null;
+    for (const u in db.adminCodes) {
+      if (db.adminCodes[u].code === code.trim()) { foundUname = u; break; }
+    }
+    if (!foundUname) return sendJson(res, 404, { error: 'Invalid code' });
+    const codeData = db.adminCodes[foundUname];
+    if (codeData.expires < Date.now()) {
+      delete db.adminCodes[foundUname];
+      saveDb();
+      return sendJson(res, 401, { error: 'Code has expired' });
+    }
+    if (codeData.used) return sendJson(res, 401, { error: 'Code already used' });
+    db.adminCodes[foundUname].discordVerifiedBy = discordUserId || 'unknown';
+    db.adminCodes[foundUname].discordVerifiedAt = Date.now();
+    saveDb();
+    return sendJson(res, 200, { success: true, username: foundUname });
   }
 
   if (req.method === 'GET' && pt === '/discord/ping') {
