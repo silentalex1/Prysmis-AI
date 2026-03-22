@@ -190,6 +190,13 @@ Settings
 </button>
 </div>
 <div class="settings-field-group">
+<label class="settings-label">Username</label>
+<div class="settings-username-row">
+<input type="text" id="settingsUsernameInput" class="settings-token-input" placeholder="Enter new username" autocomplete="off" spellcheck="false">
+</div>
+<div id="settingsUsernameErr" class="settings-username-err"></div>
+</div>
+<div class="settings-field-group">
 <label class="settings-label">Account Auth Token</label>
 <div class="settings-token-row">
 <input type="password" id="settingsTokenInput" class="settings-token-input" readonly placeholder="No token generated yet">
@@ -197,6 +204,9 @@ Settings
 <button class="settings-token-btn settings-token-btn-copy" id="settingsCopyToken">Copy Token</button>
 </div>
 <p class="settings-token-hint">You can generate a new auth token after 24 hours. Do NOT share your account auth token to anyone.</p>
+</div>
+<div class="settings-save-row">
+<button class="settings-save-btn" id="settingsSaveBtn">Save Settings</button>
 </div>
 </div>
 <div class="settings-page" id="settingsPageStudio" style="display:none">
