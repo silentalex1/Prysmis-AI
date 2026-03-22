@@ -26,6 +26,7 @@ let db = {
   communityChat: [],
   admins: {},
   adminCodes: {},
+  announcements: [],
   meta: { version: 5, created: Date.now() }
 };
 let saveScheduled = false;
@@ -41,6 +42,7 @@ function loadDb() {
       db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
       db.admins = parsed.admins || {};
       db.adminCodes = parsed.adminCodes || {};
+      db.announcements = Array.isArray(parsed.announcements) ? parsed.announcements : [];
       db.meta = parsed.meta || { version: 5, created: Date.now() };
       for (const u in db.users) {
         if (typeof db.users[u].hashed !== 'string') { delete db.users[u]; continue; }
@@ -502,6 +504,39 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true });
   }
 
+  if (req.method === 'GET' && pt === '/announcements') {
+    return sendJson(res, 200, Array.isArray(db.announcements) ? db.announcements : []);
+  }
+
+  if (req.method === 'POST' && pt === '/announcements') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.admins[td.username]) return sendJson(res, 403, { error: 'Admin only' });
+    const { title, description } = body;
+    if (!title || !title.trim()) return sendJson(res, 400, { error: 'Title required' });
+    if (!description || !description.trim()) return sendJson(res, 400, { error: 'Description required' });
+    if (!Array.isArray(db.announcements)) db.announcements = [];
+    const ann = { id: crypto.randomBytes(8).toString('hex'), title: title.trim(), description: description.trim(), author: td.username, created: Date.now() };
+    db.announcements.unshift(ann);
+    if (db.announcements.length > 100) db.announcements = db.announcements.slice(0, 100);
+    saveDb();
+    return sendJson(res, 200, { success: true, announcement: ann });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/announcements/')) {
+    const annId = pt.slice('/announcements/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.admins[td.username]) return sendJson(res, 403, { error: 'Admin only' });
+    if (!Array.isArray(db.announcements)) return sendJson(res, 404, { error: 'Not found' });
+    const idx = db.announcements.findIndex(a => a.id === annId);
+    if (idx === -1) return sendJson(res, 404, { error: 'Not found' });
+    db.announcements.splice(idx, 1);
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
   if (req.method === 'GET' && pt === '/stats') {
     const now = Date.now();
     return sendJson(res, 200, { users: Object.keys(db.users).length, active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1), projects: db.projects.length });
@@ -870,6 +905,13 @@ const server = http.createServer(async (req, res) => {
       }
     }
     return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
+  }
+
+  if (req.method === 'GET' && pt === '/apidoc') {
+    fs.readFile('./apidoc/index.html', (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(data);
+    }); return;
   }
 
   if (req.method === 'GET') {
