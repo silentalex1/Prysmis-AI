@@ -31,11 +31,11 @@ var currentMessages = [];
 var activeChatId = null;
 
 var MODEL_API_MAP = {
-  'claude-opus-4-6': 'claude-opus-4-6',
-  'claude-opus-4-5': 'claude-opus-4-5',
-  'claude-sonnet-4-6': 'claude-sonnet-4-6',
   'gpt-5.2': 'gpt-5.2',
-  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview'
+  'claude-opus-4-5': 'claude-opus-4-5',
+  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
+  'claude-sonnet-4-5': 'claude-sonnet-4-5',
+  'gpt-4o': 'gpt-4o'
 };
 
 var SYSTEM_PROMPT = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations.';
@@ -172,7 +172,7 @@ function showThinking() {
 
 function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
-function getModel() { return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-6'; }
+function getModel() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
 
 function buildPuterMessages() {
   var msgs = [];
@@ -683,7 +683,7 @@ var connectBtn = document.getElementById('connectBtn');
 var statusDot = document.getElementById('statusDot');
 var statusText = document.getElementById('statusText');
 
-function getModelValue() { return modelSelect.value || 'claude-sonnet-4-6'; }
+function getModelValue() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
 
 function setExplorerStatus(connected, model) {
   pluginConnected = connected;
