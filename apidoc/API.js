@@ -1,9 +1,5 @@
 document.getElementById('backBtn').addEventListener('click', function() {
-  if (document.referrer && document.referrer !== window.location.href) {
-    history.back();
-  } else {
-    location.href = '/dashboard/aibuild/index.html';
-  }
+  location.href = 'https://prysmisai.wtf/dashboard/aibuild/index.html';
 });
 
 function copyText(text, btn, original) {
