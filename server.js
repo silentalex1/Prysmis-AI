@@ -302,6 +302,26 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
   }
 
+  if (req.method === 'GET' && pt === '/discord/ping') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    return sendJson(res, 200, { ok: true, status: 'connected', site: 'prysmisai.wtf', users: Object.keys(db.users).length, admins: Object.keys(db.admins).length });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/connect') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, botTag } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    db.meta.botConnected = true;
+    db.meta.botConnectedAt = Date.now();
+    db.meta.botTag = botTag || 'unknown';
+    db.meta.botOperatorId = discordUserId;
+    saveDb();
+    return sendJson(res, 200, { ok: true, message: 'Bot connected to PrysmisAI', site: 'prysmisai.wtf' });
+  }
+
   if (req.method === 'POST' && pt === '/discord/setadmin') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
