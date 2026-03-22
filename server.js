@@ -26,7 +26,7 @@ let db = {
   communityChat: [],
   admins: {},
   adminCodes: {},
-  meta: { version: 4, created: Date.now() }
+  meta: { version: 5, created: Date.now() }
 };
 let saveScheduled = false;
 const sseClients = new Set();
@@ -41,7 +41,7 @@ function loadDb() {
       db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
       db.admins = parsed.admins || {};
       db.adminCodes = parsed.adminCodes || {};
-      db.meta = parsed.meta || { version: 4, created: Date.now() };
+      db.meta = parsed.meta || { version: 5, created: Date.now() };
       for (const u in db.users) {
         if (typeof db.users[u].hashed !== 'string') { delete db.users[u]; continue; }
         if (!Array.isArray(db.users[u].chats)) db.users[u].chats = [];
@@ -58,6 +58,7 @@ function loadDb() {
         db.tokens = parsed.tokens || {};
         db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
         db.admins = parsed.admins || {};
+        db.adminCodes = parsed.adminCodes || {};
         return;
       }
     } catch (__) {}
@@ -157,50 +158,62 @@ function validatePassword(p) {
 }
 
 const PUTER_MODELS = [
-  'claude-opus-4-5',
-  'claude-sonnet-4-5',
-  'claude-haiku-3-5',
+  'gpt-5.2',
   'gpt-4o',
   'gpt-4o-mini',
   'o3-mini',
+  'claude-opus-4-5',
+  'claude-sonnet-4-5',
+  'claude-haiku-3-5',
+  'gemini-3.1-pro-preview',
   'google/gemini-1.5-pro'
 ];
 
 const MODEL_MAP = {
+  'gpt-5.2': 'gpt-5.2',
+  'chatgpt 5.2': 'gpt-5.2',
   'claude opus 4.6': 'claude-opus-4-5',
-  'gemini 3.2': 'google/gemini-1.5-pro',
-  'chatgpt 5.2': 'gpt-4o',
+  'claude opus 4.5': 'claude-opus-4-5',
+  'claude-opus-4-6': 'claude-opus-4-5',
+  'claude-opus-4-5': 'claude-opus-4-5',
+  'claude-sonnet-4-6': 'claude-sonnet-4-5',
+  'claude-sonnet-4-5': 'claude-sonnet-4-5',
+  'claude-haiku-4-5': 'claude-haiku-3-5',
+  'claude-haiku-3-5': 'claude-haiku-3-5',
+  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
+  'gemini 3.1 pro': 'gemini-3.1-pro-preview',
   'anthropic/claude-opus-4-6': 'claude-opus-4-5',
-  'anthropic/claude-sonnet-4-6': 'claude-sonnet-4-5',
   'anthropic/claude-opus-4-5': 'claude-opus-4-5',
+  'anthropic/claude-sonnet-4-6': 'claude-sonnet-4-5',
   'anthropic/claude-sonnet-4-5': 'claude-sonnet-4-5',
   'anthropic/claude-haiku-4-5': 'claude-haiku-3-5',
-  'openai/gpt-5.4': 'gpt-4o',
-  'openai/gpt-5.4-mini': 'gpt-4o-mini',
+  'openai/gpt-5.2': 'gpt-5.2',
+  'openai/gpt-5.4': 'gpt-5.2',
   'openai/gpt-4o': 'gpt-4o',
   'openai/o3': 'o3-mini',
-  'openai/o4-mini': 'o3-mini',
-  'google/gemini-3.2-pro': 'google/gemini-1.5-pro',
-  'google/gemini-2.5-pro': 'google/gemini-1.5-pro',
+  'google/gemini-3.1-pro': 'gemini-3.1-pro-preview',
+  'google/gemini-3.2-pro': 'gemini-3.1-pro-preview',
+  'google/gemini-2.5-pro': 'gemini-3.1-pro-preview',
   'google/gemini-1.5-pro': 'google/gemini-1.5-pro',
   'deepseek/deepseek-r1': 'claude-sonnet-4-5',
   'deepseek/deepseek-v3': 'claude-sonnet-4-5',
-  'x-ai/grok-4': 'gpt-4o',
+  'x-ai/grok-4': 'gpt-5.2',
   'meta-llama/llama-4': 'claude-sonnet-4-5',
   'mistral/mistral-large': 'claude-sonnet-4-5'
 };
 
 function resolveModel(m) {
-  if (!m) return 'claude-sonnet-4-5';
-  if (PUTER_MODELS.includes(m)) return m;
-  const lower = (typeof m === 'string') ? m.toLowerCase().trim() : '';
+  if (!m || typeof m !== 'string') return 'gpt-5.2';
+  const trimmed = m.trim();
+  if (PUTER_MODELS.includes(trimmed)) return trimmed;
+  const lower = trimmed.toLowerCase();
   if (MODEL_MAP[lower]) return MODEL_MAP[lower];
-  if (MODEL_MAP[m]) return MODEL_MAP[m];
-  if (typeof m === 'string' && m.includes('/')) {
-    const short = m.split('/').pop();
+  if (MODEL_MAP[trimmed]) return MODEL_MAP[trimmed];
+  if (trimmed.includes('/')) {
+    const short = trimmed.split('/').pop();
     if (short && PUTER_MODELS.includes(short)) return short;
   }
-  return 'claude-sonnet-4-5';
+  return 'gpt-5.2';
 }
 
 function broadcastSSE(data) {
@@ -237,10 +250,10 @@ const server = http.createServer(async (req, res) => {
     });
     res.write('data: {"type":"connected"}\n\n');
     sseClients.add(res);
-    const heartbeat = setInterval(() => {
-      try { res.write(': ping\n\n'); } catch (_) { clearInterval(heartbeat); sseClients.delete(res); }
+    const hb = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (_) { clearInterval(hb); sseClients.delete(res); }
     }, 20000);
-    req.on('close', () => { clearInterval(heartbeat); sseClients.delete(res); });
+    req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
     return;
   }
 
@@ -250,23 +263,11 @@ const server = http.createServer(async (req, res) => {
     if (uErr) return sendJson(res, 400, { error: uErr });
     const pErr = validatePassword(body.password);
     if (pErr) return sendJson(res, 400, { error: pErr });
-    const uname = body.username.trim();
+    const uname = body.username.trim().toLowerCase();
     if (db.users[uname]) return sendJson(res, 409, { error: 'Account is already created' });
     const token = randToken();
     const now = Date.now();
-    db.users[uname] = {
-      hashed: hash(body.password),
-      created: now,
-      lastLogin: now,
-      lastSeen: now,
-      loginCount: 1,
-      chats: [],
-      pluginToken: null,
-      pluginConnected: false,
-      pluginModel: 'claude-sonnet-4-5',
-      authToken: null,
-      authTokenCreated: null
-    };
+    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'gpt-5.2', authToken: null, authTokenCreated: null };
     db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
@@ -275,15 +276,14 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pt === '/login') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
-    const uname = body.username.trim();
+    const uname = body.username.trim().toLowerCase();
     const user = db.users[uname];
     if (!user) return sendJson(res, 401, { error: 'No account found with that username' });
     if (user.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
     const token = randToken();
     const now = Date.now();
     db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
-    user.lastLogin = now;
-    user.lastSeen = now;
+    user.lastLogin = now; user.lastSeen = now;
     user.loginCount = (user.loginCount || 0) + 1;
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
@@ -295,28 +295,15 @@ const server = http.createServer(async (req, res) => {
     if (!username || !password || !code) return sendJson(res, 400, { error: 'Username, password and code required' });
     const uname = username.trim().toLowerCase();
     const codeClean = code.trim();
-    if (!db.adminCodes || !db.adminCodes[uname]) return sendJson(res, 401, { error: 'No verification code found for this username. Use /generatecode in Discord first.' });
-    const codeData = db.adminCodes[uname];
-    if (codeData.expires < Date.now()) {
-      delete db.adminCodes[uname];
-      saveDb();
-      return sendJson(res, 401, { error: 'Code has expired. Request a new one via Discord.' });
-    }
-    if (codeData.code !== codeClean) return sendJson(res, 401, { error: 'Invalid code.' });
-    if (codeData.used) return sendJson(res, 401, { error: 'Code already used.' });
     const pErr = validatePassword(password);
     if (pErr) return sendJson(res, 400, { error: pErr });
+    if (!db.adminCodes[uname]) return sendJson(res, 401, { error: 'No code found for this username. Use /generatecode in Discord first.' });
+    const codeData = db.adminCodes[uname];
+    if (codeData.expires < Date.now()) { delete db.adminCodes[uname]; saveDb(); return sendJson(res, 401, { error: 'Code expired. Request a new one via Discord.' }); }
+    if (codeData.code !== codeClean) return sendJson(res, 401, { error: 'Invalid code.' });
     if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account found for this username.' });
-    db.adminCodes[uname].used = true;
-    db.admins[uname] = {
-      hashed: hash(password),
-      linkedUsername: uname,
-      grantedBy: codeData.grantedBy || 'discord',
-      created: Date.now(),
-      lastLogin: null,
-      verified: true
-    };
-    saveDb();
+    db.admins[uname] = { hashed: hash(password), linkedUsername: uname, grantedBy: codeData.grantedBy || 'discord', created: Date.now(), lastLogin: null, verified: true };
+    delete db.adminCodes[uname];
     const token = randToken();
     const now = Date.now();
     db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
@@ -347,7 +334,7 @@ const server = http.createServer(async (req, res) => {
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
     if (!username) return sendJson(res, 400, { error: 'username required' });
     const uname = username.trim().toLowerCase();
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account found for ' + uname + '. They must register first.' });
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account for ' + uname + '. They must register first.' });
     const digits = '0123456789';
     const symbols = '!@-_=+?';
     const all = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -360,14 +347,7 @@ const server = http.createServer(async (req, res) => {
       else suffix += all[Math.floor(Math.random() * all.length)];
     }
     const code = 'PrysmisAI_admin' + suffix;
-    if (!db.adminCodes) db.adminCodes = {};
-    db.adminCodes[uname] = {
-      code,
-      grantedBy: discordUserId,
-      created: Date.now(),
-      expires: Date.now() + 30 * 60 * 1000,
-      used: false
-    };
+    db.adminCodes[uname] = { code, grantedBy: discordUserId, created: Date.now(), expires: Date.now() + 30 * 60 * 1000 };
     saveDb();
     return sendJson(res, 200, { success: true, code, username: uname, expiresIn: '30 minutes' });
   }
@@ -378,22 +358,13 @@ const server = http.createServer(async (req, res) => {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { code, discordUserId } = body;
     if (!code) return sendJson(res, 400, { error: 'code required' });
-    if (!db.adminCodes) return sendJson(res, 404, { error: 'No codes found' });
     let foundUname = null;
     for (const u in db.adminCodes) {
       if (db.adminCodes[u].code === code.trim()) { foundUname = u; break; }
     }
     if (!foundUname) return sendJson(res, 404, { error: 'Invalid code' });
     const codeData = db.adminCodes[foundUname];
-    if (codeData.expires < Date.now()) {
-      delete db.adminCodes[foundUname];
-      saveDb();
-      return sendJson(res, 401, { error: 'Code has expired' });
-    }
-    if (codeData.used) return sendJson(res, 401, { error: 'Code already used' });
-    db.adminCodes[foundUname].discordVerifiedBy = discordUserId || 'unknown';
-    db.adminCodes[foundUname].discordVerifiedAt = Date.now();
-    saveDb();
+    if (codeData.expires < Date.now()) { delete db.adminCodes[foundUname]; saveDb(); return sendJson(res, 401, { error: 'Code expired' }); }
     return sendJson(res, 200, { success: true, username: foundUname });
   }
 
@@ -424,15 +395,9 @@ const server = http.createServer(async (req, res) => {
     const { discordUserId, username, password } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
     if (!username || !password) return sendJson(res, 400, { error: 'username and password required' });
-    const uname = username.trim();
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'Username not found. User must have a website account first.' });
-    db.admins[uname] = {
-      hashed: hash(password),
-      linkedUsername: uname,
-      grantedBy: discordUserId,
-      created: Date.now(),
-      lastLogin: null
-    };
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'Username not found. User must register on the website first.' });
+    db.admins[uname] = { hashed: hash(password), linkedUsername: uname, grantedBy: discordUserId, created: Date.now(), lastLogin: null };
     saveDb();
     return sendJson(res, 200, { success: true, message: 'Admin account created for ' + uname });
   }
@@ -444,24 +409,21 @@ const server = http.createServer(async (req, res) => {
     const { discordUserId, adminUsername } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
     if (!adminUsername) return sendJson(res, 400, { error: 'adminUsername required' });
-    const uname = adminUsername.trim();
+    const uname = adminUsername.trim().toLowerCase();
     if (!db.admins[uname]) return sendJson(res, 404, { error: 'Admin account not found' });
     delete db.admins[uname];
-    for (const t in db.tokens) {
-      if (db.tokens[t].username === uname && db.tokens[t].isAdmin) delete db.tokens[t];
-    }
+    for (const t in db.tokens) { if (db.tokens[t].username === uname && db.tokens[t].isAdmin) delete db.tokens[t]; }
     saveDb();
     return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
   }
 
   if (req.method === 'GET' && pt === '/discord/check-user') {
-    const username = url.searchParams.get('username');
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    const username = url.searchParams.get('username');
     if (!username) return sendJson(res, 400, { error: 'username required' });
-    const exists = !!db.users[username.trim()];
-    const isAdmin = !!db.admins[username.trim()];
-    return sendJson(res, 200, { exists, isAdmin, username: username.trim() });
+    const uname = username.trim().toLowerCase();
+    return sendJson(res, 200, { exists: !!db.users[uname], isAdmin: !!db.admins[uname], username: uname });
   }
 
   if (req.method === 'GET' && pt === '/me') {
@@ -481,23 +443,15 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && pt === '/stats') {
     const now = Date.now();
-    return sendJson(res, 200, {
-      users: Object.keys(db.users).length,
-      active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1),
-      projects: db.projects.length
-    });
+    return sendJson(res, 200, { users: Object.keys(db.users).length, active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1), projects: db.projects.length });
   }
 
   if (req.method === 'GET' && pt === '/status') {
     const pluginToken = url.searchParams.get('pluginToken') || '';
-    let status = 'disconnected', model = 'claude-sonnet-4-5', username = 'unknown';
+    let status = 'disconnected', model = 'gpt-5.2', username = 'unknown';
     if (pluginToken) {
       for (const u in db.users) {
-        if (db.users[u].pluginToken === pluginToken) {
-          status = db.users[u].pluginConnected ? 'connected' : 'disconnected';
-          model = db.users[u].pluginModel || 'claude-sonnet-4-5';
-          username = u; break;
-        }
+        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'gpt-5.2'; username = u; break; }
       }
     }
     return sendJson(res, 200, { status, model, user: username });
@@ -531,10 +485,8 @@ const server = http.createServer(async (req, res) => {
     if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
     for (const u in db.users) {
       if (db.users[u].pluginToken === body.pluginToken) {
-        db.users[u].pluginConnected = true;
-        db.users[u].pluginLastPing = Date.now();
-        saveDb();
-        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'claude-sonnet-4-5', connected: true });
+        db.users[u].pluginConnected = true; db.users[u].pluginLastPing = Date.now(); saveDb();
+        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'gpt-5.2', connected: true });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -545,10 +497,8 @@ const server = http.createServer(async (req, res) => {
     if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
     for (const u in db.users) {
       if (db.users[u].pluginToken === body.pluginToken) {
-        db.users[u].pluginLastPing = Date.now();
-        db.users[u].pluginConnected = true;
-        saveDb();
-        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'claude-sonnet-4-5', user: u });
+        db.users[u].pluginLastPing = Date.now(); db.users[u].pluginConnected = true; saveDb();
+        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'gpt-5.2', user: u });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -577,9 +527,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 429, { error: 'You can generate a new token in ' + h + ' hour' + (h === 1 ? '' : 's') });
     }
     const authToken = crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(4).toString('hex');
-    user.authToken = authToken;
-    user.authTokenCreated = now;
-    saveDb();
+    user.authToken = authToken; user.authTokenCreated = now; saveDb();
     return sendJson(res, 200, { success: true, authToken, url: 'prysmisai.wtf/token/' + authToken });
   }
 
@@ -589,11 +537,7 @@ const server = http.createServer(async (req, res) => {
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     const now = Date.now();
-    return sendJson(res, 200, {
-      authToken: user.authToken || null,
-      canGenerate: !user.authTokenCreated || (now - user.authTokenCreated) >= 24 * 3600000,
-      url: user.authToken ? 'prysmisai.wtf/token/' + user.authToken : null
-    });
+    return sendJson(res, 200, { authToken: user.authToken || null, canGenerate: !user.authTokenCreated || (now - user.authTokenCreated) >= 24 * 3600000, url: user.authToken ? 'prysmisai.wtf/token/' + user.authToken : null });
   }
 
   if (req.method === 'GET' && pt === '/projects') {
@@ -612,8 +556,7 @@ const server = http.createServer(async (req, res) => {
     if (about.trim().length > 500) return sendJson(res, 400, { error: 'Description too long' });
     if (db.projects.length >= MAX_PROJECTS) db.projects.pop();
     const project = { id: crypto.randomBytes(10).toString('hex'), title: title.trim(), link: link.trim(), about: about.trim(), author: td.username, created: Date.now() };
-    db.projects.unshift(project);
-    saveDb();
+    db.projects.unshift(project); saveDb();
     return sendJson(res, 200, { success: true, project });
   }
 
@@ -624,8 +567,7 @@ const server = http.createServer(async (req, res) => {
     const idx = db.projects.findIndex(p => p.id === id);
     if (idx === -1) return sendJson(res, 404, { error: 'Not found' });
     if (db.projects[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your project' });
-    db.projects.splice(idx, 1);
-    saveDb();
+    db.projects.splice(idx, 1); saveDb();
     return sendJson(res, 200, { success: true });
   }
 
@@ -642,8 +584,7 @@ const server = http.createServer(async (req, res) => {
     const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, isAdmin: !!db.admins[td.username], text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
     db.communityChat.push(msg);
     if (db.communityChat.length > MAX_COMMUNITY_MSGS) db.communityChat = db.communityChat.slice(-MAX_COMMUNITY_MSGS);
-    saveDb();
-    broadcastSSE({ type: 'new_message', msg });
+    saveDb(); broadcastSSE({ type: 'new_message', msg });
     return sendJson(res, 200, { success: true, msg });
   }
 
@@ -657,11 +598,8 @@ const server = http.createServer(async (req, res) => {
     if (db.communityChat[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your message' });
     if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Text required' });
     if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
-    db.communityChat[idx].text = body.text.trim();
-    db.communityChat[idx].edited = true;
-    db.communityChat[idx].editedAt = Date.now();
-    saveDb();
-    broadcastSSE({ type: 'edit_message', msg: db.communityChat[idx] });
+    db.communityChat[idx].text = body.text.trim(); db.communityChat[idx].edited = true; db.communityChat[idx].editedAt = Date.now();
+    saveDb(); broadcastSSE({ type: 'edit_message', msg: db.communityChat[idx] });
     return sendJson(res, 200, { success: true, msg: db.communityChat[idx] });
   }
 
@@ -673,8 +611,7 @@ const server = http.createServer(async (req, res) => {
     if (idx === -1) return sendJson(res, 404, { error: 'Message not found' });
     const isAdminUser = !!db.admins[td.username];
     if (db.communityChat[idx].author !== td.username && !isAdminUser) return sendJson(res, 403, { error: 'Not your message' });
-    db.communityChat.splice(idx, 1);
-    saveDb();
+    db.communityChat.splice(idx, 1); saveDb();
     broadcastSSE({ type: 'delete_message', id });
     return sendJson(res, 200, { success: true });
   }
@@ -698,8 +635,7 @@ const server = http.createServer(async (req, res) => {
     const chat = { id: crypto.randomBytes(10).toString('hex'), title: body.title.substring(0, 40), messages: body.messages.slice(0, 200), created: Date.now(), updated: Date.now() };
     user.chats.unshift(chat);
     if (user.chats.length > MAX_CHATS) user.chats = user.chats.slice(0, MAX_CHATS);
-    saveDb();
-    return sendJson(res, 200, { success: true, chat });
+    saveDb(); return sendJson(res, 200, { success: true, chat });
   }
 
   if (req.method === 'PUT' && pt.startsWith('/chats/')) {
@@ -713,8 +649,7 @@ const server = http.createServer(async (req, res) => {
     if (idx === -1) return sendJson(res, 404, { error: 'Chat not found' });
     if (Array.isArray(body.messages)) user.chats[idx].messages = body.messages.slice(0, 200);
     if (typeof body.title === 'string') user.chats[idx].title = body.title.substring(0, 40);
-    user.chats[idx].updated = Date.now();
-    saveDb();
+    user.chats[idx].updated = Date.now(); saveDb();
     return sendJson(res, 200, { success: true, chat: user.chats[idx] });
   }
 
@@ -726,78 +661,40 @@ const server = http.createServer(async (req, res) => {
     if (!user || !Array.isArray(user.chats)) return sendJson(res, 404, { error: 'User not found' });
     const idx = user.chats.findIndex(c => c.id === id);
     if (idx === -1) return sendJson(res, 404, { error: 'Chat not found' });
-    user.chats.splice(idx, 1);
-    saveDb();
-    return sendJson(res, 200, { success: true });
-  }
-
-  if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions')) {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const rawModel = body.model || url.searchParams.get('model') || 'gpt-4o';
-    const modelToUse = resolveModel(rawModel);
-    const messages = Array.isArray(body.messages) ? body.messages : [];
-    const validMessages = messages.filter(m => m && typeof m === 'object' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0).map(m => ({ role: m.role, content: m.content.trim() }));
-    const userOnly = validMessages.filter(m => m.role !== 'system');
-    if (userOnly.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
-    const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
-    const maxTok = Math.min(typeof body.max_tokens === 'number' ? body.max_tokens : 2048, 4096);
-    const tryModel = async (m, msgs) => client.chat.completions.create({ model: m, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
-    const FALLBACKS = ['gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
-    let lastErr = null;
-    const tryList = [modelToUse, ...FALLBACKS.filter(f => f !== modelToUse)];
-    for (const m of tryList) {
-      try {
-        const result = await tryModel(m, validMessages);
-        return sendJson(res, 200, result);
-      } catch (e) {
-        lastErr = e;
-        try {
-          const result2 = await tryModel(m, userOnly);
-          return sendJson(res, 200, result2);
-        } catch (e2) { lastErr = e2; }
-      }
-    }
-    return sendJson(res, 500, { error: (lastErr && lastErr.message) ? lastErr.message : 'AI request failed' });
-  }
-
-  if (req.method === 'DELETE' && pt.startsWith('/admin/users/')) {
-    const uname = decodeURIComponent(pt.slice('/admin/users/'.length));
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    if (!db.tokens[getReqToken(req, url)] || !db.tokens[getReqToken(req, url)].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
-    if (db.admins[uname]) return sendJson(res, 403, { error: 'Cannot remove an admin account. Blacklist them via Discord first.' });
-    delete db.users[uname];
-    for (const t in db.tokens) { if (db.tokens[t].username === uname) delete db.tokens[t]; }
-    db.communityChat = db.communityChat.filter(m => m.author !== uname);
-    db.projects = db.projects.filter(p => p.author !== uname);
-    saveDb();
-    broadcastSSE({ type: 'user_removed', username: uname });
+    user.chats.splice(idx, 1); saveDb();
     return sendJson(res, 200, { success: true });
   }
 
   if (req.method === 'GET' && pt === '/adminpanel') {
     fs.readFile('./adminpanel/index.html', (err, data) => {
       if (err) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(data);
-    });
-    return;
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(data);
+    }); return;
   }
 
   if (req.method === 'GET' && pt === '/admin/users') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    if (!db.tokens[getReqToken(req, url)] || !db.tokens[getReqToken(req, url)].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-    const users = Object.entries(db.users).map(([uname, u]) => ({
-      username: uname,
-      created: u.created,
-      lastLogin: u.lastLogin,
-      chatCount: (u.chats || []).length,
-      loginCount: u.loginCount || 1,
-      isAdmin: !!db.admins[uname]
-    }));
+    const rawToken = getReqToken(req, url);
+    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    const users = Object.entries(db.users).map(([uname, u]) => ({ username: uname, created: u.created, lastLogin: u.lastLogin, chatCount: (u.chats || []).length, loginCount: u.loginCount || 1, isAdmin: !!db.admins[uname] }));
     return sendJson(res, 200, { users, adminCount: Object.keys(db.admins).length });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/admin/users/')) {
+    const uname = decodeURIComponent(pt.slice('/admin/users/'.length)).toLowerCase();
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const rawToken = getReqToken(req, url);
+    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    if (db.admins[uname]) return sendJson(res, 403, { error: 'Cannot remove an admin. Blacklist them via Discord first.' });
+    delete db.users[uname];
+    for (const t in db.tokens) { if (db.tokens[t].username === uname) delete db.tokens[t]; }
+    db.communityChat = db.communityChat.filter(m => m.author !== uname);
+    db.projects = db.projects.filter(p => p.author !== uname);
+    saveDb(); broadcastSSE({ type: 'user_removed', username: uname });
+    return sendJson(res, 200, { success: true });
   }
 
   if (req.method === 'POST' && pt === '/admin/gate') {
@@ -805,27 +702,40 @@ const server = http.createServer(async (req, res) => {
     const { code } = body;
     if (!code) return sendJson(res, 400, { error: 'Code required' });
     const codeClean = code.trim();
-    if (!db.adminCodes) return sendJson(res, 401, { error: 'Invalid or expired code' });
     let foundUname = null;
     for (const u in db.adminCodes) {
       if (db.adminCodes[u].code === codeClean) { foundUname = u; break; }
     }
     if (!foundUname) return sendJson(res, 401, { error: 'Invalid or expired code' });
     const codeData = db.adminCodes[foundUname];
-    if (codeData.expires < Date.now()) {
-      delete db.adminCodes[foundUname];
-      saveDb();
-      return sendJson(res, 401, { error: 'Code has expired. Request a new one via Discord.' });
-    }
-    if (codeData.used) return sendJson(res, 401, { error: 'Code already used' });
+    if (codeData.expires < Date.now()) { delete db.adminCodes[foundUname]; saveDb(); return sendJson(res, 401, { error: 'Code expired. Request a new one via Discord.' }); }
     if (!db.admins[foundUname]) return sendJson(res, 401, { error: 'Admin account not set up yet. Create your account first.' });
-    db.adminCodes[foundUname].used = true;
     const token = randToken();
     const now = Date.now();
     db.tokens[token] = { username: foundUname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
-    db.admins[foundUname].lastLogin = now;
-    saveDb();
+    db.admins[foundUname].lastLogin = now; saveDb();
     return sendJson(res, 200, { success: true, token, username: foundUname, isAdmin: true });
+  }
+
+  if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions')) {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const rawModel = body.model || url.searchParams.get('model') || 'gpt-5.2';
+    const modelToUse = resolveModel(rawModel);
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+    const validMessages = messages.filter(m => m && typeof m === 'object' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0).map(m => ({ role: m.role, content: m.content.trim() }));
+    const userOnly = validMessages.filter(m => m.role !== 'system');
+    if (userOnly.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
+    const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
+    const maxTok = Math.min(typeof body.max_tokens === 'number' ? body.max_tokens : 2048, 4096);
+    const tryCall = async (m, msgs) => client.chat.completions.create({ model: m, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
+    const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
+    const tryList = [modelToUse, ...fallbacks.filter(f => f !== modelToUse)];
+    let lastErr = null;
+    for (const m of tryList) {
+      try { const r = await tryCall(m, validMessages); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
+      try { const r = await tryCall(m, userOnly); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
+    }
+    return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
   }
 
   if (req.method === 'GET') {
@@ -835,10 +745,8 @@ const server = http.createServer(async (req, res) => {
     const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' }[ext] || 'text/plain';
     fs.readFile(filePath, (err, data) => {
       if (err) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'Content-Type': mime });
-      res.end(data);
-    });
-    return;
+      res.writeHead(200, { 'Content-Type': mime }); res.end(data);
+    }); return;
   }
 
   res.writeHead(404); res.end();
