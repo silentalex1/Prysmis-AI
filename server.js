@@ -454,15 +454,20 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/admin/set-rank') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const rawToken = getReqToken(req, url);
-    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-    const { username, rank } = body;
+    const secret = req.headers['x-discord-secret'] || '';
+    const isDiscordReq = secret === DISCORD_BOT_SECRET;
+    if (!isDiscordReq) {
+      const td = getTokenData(getReqToken(req, url));
+      if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+      const rawToken = getReqToken(req, url);
+      if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    }
+    const { username, rank, discordUserId } = body;
+    if (isDiscordReq && !ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
     if (!username) return sendJson(res, 400, { error: 'username required' });
     const uname = username.trim().toLowerCase();
     if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
-    const validRanks = ['early access', 'premium', 'chat mod', null, ''];
+    const validRanks = ['early access', 'premium', 'chat mod', 'owner', null, ''];
     if (!validRanks.includes(rank)) return sendJson(res, 400, { error: 'Invalid rank' });
     db.users[uname].rank = rank || null;
     if (rank === 'premium') db.users[uname].premium = true;
