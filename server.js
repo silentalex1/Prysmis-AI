@@ -533,7 +533,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && (pathname === '/v1/chat/completions' || pathname === '/chat/completions')) {
     let body;
     try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: 'Invalid request body' }); }
-    const modelParam = url.searchParams.get('model') || body.model || 'anthropic/claude-sonnet-4-6';
+    const modelParam = body.model || url.searchParams.get('model') || 'anthropic/claude-sonnet-4-6';
     try {
       const completion = await client.chat.completions.create({
         model: modelParam,
