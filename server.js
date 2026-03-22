@@ -1,660 +1,625 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { OpenAI } = require('openai');
-
-const client = new OpenAI({
-  baseURL: 'https://api.puter.com/puterai/openai/v1/',
-  apiKey: process.env.PUTER_TOKEN
+var storedUser = localStorage.getItem('user');
+var storedToken = localStorage.getItem('token');
+if (!storedUser || !storedToken) {
+  location.href = '/accountauth/index.html';
+}
+var chatArea = document.getElementById('chatArea');
+var inputEl = document.getElementById('input');
+var sendBtn = document.getElementById('sendBtn');
+var modelSelect = document.getElementById('modelSelect');
+var presetsEl = document.getElementById('presets');
+var projectsList = document.getElementById('projectsList');
+var modal = document.getElementById('addGameModal');
+var postGameBtn = document.getElementById('postGameBtn');
+var newChatBtn = document.getElementById('newChatBtn');
+var chatHistoryEl = document.getElementById('chatHistory');
+var userNameEl = document.getElementById('userName');
+userNameEl.textContent = storedUser || 'User';
+var currentMessages = [];
+var activeChatId = null;
+var MODEL_API_MAP = {
+  'Claude Opus 4.6': 'claude-opus-4-5',
+  'Gemini 3.2': 'google/gemini-1.5-pro',
+  'ChatGPT 5.2': 'gpt-4o'
+};
+var SYSTEM_PROMPT = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations.';
+document.querySelectorAll('.tab-link').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    showTab(btn.dataset.tab, btn);
+  });
 });
-
-const DB_FILE = 'db.json';
-const DB_BACKUP = 'db.backup.json';
-const SALT = 'prysmis_v3_kx9salt2025';
-const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000;
-const MAX_CHATS = 100;
-const MAX_PROJECTS = 500;
-const MAX_COMMUNITY_MSGS = 2000;
-const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET || 'prysmis_discord_secret_2025';
-const ALLOWED_DISCORD_IDS = ['841749813702688858', '1360884411154825336', '617174993242947585'];
-const sseClients = new Set();
-
-let db = {
-  users: {},
-  projects: [],
-  tokens: {},
-  communityChat: [],
-  admins: {},
-  adminCodes: {},
-  meta: { version: 5, created: Date.now() }
-};
-
-let saveScheduled = false;
-
-function loadDb() {
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-      db.users = parsed.users || {};
-      db.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
-      db.tokens = parsed.tokens || {};
-      db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
-      db.admins = parsed.admins || {};
-      db.adminCodes = parsed.adminCodes || {};
-      db.meta = parsed.meta || { version: 5, created: Date.now() };
-      for (const u in db.users) {
-        if (typeof db.users[u].hashed !== 'string') { delete db.users[u]; continue; }
-        if (!Array.isArray(db.users[u].chats)) db.users[u].chats = [];
-        if (!db.users[u].created) db.users[u].created = Date.now();
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function fmtText(text) {
+  return text
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+var LUA_KW = ['local','function','end','if','then','else','elseif','for','do','while','repeat','until','return','true','false','nil','and','or','not','in','break'];
+function highlightCode(code, lang) {
+  var kw = LUA_KW;
+  return code.split('\n').map(function(line) {
+    var r = '';
+    var i = 0;
+    while (i < line.length) {
+      if (line[i] === '-' && line[i+1] === '-') { r += '<span class="tok-cmt">' + escHtml(line.slice(i)) + '</span>'; break; }
+      if (line[i] === '"' || line[i] === "'") {
+        var q = line[i], j = i + 1;
+        while (j < line.length && line[j] !== q) { if (line[j] === '\\') j++; j++; }
+        r += '<span class="tok-str">' + escHtml(line.slice(i, j + 1)) + '</span>';
+        i = j + 1; continue;
       }
-      return;
+      if (/[0-9]/.test(line[i]) && (i === 0 || /\W/.test(line[i-1]))) {
+        var k = i;
+        while (k < line.length && /[0-9._]/.test(line[k])) k++;
+        r += '<span class="tok-num">' + escHtml(line.slice(i, k)) + '</span>';
+        i = k; continue;
+      }
+      if (/[a-zA-Z_]/.test(line[i])) {
+        var m = i;
+        while (m < line.length && /[a-zA-Z0-9_]/.test(line[m])) m++;
+        var word = line.slice(i, m);
+        if (kw.indexOf(word) !== -1) r += '<span class="tok-kw">' + word + '</span>';
+        else if (line[m] === '(') r += '<span class="tok-fn">' + word + '</span>';
+        else r += '<span class="tok-plain">' + word + '</span>';
+        i = m; continue;
+      }
+      r += escHtml(line[i]); i++;
     }
-  } catch (e) {
-    try {
-      if (fs.existsSync(DB_BACKUP)) {
-        const parsed = JSON.parse(fs.readFileSync(DB_BACKUP, 'utf8'));
-        db.users = parsed.users || {};
-        db.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
-        db.tokens = parsed.tokens || {};
-        db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
-        db.admins = parsed.admins || {};
-        db.adminCodes = parsed.adminCodes || {};
-        return;
+    return r;
+  }).join('\n');
+}
+function buildCodeBlock(code, lang) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'code-block';
+  var header = document.createElement('div');
+  header.className = 'code-block-header';
+  var langLabel = document.createElement('span');
+  langLabel.className = 'code-lang';
+  langLabel.textContent = lang || 'code';
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = 'Copy code';
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(code).then(function() {
+      copyBtn.textContent = 'Copied';
+      copyBtn.classList.add('copied');
+      setTimeout(function() { copyBtn.textContent = 'Copy code'; copyBtn.classList.remove('copied'); }, 2000);
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = code; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      copyBtn.textContent = 'Copied'; copyBtn.classList.add('copied');
+      setTimeout(function() { copyBtn.textContent = 'Copy code'; copyBtn.classList.remove('copied'); }, 2000);
+    });
+  });
+  header.appendChild(langLabel); header.appendChild(copyBtn);
+  var pre = document.createElement('pre');
+  var codeEl = document.createElement('code');
+  codeEl.innerHTML = highlightCode(code, lang);
+  pre.appendChild(codeEl); wrapper.appendChild(header); wrapper.appendChild(pre);
+  return wrapper;
+}
+function buildChecklistBlock(tasks) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'checklist-block';
+  var header = document.createElement('div');
+  header.className = 'checklist-header';
+  header.innerHTML = '<span class="checklist-title">Build Plan</span><span class="checklist-count">' + tasks.length + '</span>';
+  var items = document.createElement('div');
+  items.className = 'checklist-items';
+  tasks.forEach(function(task, idx) {
+    var item = document.createElement('div');
+    item.className = 'checklist-item';
+    item.innerHTML = '<div class="check-circle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="check-label">' + escHtml(task) + '</span>';
+    items.appendChild(item);
+  });
+  wrapper.appendChild(header); wrapper.appendChild(items);
+  var els = items.querySelectorAll('.checklist-item');
+  var cur = 0;
+  function tick() {
+    if (cur >= els.length) return;
+    els[cur].classList.add('active');
+    els[cur].querySelector('.check-circle').classList.add('active');
+    setTimeout(function() {
+      els[cur].classList.remove('active'); els[cur].classList.add('done');
+      els[cur].querySelector('.check-circle').classList.remove('active'); els[cur].querySelector('.check-circle').classList.add('done');
+      cur++;
+      if (cur < els.length) setTimeout(tick, 200);
+    }, 700 + Math.random() * 300);
+  }
+  setTimeout(tick, 400);
+  return wrapper;
+}
+function parseAndRenderContent(rawText, container) {
+  var taskMatch = rawText.match(/\[TASKS\]([\s\S]*?)\[\/TASKS\]/);
+  var tasks = [];
+  var bodyText = rawText;
+  if (taskMatch) {
+    tasks = taskMatch[1].trim().split('\n').map(function(l) { return l.replace(/^\d+\.\s*/, '').trim(); }).filter(Boolean);
+    bodyText = rawText.replace(/\[TASKS\][\s\S]*?\[\/TASKS\]/, '').trim();
+  }
+  if (tasks.length > 0) container.appendChild(buildChecklistBlock(tasks));
+  var segs = bodyText.split(/(```[\s\S]*?```)/g);
+  segs.forEach(function(seg) {
+    var cm = seg.match(/^```(\w*)\n?([\s\S]*?)```$/);
+    if (cm) {
+      container.appendChild(buildCodeBlock(cm[2], cm[1] || 'lua'));
+    } else if (seg.trim()) {
+      var d = document.createElement('div');
+      d.innerHTML = fmtText(seg);
+      container.appendChild(d);
+    }
+  });
+}
+function addMessage(content, isUser) {
+  if (presetsEl) presetsEl.style.display = 'none';
+  var msg = document.createElement('div');
+  msg.className = isUser ? 'user-msg' : 'ai-msg';
+  if (isUser) {
+    msg.textContent = content;
+  } else {
+    var tag = document.createElement('span');
+    tag.className = 'ai-tag'; tag.textContent = 'PrysmisAI';
+    var body = document.createElement('div');
+    body.className = 'ai-msg-body';
+    parseAndRenderContent(content, body);
+    msg.appendChild(tag); msg.appendChild(body);
+  }
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+function showThinking() {
+  var el = document.createElement('div');
+  el.id = 'thinking'; el.className = 'thinking-anim';
+  el.innerHTML = '<span class="thinking-text">PrysmisAI is thinking...</span><div class="thinking-bar"></div>';
+  chatArea.appendChild(el);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+function removeThinking() {
+  var el = document.getElementById('thinking');
+  if (el) el.remove();
+}
+function getModel() {
+  return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5';
+}
+function buildMessages() {
+  var msgs = [{ role: 'system', content: SYSTEM_PROMPT }];
+  currentMessages.forEach(function(m) { msgs.push(m); });
+  return msgs;
+}
+function doSend() {
+  var text = inputEl.value.trim();
+  if (!text) return;
+  var isFirst = currentMessages.length === 0;
+  addMessage(text, true);
+  currentMessages.push({ role: 'user', content: text });
+  inputEl.value = ''; inputEl.style.height = 'auto';
+  showThinking();
+  fetch('/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: getModel(), messages: buildMessages(), temperature: 0.7, max_tokens: 2048 })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    removeThinking();
+    var reply = (data.choices && data.choices[0] && data.choices[0].message)
+      ? data.choices[0].message.content
+      : (data.error || 'No response received.');
+    addMessage(reply, false);
+    currentMessages.push({ role: 'assistant', content: reply });
+    if (isFirst) saveChat(text); else updateChat();
+  }).catch(function(e) {
+    removeThinking();
+    addMessage('Connection error: ' + e.message, false);
+  });
+}
+function saveChat(firstMsg) {
+  var title = firstMsg.substring(0, 38) + (firstMsg.length > 38 ? '...' : '');
+  fetch('/chats?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: title, messages: currentMessages })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success && data.chat) { activeChatId = data.chat.id; loadChatHistory(); }
+  }).catch(function() {});
+}
+function updateChat() {
+  if (!activeChatId) return;
+  fetch('/chats/' + activeChatId + '?token=' + encodeURIComponent(storedToken), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: currentMessages })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (!data.success) saveChat(currentMessages[0] ? currentMessages[0].content : 'Chat');
+  }).catch(function() {});
+}
+function loadChatHistory() {
+  fetch('/chats?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(chats) {
+      chatHistoryEl.innerHTML = '';
+      if (!Array.isArray(chats)) return;
+      chats.forEach(function(chat) { renderHistoryItem(chat); });
+    }).catch(function() {});
+}
+function renderHistoryItem(chat) {
+  var item = document.createElement('div');
+  item.className = 'history-item'; item.dataset.id = chat.id;
+  var textSpan = document.createElement('span');
+  textSpan.className = 'history-item-text'; textSpan.textContent = chat.title || 'Untitled chat';
+  var delBtn = document.createElement('button');
+  delBtn.className = 'history-del'; delBtn.textContent = 'x';
+  delBtn.addEventListener('click', function(e) { e.stopPropagation(); deleteChat(chat.id, item); });
+  textSpan.addEventListener('click', function() { loadChat(chat); });
+  item.appendChild(textSpan); item.appendChild(delBtn);
+  chatHistoryEl.appendChild(item);
+}
+function loadChat(chat) {
+  chatArea.innerHTML = ''; currentMessages = []; activeChatId = chat.id;
+  if (!chat.messages || chat.messages.length === 0) return;
+  chat.messages.forEach(function(m) { addMessage(m.content, m.role === 'user'); currentMessages.push(m); });
+}
+function deleteChat(id, itemEl) {
+  fetch('/chats/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
+    .then(function(r) { return r.json(); }).then(function(data) {
+      if (data.success) {
+        itemEl.style.opacity = '0'; itemEl.style.transform = 'scale(0.95)'; itemEl.style.transition = 'all 0.2s'; setTimeout(function() { itemEl.remove(); }, 200);
+        if (activeChatId === id) { activeChatId = null; currentMessages = []; resetChatArea(); }
       }
-    } catch (_) {}
+    }).catch(function() {});
+}
+function resetChatArea() {
+  chatArea.innerHTML = '';
+  if (presetsEl) { presetsEl.style.display = 'flex'; presetsEl.style.flexDirection = 'column'; chatArea.appendChild(presetsEl); }
+}
+newChatBtn.addEventListener('click', function() {
+  activeChatId = null; currentMessages = []; chatArea.innerHTML = '';
+  if (presetsEl) { presetsEl.style.display = 'flex'; presetsEl.style.flexDirection = 'column'; chatArea.appendChild(presetsEl); }
+  inputEl.value = ''; inputEl.style.height = 'auto';
+});
+sendBtn.addEventListener('click', doSend);
+inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); } });
+inputEl.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 140) + 'px'; });
+function usePreset(i) {
+  var texts = ['Create me a Roblox map that is ', 'Make me a character animation script that ', 'Make me an advanced loading screen that '];
+  inputEl.value = texts[i]; inputEl.focus();
+  inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+}
+function toggleExplorer() { document.getElementById('explorer').classList.toggle('open'); }
+function showTab(tab, btnEl) {
+  document.querySelectorAll('.tab-link').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.viewport').forEach(function(v) { v.style.display = 'none'; });
+  if (btnEl) btnEl.classList.add('active');
+  document.getElementById(tab + 'Tab').style.display = 'flex';
+  if (tab === 'projects') loadProjects();
+  if (tab === 'commchat') loadCommChat();
+}
+function loadProjects() {
+  projectsList.innerHTML = '<div class="empty-state"><p>Loading...</p></div>';
+  fetch('/projects').then(function(r) { return r.json(); }).then(function(projects) {
+    projectsList.innerHTML = '';
+    if (!projects || projects.length === 0) { projectsList.innerHTML = '<div class="empty-state"><p>No projects yet. Be the first to share yours.</p></div>'; return; }
+    projects.forEach(function(p) { renderProjectCard(p); });
+  }).catch(function() { projectsList.innerHTML = '<div class="empty-state"><p>Could not load projects.</p></div>'; });
+}
+function renderProjectCard(p) {
+  var card = document.createElement('div'); card.className = 'game-card'; card.dataset.id = p.id;
+  var authorDiv = document.createElement('div'); authorDiv.className = 'game-card-author'; authorDiv.textContent = 'by ' + (p.author || 'unknown');
+  var title = document.createElement('h3'); title.textContent = p.title;
+  var desc = document.createElement('p'); desc.textContent = p.about;
+  var footer = document.createElement('div'); footer.className = 'game-card-footer';
+  var link = document.createElement('a'); link.href = p.link; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = p.link;
+  footer.appendChild(link);
+  if (p.author === storedUser) {
+    var delBtn = document.createElement('button'); delBtn.className = 'delete-card-btn'; delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', function() { deleteProject(p.id, card); }); footer.appendChild(delBtn);
   }
+  card.appendChild(authorDiv); card.appendChild(title); card.appendChild(desc); card.appendChild(footer);
+  projectsList.appendChild(card);
 }
-
-function saveDb() {
-  if (saveScheduled) return;
-  saveScheduled = true;
-  setImmediate(() => {
-    saveScheduled = false;
-    try {
-      const json = JSON.stringify(db, null, 2);
-      fs.writeFileSync(DB_FILE + '.tmp', json);
-      if (fs.existsSync(DB_FILE)) fs.copyFileSync(DB_FILE, DB_BACKUP);
-      fs.renameSync(DB_FILE + '.tmp', DB_FILE);
-    } catch (_) {}
-  });
+function deleteProject(id, cardEl) {
+  fetch('/projects/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
+    .then(function(r) { return r.json(); }).then(function(data) {
+      if (data.success) { cardEl.style.opacity = '0'; cardEl.style.transform = 'scale(0.95)'; cardEl.style.transition = 'all 0.2s'; setTimeout(function() { cardEl.remove(); }, 200); }
+    }).catch(function() {});
 }
-
-loadDb();
-
-function hash(p) {
-  return crypto.createHash('sha256').update(p + SALT).digest('hex');
+postGameBtn.addEventListener('click', function() {
+  var title = document.getElementById('gameTitle').value.trim();
+  var link = document.getElementById('gameLink').value.trim();
+  var about = document.getElementById('gameAbout').value.trim();
+  if (!title || !link || !about) return;
+  postGameBtn.textContent = 'Publishing...'; postGameBtn.disabled = true;
+  fetch('/projects?token=' + encodeURIComponent(storedToken), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: title, link: link, about: about })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    postGameBtn.textContent = 'Publish Project'; postGameBtn.disabled = false;
+    if (data.success) { closeModal(); document.getElementById('gameTitle').value = ''; document.getElementById('gameLink').value = ''; document.getElementById('gameAbout').value = ''; loadProjects(); }
+  }).catch(function() { postGameBtn.textContent = 'Publish Project'; postGameBtn.disabled = false; });
+});
+function openModal() { modal.style.display = 'flex'; }
+function closeModal() { modal.style.display = 'none'; }
+modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+var commchatReplyTo = null;
+var editMsgId = null;
+var commchatPollInterval = null;
+function loadCommChat() {
+  fetch('/community-chat').then(function(r) { return r.json(); }).then(function(msgs) {
+    renderCommChat(msgs);
+  }).catch(function() {});
+  if (commchatPollInterval) clearInterval(commchatPollInterval);
+  commchatPollInterval = setInterval(function() {
+    fetch('/community-chat').then(function(r) { return r.json(); }).then(function(msgs) { renderCommChat(msgs); }).catch(function() {});
+  }, 5000);
 }
-
-function randToken() {
-  return crypto.randomBytes(64).toString('hex');
-}
-
-function getTokenData(t) {
-  if (!t || typeof t !== 'string' || t.length < 10) return null;
-  const td = db.tokens[t];
-  if (!td) return null;
-  if (td.expires < Date.now()) { delete db.tokens[t]; saveDb(); return null; }
-  return td;
-}
-
-function getReqToken(req, url) {
-  const q = url.searchParams.get('token') || '';
-  const h = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  return q || h;
-}
-
-setInterval(() => {
-  const now = Date.now();
-  let changed = false;
-  for (const t in db.tokens) {
-    if (db.tokens[t].expires < now) { delete db.tokens[t]; changed = true; }
-  }
-  if (changed) saveDb();
-}, 3600000);
-
-function sendJson(res, status, data) {
-  const body = JSON.stringify(data);
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Discord-Secret',
-    'Content-Length': Buffer.byteLength(body)
-  });
-  res.end(body);
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    let size = 0;
-    req.on('data', c => {
-      size += c.length;
-      if (size > 1024 * 1024) { reject(new Error('Body too large')); return; }
-      body += c;
-    });
-    req.on('end', () => {
-      if (!body.trim()) { resolve({}); return; }
-      try { resolve(JSON.parse(body)); } catch (e) { reject(e); }
-    });
-    req.on('error', reject);
-  });
-}
-
-function validateUsername(u) {
-  if (typeof u !== 'string') return 'Username required';
-  const t = u.trim();
-  if (t.length < 3) return 'Username must be at least 3 characters';
-  if (t.length > 24) return 'Username must be 24 characters or less';
-  if (!/^[a-zA-Z0-9_]+$/.test(t)) return 'Letters, numbers, underscores only';
-  return null;
-}
-
-function validatePassword(p) {
-  if (typeof p !== 'string') return 'Password required';
-  if (p.length < 6) return 'Password must be at least 6 characters';
-  if (p.length > 128) return 'Password too long';
-  return null;
-}
-
-const PUTER_MODELS = [
-  'gpt-5.2',
-  'gpt-4o',
-  'gpt-4o-mini',
-  'o3-mini',
-  'claude-opus-4-5',
-  'claude-sonnet-4-5',
-  'claude-haiku-3-5',
-  'gemini-3.1-pro-preview',
-  'google/gemini-1.5-pro'
-];
-
-const MODEL_MAP = {
-  'gpt-5.2': 'gpt-5.2',
-  'chatgpt 5.2': 'gpt-5.2',
-  'claude opus 4.6': 'claude-opus-4-5',
-  'claude opus 4.5': 'claude-opus-4-5',
-  'claude-opus-4-6': 'claude-opus-4-5',
-  'claude-opus-4-5': 'claude-opus-4-5',
-  'claude-sonnet-4-6': 'claude-sonnet-4-5',
-  'claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'claude-haiku-4-5': 'claude-haiku-3-5',
-  'claude-haiku-3-5': 'claude-haiku-3-5',
-  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
-  'gemini 3.1 pro': 'gemini-3.1-pro-preview',
-  'anthropic/claude-opus-4-6': 'claude-opus-4-5',
-  'anthropic/claude-opus-4-5': 'claude-opus-4-5',
-  'anthropic/claude-sonnet-4-6': 'claude-sonnet-4-5',
-  'anthropic/claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'anthropic/claude-haiku-4-5': 'claude-haiku-3-5',
-  'openai/gpt-5.2': 'gpt-5.2',
-  'openai/gpt-5.4': 'gpt-5.2',
-  'openai/gpt-4o': 'gpt-4o',
-  'openai/o3': 'o3-mini',
-  'google/gemini-3.1-pro': 'gemini-3.1-pro-preview',
-  'google/gemini-3.2-pro': 'gemini-3.1-pro-preview',
-  'google/gemini-2.5-pro': 'gemini-3.1-pro-preview',
-  'google/gemini-1.5-pro': 'google/gemini-1.5-pro',
-  'deepseek/deepseek-r1': 'claude-sonnet-4-5',
-  'deepseek/deepseek-v3': 'claude-sonnet-4-5',
-  'x-ai/grok-4': 'gpt-5.2',
-  'meta-llama/llama-4': 'claude-sonnet-4-5'
-};
-
-function resolveModel(m) {
-  if (!m) return 'gpt-5.2';
-  const lower = m.toLowerCase().trim();
-  if (MODEL_MAP[lower]) return MODEL_MAP[lower];
-  if (MODEL_MAP[m]) return MODEL_MAP[m];
-  if (m.includes('/')) {
-    const short = m.split('/').pop();
-    return short || 'gpt-5.2';
-  }
-  return 'gpt-5.2';
-}
-
-function broadcastSSE(data) {
-  const payload = 'data: ' + JSON.stringify(data) + '\n\n';
-  sseClients.forEach(res => {
-    try { res.write(payload); } catch (_) { sseClients.delete(res); }
-  });
-}
-
-const server = http.createServer(async (req, res) => {
-  let url;
-  try {
-    url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  } catch (_) {
-    res.writeHead(400); res.end(); return;
-  }
-  const pt = url.pathname;
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Discord-Secret'
-    });
-    res.end(); return;
-  }
-  if (req.method === 'GET' && pt === '/community-chat/stream') {
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
-    });
-    res.write('data: {"type":"connected"}\n\n');
-    sseClients.add(res);
-    const hb = setInterval(() => {
-      try { res.write(': ping\n\n'); } catch (_) { clearInterval(hb); sseClients.delete(res); }
-    }, 20000);
-    req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
+function renderCommChat(msgs) {
+  var container = document.getElementById('commchatMessages');
+  var atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+  container.innerHTML = '';
+  if (!msgs || msgs.length === 0) {
+    container.innerHTML = '<div class="commchat-empty">No messages yet. Start the conversation.</div>';
     return;
   }
-  if (req.method === 'POST' && pt === '/account') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const uErr = validateUsername(body.username);
-    if (uErr) return sendJson(res, 400, { error: uErr });
-    const pErr = validatePassword(body.password);
-    if (pErr) return sendJson(res, 400, { error: pErr });
-    const uname = body.username.trim().toLowerCase();
-    if (db.users[uname]) return sendJson(res, 409, { error: 'Account is already created' });
-    const token = randToken();
-    const now = Date.now();
-    db.users[uname] = {
-      hashed: hash(body.password),
-      created: now,
-      lastLogin: now,
-      lastSeen: now,
-      loginCount: 1,
-      chats: [],
-      pluginToken: null,
-      pluginConnected: false,
-      pluginModel: 'claude-sonnet-4-5',
-      authToken: null,
-      authTokenCreated: null
-    };
-    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
-    saveDb();
-    return sendJson(res, 200, { success: true, token, username: uname });
-  }
-  if (req.method === 'POST' && pt === '/login') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
-    const uname = body.username.trim().toLowerCase();
-    const user = db.users[uname];
-    if (!user) return sendJson(res, 401, { error: 'No account found with that username' });
-    if (user.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
-    const token = randToken();
-    const now = Date.now();
-    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
-    user.lastLogin = now; user.lastSeen = now;
-    user.loginCount = (user.loginCount || 0) + 1;
-    saveDb();
-    return sendJson(res, 200, { success: true, token, username: uname });
-  }
-  if (req.method === 'POST' && pt === '/admin/create') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { username, password, code } = body;
-    if (!username || !password || !code) return sendJson(res, 400, { error: 'Username, password and code required' });
-    const uname = username.trim().toLowerCase();
-    const codeClean = code.trim();
-    const pErr = validatePassword(password);
-    if (pErr) return sendJson(res, 400, { error: pErr });
-    if (!db.adminCodes[uname]) return sendJson(res, 401, { error: 'No code found for this username. Use /generatecode in Discord first.' });
-    const codeData = db.adminCodes[uname];
-    if (codeData.expires < Date.now()) { delete db.adminCodes[uname]; saveDb(); return sendJson(res, 401, { error: 'Code expired. Request a new one via Discord.' }); }
-    if (codeData.code !== codeClean) return sendJson(res, 401, { error: 'Invalid code.' });
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account found for this username.' });
-    db.admins[uname] = { hashed: hash(password), linkedUsername: uname, grantedBy: codeData.grantedBy || 'discord', created: Date.now(), lastLogin: null, verified: true };
-    delete db.adminCodes[uname];
-    const token = randToken();
-    const now = Date.now();
-    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
-    saveDb();
-    return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
-  }
-  if (req.method === 'POST' && pt === '/admin/login') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
-    const uname = body.username.trim().toLowerCase();
-    const admin = db.admins[uname];
-    if (!admin) return sendJson(res, 401, { error: 'No admin account found' });
-    if (admin.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
-    const token = randToken();
-    const now = Date.now();
-    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
-    admin.lastLogin = now;
-    saveDb();
-    return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
-  }
-  if (req.method === 'POST' && pt === '/discord/generate-code') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { discordUserId, username } = body;
-    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
-    if (!username) return sendJson(res, 400, { error: 'username required' });
-    const uname = username.trim().toLowerCase();
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account for ' + uname + '. They must register first.' });
-    const digits = '0123456789';
-    const symbols = '!@-_=+?';
-    const all = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const len = 6 + Math.floor(Math.random() * 3);
-    let suffix = '';
-    for (let i = 0; i < len; i++) {
-      const pick = Math.floor(Math.random() * 3);
-      if (pick === 0) suffix += digits[Math.floor(Math.random() * digits.length)];
-      else if (pick === 1) suffix += symbols[Math.floor(Math.random() * symbols.length)];
-      else suffix += all[Math.floor(Math.random() * all.length)];
+  var msgMap = {};
+  msgs.forEach(function(m) { msgMap[m.id] = m; });
+  msgs.forEach(function(m) {
+    var wrap = document.createElement('div');
+    wrap.className = 'commchat-msg' + (m.author === storedUser ? ' commchat-msg-own' : '');
+    wrap.dataset.id = m.id;
+    var inner = '';
+    if (m.replyTo && msgMap[m.replyTo]) {
+      var ref = msgMap[m.replyTo];
+      inner += '<div class="commchat-reply-ref"><span class="commchat-reply-ref-author">' + escHtml(ref.author) + '</span><span class="commchat-reply-ref-text">' + escHtml(ref.text.substring(0, 60)) + (ref.text.length > 60 ? '...' : '') + '</span></div>';
     }
-    const code = 'PrysmisAI_admin' + suffix;
-    db.adminCodes[uname] = { code, grantedBy: discordUserId, created: Date.now(), expires: Date.now() + 30 * 60 * 1000 };
-    saveDb();
-    return sendJson(res, 200, { success: true, code, username: uname, expiresIn: '30 minutes' });
-  }
-  if (req.method === 'POST' && pt === '/discord/verify-code') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { code, discordUserId } = body;
-    if (!code) return sendJson(res, 400, { error: 'code required' });
-    let foundUname = null;
-    for (const u in db.adminCodes) {
-      if (db.adminCodes[u].code === code.trim()) { foundUname = u; break; }
+    inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span>';
+    inner += '<span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
+    inner += '<div class="commchat-text">' + escHtml(m.text) + '</div>';
+    inner += '<div class="commchat-actions">';
+    inner += '<button class="commchat-action-btn" onclick="setReply(\'' + m.id + '\',\'' + escHtml(m.author) + '\',\'' + escHtml(m.text.substring(0,40).replace(/'/g,"\\'")) + '\')">Reply</button>';
+    if (m.author === storedUser) {
+      inner += '<button class="commchat-action-btn commchat-edit-btn" onclick="openEditModal(\'' + m.id + '\',\'' + escHtml(m.text.replace(/'/g,"\\'")) + '\')">Edit</button>';
+      inner += '<button class="commchat-action-btn commchat-del-btn" onclick="deleteCommMsg(\'' + m.id + '\')">Delete</button>';
     }
-    if (!foundUname) return sendJson(res, 404, { error: 'Invalid code' });
-    const codeData = db.adminCodes[foundUname];
-    if (codeData.expires < Date.now()) { delete db.adminCodes[foundUname]; saveDb(); return sendJson(res, 401, { error: 'Code expired' }); }
-    return sendJson(res, 200, { success: true, username: foundUname });
-  }
-  if (req.method === 'GET' && pt === '/discord/ping') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    return sendJson(res, 200, { ok: true, status: 'connected', site: 'prysmisai.wtf', users: Object.keys(db.users).length, admins: Object.keys(db.admins).length });
-  }
-  if (req.method === 'POST' && pt === '/discord/connect') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { discordUserId, botTag } = body;
-    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
-    db.meta.botConnected = true;
-    db.meta.botConnectedAt = Date.now();
-    db.meta.botTag = botTag || 'unknown';
-    db.meta.botOperatorId = discordUserId;
-    saveDb();
-    return sendJson(res, 200, { ok: true, message: 'Bot connected to PrysmisAI', site: 'prysmisai.wtf' });
-  }
-  if (req.method === 'POST' && pt === '/discord/setadmin') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { discordUserId, username, password } = body;
-    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
-    if (!username || !password) return sendJson(res, 400, { error: 'username and password required' });
-    const uname = username.trim().toLowerCase();
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'Username not found. User must register on the website first.' });
-    db.admins[uname] = { hashed: hash(password), linkedUsername: uname, grantedBy: discordUserId, created: Date.now(), lastLogin: null };
-    saveDb();
-    return sendJson(res, 200, { success: true, message: 'Admin account created for ' + uname });
-  }
-  if (req.method === 'POST' && pt === '/discord/blacklist') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { discordUserId, adminUsername } = body;
-    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
-    if (!adminUsername) return sendJson(res, 400, { error: 'adminUsername required' });
-    const uname = adminUsername.trim().toLowerCase();
-    if (!db.admins[uname]) return sendJson(res, 404, { error: 'Admin account not found' });
-    delete db.admins[uname];
-    for (const t in db.tokens) { if (db.tokens[t].username === uname && db.tokens[t].isAdmin) delete db.tokens[t]; }
-    saveDb();
-    return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
-  }
-  if (req.method === 'GET' && pt === '/discord/check-user') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
-    const username = url.searchParams.get('username');
-    if (!username) return sendJson(res, 400, { error: 'username required' });
-    const uname = username.trim().toLowerCase();
-    return sendJson(res, 200, { exists: !!db.users[uname], isAdmin: !!db.admins[uname], username: uname });
-  }
-  if (req.method === 'GET' && pt === '/me') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    user.lastSeen = Date.now();
-    return sendJson(res, 200, { username: td.username, created: user.created, lastLogin: user.lastLogin, chatCount: (user.chats || []).length, loginCount: user.loginCount || 1, isAdmin: !!db.admins[td.username] });
-  }
-  if (req.method === 'POST' && pt === '/logout') {
-    const t = getReqToken(req, url);
-    if (t && db.tokens[t]) { delete db.tokens[t]; saveDb(); }
-    return sendJson(res, 200, { success: true });
-  }
-  if (req.method === 'GET' && pt === '/stats') {
-    const now = Date.now();
-    return sendJson(res, 200, {
-      users: Object.keys(db.users).length,
-      active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1),
-      projects: db.projects.length
-    });
-  }
-  if (req.method === 'GET' && pt === '/status') {
-    const pluginToken = url.searchParams.get('pluginToken') || '';
-    let status = 'disconnected', model = 'gpt-5.2', username = 'unknown';
-    if (pluginToken) {
-      for (const u in db.users) {
-        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'gpt-5.2'; username = u; break; }
-      }
-    }
-    return sendJson(res, 200, { status, model, user: username });
-  }
-  if (req.method === 'POST' && pt === '/plugin/connect') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    const pluginToken = crypto.randomBytes(24).toString('hex');
-    user.pluginToken = pluginToken;
-    user.pluginConnected = true;
-    user.pluginModel = resolveModel(body.model);
-    user.pluginConnectedAt = Date.now();
-    saveDb();
-    return sendJson(res, 200, { success: true, pluginToken, username: td.username, model: user.pluginModel });
-  }
-  if (req.method === 'POST' && pt === '/plugin/disconnect') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (user) { user.pluginConnected = false; saveDb(); }
-    return sendJson(res, 200, { success: true });
-  }
-  if (req.method === 'POST' && pt === '/plugin/verify') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === body.pluginToken) {
-        db.users[u].pluginConnected = true; db.users[u].pluginLastPing = Date.now(); saveDb();
-        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'gpt-5.2', connected: true });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
-  }
-  if (req.method === 'POST' && pt === '/plugin/ping') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === body.pluginToken) {
-        db.users[u].pluginLastPing = Date.now(); db.users[u].pluginConnected = true; saveDb();
-        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'gpt-5.2', user: u });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
-  }
-  if (req.method === 'POST' && pt === '/plugin/update-model') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    if (!body.model) return sendJson(res, 400, { error: 'model required' });
-    user.pluginModel = resolveModel(body.model);
-    saveDb();
-    return sendJson(res, 200, { success: true, model: user.pluginModel });
-  }
-  if (req.method === 'POST' && pt === '/auth-token/generate') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    const now = Date.now();
-    if (user.authToken && user.authTokenCreated && (now - user.authTokenCreated) < 24 * 3600000) {
-      const h = Math.ceil((user.authTokenCreated + 24 * 3600000 - now) / 3600000);
-      return sendJson(res, 429, { error: 'You can generate a new token in ' + h + ' hour' + (h === 1 ? '' : 's') });
-    }
-    const authToken = crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(4).toString('hex');
-    user.authToken = authToken; user.authTokenCreated = now; saveDb();
-    return sendJson(res, 200, { success: true, authToken, url: 'prysmisai.wtf/token/' + authToken });
-  }
-  if (req.method === 'GET' && pt === '/auth-token') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    const now = Date.now();
-    return sendJson(res, 200, { authToken: user.authToken || null, canGenerate: !user.authTokenCreated || (now - user.authTokenCreated) >= 24 * 3600000, url: user.authToken ? 'prysmisai.wtf/token/' + user.authToken : null });
-  }
-  if (req.method === 'GET' && pt === '/projects') {
-    return sendJson(res, 200, db.projects);
-  }
-  if (req.method === 'POST' && pt === '/projects') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'You must be logged in to post a project' });
-    const { title, link, about } = body;
-    if (!title || !title.trim()) return sendJson(res, 400, { error: 'Title required' });
-    if (!link || !link.trim()) return sendJson(res, 400, { error: 'Link required' });
-    if (!about || !about.trim()) return sendJson(res, 400, { error: 'Description required' });
-    if (title.trim().length > 80) return sendJson(res, 400, { error: 'Title too long' });
-    if (about.trim().length > 500) return sendJson(res, 400, { error: 'Description too long' });
-    if (db.projects.length >= MAX_PROJECTS) db.projects.pop();
-    const project = { id: crypto.randomBytes(10).toString('hex'), title: title.trim(), link: link.trim(), about: about.trim(), author: td.username, created: Date.now() };
-    db.projects.unshift(project); saveDb();
-    return sendJson(res, 200, { success: true, project });
-  }
-  if (req.method === 'DELETE' && pt.startsWith('/projects/')) {
-    const id = pt.slice('/projects/'.length);
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const idx = db.projects.findIndex(p => p.id === id);
-    if (idx === -1) return sendJson(res, 404, { error: 'Not found' });
-    if (db.projects[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your project' });
-    db.projects.splice(idx, 1); saveDb();
-    return sendJson(res, 200, { success: true });
-  }
-  if (req.method === 'GET' && pt === '/community-chat') {
-    return sendJson(res, 200, db.communityChat.slice(-200));
-  }
-  if (req.method === 'POST' && pt === '/community-chat') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Message required' });
-    if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
-    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, isAdmin: !!db.admins[td.username], text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
-    db.communityChat.push(msg);
-    if (db.communityChat.length > MAX_COMMUNITY_MSGS) db.communityChat = db.communityChat.slice(-MAX_COMMUNITY_MSGS);
-    saveDb(); broadcastSSE({ type: 'new_message', msg });
-    return sendJson(res, 200, { success: true, msg });
-  }
-  if (req.method === 'PUT' && pt.startsWith('/community-chat/')) {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const id = pt.slice('/community-chat/'.length);
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const idx = db.communityChat.findIndex(m => m.id === id);
-    if (idx === -1) return sendJson(res, 404, { error: 'Message not found' });
-    if (db.communityChat[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your message' });
-    if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Text required' });
-    if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
-    db.communityChat[idx].text = body.text.trim(); db.communityChat[idx].edited = true; db.communityChat[idx].editedAt = Date.now();
-    saveDb(); broadcastSSE({ type: 'edit_message', msg: db.communityChat[idx] });
-    return sendJson(res, 200, { success: true, msg: db.communityChat[idx] });
-  }
-  if (req.method === 'DELETE' && pt.startsWith('/community-chat/')) {
-    const id = pt.slice('/community-chat/'.length);
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const idx = db.communityChat.findIndex(m => m.id === id);
-    if (idx === -1) return sendJson(res, 404, { error: 'Message not found' });
-    const isAdminUser = !!db.admins[td.username];
-    if (db.communityChat[idx].author !== td.username && !isAdminUser) return sendJson(res, 403, { error: 'Not your message' });
-    db.communityChat.splice(idx, 1); saveDb();
-    broadcastSSE({ type: 'delete_message', id });
-    return sendJson(res, 200, { success: true });
-  }
-  if (req.method === 'GET' && pt === '/chats') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    return sendJson(res, 200, Array.isArray(user.chats) ? user.chats : []);
-  }
-  if (req.method === 'POST' && pt === '/chats') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    if (!body.title || !Array.isArray(body.messages) || body.messages.length === 0) return sendJson(res, 400, { error: 'title and messages required' });
-    if (!Array.isArray(user.chats)) user.chats = [];
-    const chat = { id: crypto.randomBytes(10).toString('hex'), title: body.title.substring(0, 40), messages: body.messages.slice(0, 200), created: Date.now(), updated: Date.now() };
-    user.chats.unshift(chat);
-    if (user.chats.length > MAX_CHATS) user.chats = user.chats.slice(0, MAX_CHATS);
-    saveDb(); return sendJson(res, 200, { success: true, chat });
-  }
-  if (req.method === 'PUT' && pt.startsWith('/chats/')) {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const id = pt.slice('/chats/'.length);
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user || !Array.isArray(user.chats)) return sendJson(res, 404, { error: 'User not found' });
-    const idx = user.chats.findIndex(c => c.id === id);
-    if (idx === -1) return sendJson(res, 404, { error: 'Chat not found' });
-    if (Array.isArray(body.messages)) user.chats[idx].messages = body.messages.slice(0, 200);
-    if (typeof body.title === 'string') user.chats[idx].title = body.title.substring(0, 40);
-    user.chats[idx].updated = Date.now(); saveDb();
-    return sendJson(res, 200, { success: true, chat: user.chats[idx] });
-  }
-  if (req.method === 'DELETE' && pt.startsWith('/chats/')) {
-    const id = pt.slice('/chats/'.length);
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user || !Array.isArray(user.chats)) return sendJson(res, 404, { error: 'User not found' });
-    const idx = user.chats.findIndex(c => c.id === id);
-    if (idx === -1) return sendJson(res, 404, { error: 'Chat not found' });
-    user.chats.splice(idx, 1); saveDb();
-    return sendJson(res, 200, { success: true });
-  }
-  if (req.method === 'GET') {
-    let filePath = '.' + (pt === '/' ? '/index.html' : pt);
-    if (filePath.endsWith('/')) filePath += 'index.html';
-    const ext = path.extname(filePath).toLowerCase();
-    const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' }[ext] || 'text/plain';
-    fs.readFile(filePath, (err, data) => {
-      if (err) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'Content-Type': mime }); res.end(data);
-    }); return;
-  }
-  res.writeHead(404); res.end();
+    inner += '</div>';
+    wrap.innerHTML = inner;
+    container.appendChild(wrap);
+  });
+  if (atBottom) container.scrollTop = container.scrollHeight;
+}
+function formatTime(ts) {
+  var d = new Date(ts);
+  var h = d.getHours(), m = d.getMinutes();
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+function setReply(id, author, previewText) {
+  commchatReplyTo = id;
+  document.getElementById('commchatReplyPreview').innerHTML = '<strong>' + escHtml(author) + '</strong> ' + escHtml(previewText);
+  document.getElementById('commchatReplyBar').style.display = 'flex';
+  document.getElementById('commchatInput').focus();
+}
+document.getElementById('commchatReplyCancel').addEventListener('click', function() {
+  commchatReplyTo = null;
+  document.getElementById('commchatReplyBar').style.display = 'none';
+  document.getElementById('commchatReplyPreview').innerHTML = '';
 });
-
-server.on('error', e => { if (e.code === 'EADDRINUSE') process.exit(1); });
-server.listen(process.env.PORT || 3000, '0.0.0.0');
+function sendCommMsg() {
+  var text = document.getElementById('commchatInput').value.trim();
+  if (!text) return;
+  var payload = { text: text };
+  if (commchatReplyTo) payload.replyTo = commchatReplyTo;
+  document.getElementById('commchatInput').value = '';
+  document.getElementById('commchatInput').style.height = 'auto';
+  commchatReplyTo = null;
+  document.getElementById('commchatReplyBar').style.display = 'none';
+  fetch('/community-chat?token=' + encodeURIComponent(storedToken), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success) loadCommChat();
+  }).catch(function() {});
+}
+document.getElementById('commchatSend').addEventListener('click', sendCommMsg);
+document.getElementById('commchatInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCommMsg(); }
+});
+document.getElementById('commchatInput').addEventListener('input', function() {
+  this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+function openEditModal(id, currentText) {
+  editMsgId = id;
+  document.getElementById('editMsgText').value = currentText;
+  document.getElementById('editMsgModal').style.display = 'flex';
+  setTimeout(function() { document.getElementById('editMsgText').focus(); }, 50);
+}
+function closeEditModal() {
+  editMsgId = null;
+  document.getElementById('editMsgModal').style.display = 'none';
+}
+document.getElementById('editMsgSave').addEventListener('click', function() {
+  if (!editMsgId) return;
+  var text = document.getElementById('editMsgText').value.trim();
+  if (!text) return;
+  fetch('/community-chat/' + editMsgId + '?token=' + encodeURIComponent(storedToken), {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success) { closeEditModal(); loadCommChat(); }
+  }).catch(function() {});
+});
+document.getElementById('editMsgModal').addEventListener('click', function(e) {
+  if (e.target === document.getElementById('editMsgModal')) closeEditModal();
+});
+function deleteCommMsg(id) {
+  fetch('/community-chat/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
+    .then(function(r) { return r.json(); }).then(function(data) {
+      if (data.success) loadCommChat();
+    }).catch(function() {});
+}
+document.getElementById('logoutBtn').addEventListener('click', function() {
+  fetch('/logout?token=' + encodeURIComponent(storedToken), { method: 'POST' }).catch(function() {});
+  localStorage.removeItem('user'); localStorage.removeItem('token'); localStorage.removeItem('pluginToken');
+  location.href = '/accountauth/index.html';
+});
+var generateTokenBtn = document.getElementById('generateTokenBtn');
+var settingsBtn = document.getElementById('settingsBtn');
+var settingsModal = document.getElementById('settingsModal');
+var tokenNotif = document.getElementById('tokenNotif');
+var tokenNotifInput = document.getElementById('tokenNotifInput');
+var tokenNotifClose = document.getElementById('tokenNotifClose');
+var tokenNotifHide = document.getElementById('tokenNotifHide');
+var tokenNotifCopy = document.getElementById('tokenNotifCopy');
+var settingsTokenInput = document.getElementById('settingsTokenInput');
+var settingsShowToken = document.getElementById('settingsShowToken');
+var settingsCopyToken = document.getElementById('settingsCopyToken');
+var settingsClose = document.getElementById('settingsClose');
+var settingsClose2 = document.getElementById('settingsClose2');
+var currentAuthToken = '';
+var tokenVisible = false;
+var settingsTokenShown = false;
+function showTokenNotif(tokenUrl) {
+  tokenNotifInput.value = tokenUrl; tokenNotifInput.type = 'text'; tokenVisible = true; tokenNotifHide.textContent = 'Hide';
+  tokenNotif.style.display = 'block';
+}
+tokenNotifClose.addEventListener('click', function() { tokenNotif.style.display = 'none'; });
+tokenNotifHide.addEventListener('click', function() {
+  if (tokenVisible) { tokenNotifInput.type = 'password'; tokenNotifHide.textContent = 'Show'; tokenVisible = false; }
+  else { tokenNotifInput.type = 'text'; tokenNotifHide.textContent = 'Hide'; tokenVisible = true; }
+});
+function copyToClipboard(text, btn, label) {
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied'; setTimeout(function() { btn.textContent = label; }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied'; setTimeout(function() { btn.textContent = label; }, 2000);
+  });
+}
+tokenNotifCopy.addEventListener('click', function() { copyToClipboard(tokenNotifInput.value, tokenNotifCopy, 'Copy Token'); });
+generateTokenBtn.addEventListener('click', function() {
+  generateTokenBtn.textContent = '...'; generateTokenBtn.disabled = true;
+  fetch('/auth-token/generate?token=' + encodeURIComponent(storedToken), { method: 'POST' })
+    .then(function(r) { return r.json(); }).then(function(data) {
+      generateTokenBtn.textContent = 'Generate Token'; generateTokenBtn.disabled = false;
+      if (data.success) { currentAuthToken = data.authToken; settingsTokenInput.value = data.authToken; showTokenNotif(data.url); }
+      else { generateTokenBtn.textContent = data.error || 'Error'; setTimeout(function() { generateTokenBtn.textContent = 'Generate Token'; }, 3000); }
+    }).catch(function() { generateTokenBtn.textContent = 'Generate Token'; generateTokenBtn.disabled = false; });
+});
+function loadExistingAuthToken() {
+  fetch('/auth-token?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); }).then(function(data) {
+      if (data.authToken) { currentAuthToken = data.authToken; settingsTokenInput.value = data.authToken; }
+    }).catch(function() {});
+}
+settingsBtn.addEventListener('click', function() { loadExistingAuthToken(); switchSettingsTab('account'); settingsModal.style.display = 'flex'; });
+settingsClose.addEventListener('click', function() { settingsModal.style.display = 'none'; });
+settingsClose2.addEventListener('click', function() { settingsModal.style.display = 'none'; });
+settingsModal.addEventListener('click', function(e) { if (e.target === settingsModal) settingsModal.style.display = 'none'; });
+settingsShowToken.addEventListener('click', function() {
+  if (!currentAuthToken) return;
+  if (settingsTokenShown) { settingsTokenInput.type = 'password'; settingsShowToken.textContent = 'Show Token'; settingsTokenShown = false; }
+  else { settingsTokenInput.type = 'text'; settingsTokenInput.value = currentAuthToken; settingsShowToken.textContent = 'Hide Token'; settingsTokenShown = true; }
+});
+settingsCopyToken.addEventListener('click', function() { if (currentAuthToken) copyToClipboard(currentAuthToken, settingsCopyToken, 'Copy Token'); });
+var settingsNavAccount = document.getElementById('settingsNavAccount');
+var settingsNavStudio = document.getElementById('settingsNavStudio');
+var settingsPageAccount = document.getElementById('settingsPageAccount');
+var settingsPageStudio = document.getElementById('settingsPageStudio');
+function switchSettingsTab(tab) {
+  if (tab === 'account') {
+    settingsPageAccount.style.display = 'block'; settingsPageStudio.style.display = 'none';
+    settingsNavAccount.classList.add('active'); settingsNavStudio.classList.remove('active');
+  } else {
+    settingsPageAccount.style.display = 'none'; settingsPageStudio.style.display = 'block';
+    settingsNavStudio.classList.add('active'); settingsNavAccount.classList.remove('active');
+    loadStudioToken();
+  }
+}
+var settingsStudioInput = document.getElementById('settingsStudioInput');
+var settingsShowStudio = document.getElementById('settingsShowStudio');
+var settingsCopyStudio = document.getElementById('settingsCopyStudio');
+var studioTokenShown = false;
+var currentStudioToken = '';
+function loadStudioToken() {
+  var t = localStorage.getItem('pluginToken') || '';
+  currentStudioToken = t;
+  settingsStudioInput.value = t || '';
+  settingsStudioInput.placeholder = t ? 'Token loaded' : 'Click Connect Plugin in header to generate';
+}
+settingsShowStudio.addEventListener('click', function() {
+  if (!currentStudioToken) return;
+  if (studioTokenShown) { settingsStudioInput.type = 'password'; settingsShowStudio.textContent = 'Show Token'; studioTokenShown = false; }
+  else { settingsStudioInput.type = 'text'; settingsStudioInput.value = currentStudioToken; settingsShowStudio.textContent = 'Hide Token'; studioTokenShown = true; }
+});
+settingsCopyStudio.addEventListener('click', function() { if (currentStudioToken) copyToClipboard(currentStudioToken, settingsCopyStudio, 'Copy Token'); });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (settingsModal.style.display !== 'none') { settingsModal.style.display = 'none'; return; }
+    if (tokenNotif.style.display !== 'none') { tokenNotif.style.display = 'none'; return; }
+    if (document.getElementById('editMsgModal').style.display !== 'none') { closeEditModal(); return; }
+  }
+});
+var pluginConnected = false;
+var pluginTokenStored = localStorage.getItem('pluginToken') || '';
+var connectBtn = document.getElementById('connectBtn');
+var statusDot = document.getElementById('statusDot');
+var statusText = document.getElementById('statusText');
+function getModelValue() {
+  return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5';
+}
+function setExplorerStatus(connected, model) {
+  pluginConnected = connected;
+  if (statusDot) statusDot.className = 'dot ' + (connected ? 'green' : 'red');
+  if (statusText) { statusText.textContent = connected ? 'Connected' : 'Disconnected'; statusText.style.color = connected ? '#10b981' : '#f43f5e'; }
+  if (connectBtn) { connectBtn.textContent = connected ? 'Plugin Connected' : 'Connect Plugin'; connectBtn.style.background = connected ? 'linear-gradient(135deg,#10b981,#059669)' : ''; }
+}
+function showPluginTokenBox(token) {
+  var existing = document.getElementById('pluginTokenBox');
+  if (existing) existing.remove();
+  var box = document.createElement('div'); box.id = 'pluginTokenBox';
+  box.style.cssText = 'position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);width:240px;background:#0a0a14;border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:0.75rem;z-index:10;';
+  var label = document.createElement('div'); label.style.cssText = 'font-size:0.65rem;font-weight:700;color:#5a5a72;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;'; label.textContent = 'Paste in Studio Plugin';
+  var tokenEl = document.createElement('div'); tokenEl.style.cssText = 'font-size:0.7rem;color:#93c5fd;font-family:monospace;word-break:break-all;margin-bottom:0.5rem;line-height:1.4;'; tokenEl.textContent = token;
+  var copyBtn = document.createElement('button'); copyBtn.style.cssText = 'width:100%;padding:0.35rem;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.25);border-radius:6px;color:#4f8ef7;font-size:0.72rem;font-weight:700;cursor:pointer;'; copyBtn.textContent = 'Copy Token';
+  copyBtn.addEventListener('click', function() { copyToClipboard(token, copyBtn, 'Copy Token'); });
+  box.appendChild(label); box.appendChild(tokenEl); box.appendChild(copyBtn);
+  var explorerEl = document.getElementById('explorer');
+  if (explorerEl) { explorerEl.style.position = 'relative'; explorerEl.appendChild(box); if (!explorerEl.classList.contains('open')) explorerEl.classList.add('open'); }
+}
+function hidePluginTokenBox() { var e = document.getElementById('pluginTokenBox'); if (e) e.remove(); }
+connectBtn.addEventListener('click', function() {
+  if (pluginConnected) {
+    fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' }).then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); hidePluginTokenBox(); }).catch(function() {});
+    return;
+  }
+  fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: getModelValue() })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success && data.pluginToken) {
+      pluginTokenStored = data.pluginToken; localStorage.setItem('pluginToken', data.pluginToken);
+      setExplorerStatus(true, data.model); showPluginTokenBox(data.pluginToken);
+    }
+  }).catch(function() {});
+});
+modelSelect.addEventListener('change', function() {
+  if (pluginConnected && storedToken) {
+    fetch('/plugin/update-model?token=' + encodeURIComponent(storedToken), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModelValue() })
+    }).catch(function() {});
+  }
+});
+if (pluginTokenStored) {
+  fetch('/plugin/ping', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pluginToken: pluginTokenStored })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.ok) { setExplorerStatus(true, data.model); showPluginTokenBox(pluginTokenStored); }
+    else { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; }
+  }).catch(function() { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; });
+}
+loadChatHistory();
