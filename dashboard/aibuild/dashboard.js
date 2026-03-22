@@ -1,8 +1,16 @@
 var storedUser = localStorage.getItem('user');
 var storedToken = localStorage.getItem('token');
+var storedIsAdmin = localStorage.getItem('isAdmin') === 'true';
 
 if (!storedUser || !storedToken) {
   location.href = '/accountauth/index.html';
+}
+
+if (storedIsAdmin && window.location.pathname !== '/adminpanel') {
+  fetch('/me?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.isAdmin) location.href = '/adminpanel'; })
+    .catch(function() {});
 }
 
 var chatArea = document.getElementById('chatArea');
@@ -23,9 +31,11 @@ var currentMessages = [];
 var activeChatId = null;
 
 var MODEL_API_MAP = {
-  'Claude Opus 4.6': 'claude-opus-4-5',
-  'Gemini 3.2': 'google/gemini-1.5-pro',
-  'ChatGPT 5.2': 'gpt-4o'
+  'claude-opus-4-6': 'claude-opus-4-6',
+  'claude-opus-4-5': 'claude-opus-4-5',
+  'claude-sonnet-4-6': 'claude-sonnet-4-6',
+  'gpt-5.2': 'gpt-5.2',
+  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview'
 };
 
 var SYSTEM_PROMPT = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations.';
@@ -162,11 +172,12 @@ function showThinking() {
 
 function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
-function getModel() { return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5'; }
+function getModel() { return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-6'; }
 
-function buildMessages() {
-  var msgs = [{ role: 'system', content: SYSTEM_PROMPT }];
-  currentMessages.forEach(function(m) { msgs.push(m); }); return msgs;
+function buildPuterMessages() {
+  var msgs = [];
+  msgs.push({ role: 'user', content: SYSTEM_PROMPT + '\n\nUser message: ' + (currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].content : '') });
+  return msgs;
 }
 
 function doSend() {
@@ -174,15 +185,38 @@ function doSend() {
   var isFirst = currentMessages.length === 0;
   addMessage(text, true); currentMessages.push({ role: 'user', content: text });
   inputEl.value = ''; inputEl.style.height = 'auto'; showThinking();
-  fetch('/v1/chat/completions', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: getModel(), messages: buildMessages(), temperature: 0.7, max_tokens: 2048 })
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    removeThinking();
-    var reply = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message.content : (data.error || 'No response received.');
-    addMessage(reply, false); currentMessages.push({ role: 'assistant', content: reply });
-    if (isFirst) saveChat(text); else updateChat();
-  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
+  var model = getModel();
+  var allMsgs = [{ role: 'system', content: SYSTEM_PROMPT }];
+  currentMessages.forEach(function(m) { allMsgs.push(m); });
+  if (typeof puter !== 'undefined' && puter.ai && puter.ai.chat) {
+    puter.ai.chat(allMsgs, { model: model }).then(function(response) {
+      removeThinking();
+      var reply = '';
+      if (response && response.message && response.message.content) {
+        var c = response.message.content;
+        if (Array.isArray(c)) { c.forEach(function(b) { if (b.text) reply += b.text; }); }
+        else if (typeof c === 'string') { reply = c; }
+      } else if (typeof response === 'string') {
+        reply = response;
+      }
+      if (!reply) reply = 'No response received.';
+      addMessage(reply, false); currentMessages.push({ role: 'assistant', content: reply });
+      if (isFirst) saveChat(text); else updateChat();
+    }).catch(function(e) {
+      removeThinking();
+      addMessage('AI error: ' + (e.message || String(e)), false);
+    });
+  } else {
+    fetch('/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 2048 })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      removeThinking();
+      var reply = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message.content : (data.error || 'No response received.');
+      addMessage(reply, false); currentMessages.push({ role: 'assistant', content: reply });
+      if (isFirst) saveChat(text); else updateChat();
+    }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
+  }
 }
 
 function saveChat(firstMsg) {
@@ -649,7 +683,7 @@ var connectBtn = document.getElementById('connectBtn');
 var statusDot = document.getElementById('statusDot');
 var statusText = document.getElementById('statusText');
 
-function getModelValue() { return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5'; }
+function getModelValue() { return modelSelect.value || 'claude-sonnet-4-6'; }
 
 function setExplorerStatus(connected, model) {
   pluginConnected = connected;
