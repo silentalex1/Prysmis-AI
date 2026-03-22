@@ -240,18 +240,85 @@ function buildPuterMessages() {
   return msgs;
 }
 
-function doSend() {
-  var text = inputEl.value.trim(); if (!text) return;
-  var isFirst = currentMessages.length === 0;
-  addMessage(text, true); currentMessages.push({ role: 'user', content: text });
-  inputEl.value = ''; inputEl.style.height = 'auto'; showThinking();
+function isTruncated(text) {
+  var trimmed = text.trimEnd();
+  var opens = (trimmed.match(/```/g) || []).length;
+  if (opens % 2 !== 0) return true;
+  var lastChars = trimmed.slice(-3);
+  if (lastChars === '...' || trimmed.endsWith(',') || trimmed.endsWith('(') || trimmed.endsWith('=')) return true;
+  var lines = trimmed.split('\n');
+  var lastLine = lines[lines.length - 1].trim();
+  if (lastLine === '' && lines.length > 1) lastLine = lines[lines.length - 2].trim();
+  var incomplete = lastLine.endsWith(',') || lastLine.endsWith('(') || lastLine.endsWith('=') || lastLine.endsWith('+') || lastLine.endsWith('and') || lastLine.endsWith('or') || lastLine.endsWith('then') || lastLine.endsWith('do') || (lastLine.startsWith('local ') && !lastLine.includes('='));
+  return incomplete;
+}
+
+function addContinueButton(msgEl, onContinue) {
+  var existing = msgEl.querySelector('.continue-bar');
+  if (existing) existing.remove();
+  var bar = document.createElement('div');
+  bar.className = 'continue-bar';
+  var btn = document.createElement('button');
+  btn.className = 'continue-btn';
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Continue';
+  btn.addEventListener('click', function() {
+    bar.remove();
+    onContinue();
+  });
+  bar.appendChild(btn);
+  msgEl.appendChild(bar);
+}
+
+function doSend(overrideText, isContinue) {
+  var text = isContinue ? overrideText : inputEl.value.trim();
+  if (!text) return;
+  var isFirst = currentMessages.length === 0 && !isContinue;
+  if (!isContinue) {
+    addMessage(text, true);
+    currentMessages.push({ role: 'user', content: text });
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+  }
+  showThinking();
   var model = getModel();
   var allMsgs = [{ role: 'system', content: SYSTEM_PROMPT }];
   currentMessages.forEach(function(m) { allMsgs.push(m); });
+  if (isContinue) {
+    allMsgs.push({ role: 'user', content: 'Continue from exactly where you left off. Do not repeat anything. Just continue the code or response seamlessly.' });
+  }
+
+  function handleReply(reply, finishReason) {
+    removeThinking();
+    if (!reply) reply = 'No response received.';
+    var truncated = finishReason === 'length' || (!finishReason && isTruncated(reply));
+    if (isContinue && currentMessages.length > 0 && currentMessages[currentMessages.length - 1].role === 'assistant') {
+      var prev = currentMessages[currentMessages.length - 1].content;
+      var combined = prev + reply;
+      currentMessages[currentMessages.length - 1].content = combined;
+      var lastMsg = chatArea.querySelector('.ai-msg:last-of-type');
+      if (lastMsg) {
+        var body = lastMsg.querySelector('.ai-msg-body');
+        if (body) {
+          body.innerHTML = '';
+          parseAndRenderContent(combined, body);
+          if (truncated) addContinueButton(lastMsg, function() { doSend(null, true); });
+        }
+      }
+    } else {
+      currentMessages.push({ role: 'assistant', content: reply });
+      addMessage(reply, false);
+      if (truncated) {
+        var lastMsg = chatArea.querySelector('.ai-msg:last-of-type');
+        if (lastMsg) addContinueButton(lastMsg, function() { doSend(null, true); });
+      }
+    }
+    if (isFirst) saveChat(text); else updateChat();
+  }
+
   if (typeof puter !== 'undefined' && puter.ai && puter.ai.chat) {
     puter.ai.chat(allMsgs, { model: model }).then(function(response) {
-      removeThinking();
       var reply = '';
+      var finishReason = null;
       if (response && response.message && response.message.content) {
         var c = response.message.content;
         if (Array.isArray(c)) { c.forEach(function(b) { if (b.text) reply += b.text; }); }
@@ -259,9 +326,8 @@ function doSend() {
       } else if (typeof response === 'string') {
         reply = response;
       }
-      if (!reply) reply = 'No response received.';
-      addMessage(reply, false); currentMessages.push({ role: 'assistant', content: reply });
-      if (isFirst) saveChat(text); else updateChat();
+      if (response && response.finish_reason) finishReason = response.finish_reason;
+      handleReply(reply, finishReason);
     }).catch(function(e) {
       removeThinking();
       addMessage('AI error: ' + (e.message || String(e)), false);
@@ -269,12 +335,12 @@ function doSend() {
   } else {
     fetch('/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 2048 })
+      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
     }).then(function(r) { return r.json(); }).then(function(data) {
-      removeThinking();
-      var reply = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message.content : (data.error || 'No response received.');
-      addMessage(reply, false); currentMessages.push({ role: 'assistant', content: reply });
-      if (isFirst) saveChat(text); else updateChat();
+      var choice = data.choices && data.choices[0];
+      var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
+      var finishReason = choice ? choice.finish_reason : null;
+      handleReply(reply, finishReason);
     }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
   }
 }
