@@ -178,20 +178,25 @@ function parseAndRenderContent(rawText, container) {
     bodyText = rawText.replace(/\[TASKS\][\s\S]*?\[\/TASKS\]/, '').trim();
   }
   if (tasks.length > 0) container.appendChild(buildChecklistBlock(tasks));
+  var allCodeBlocks = [];
   var segs = bodyText.split(/(```[\s\S]*?```)/g);
   segs.forEach(function(seg) {
     var cm = seg.match(/^```(\w*)\n?([\s\S]*?)```$/);
     if (cm) {
       var lang = cm[1] || 'lua';
       var code = cm[2];
-      var codeEl = buildCodeBlock(code, lang);
-      container.appendChild(codeEl);
-      if (pluginConnected && (lang === 'lua' || lang === 'javascript' || lang === '')) {
-        addChangeButtons(code, 'AI suggested change', container);
+      container.appendChild(buildCodeBlock(code, lang));
+      if (lang === 'lua' || lang === 'javascript' || lang === '') {
+        allCodeBlocks.push(code);
       }
+    } else if (seg.trim()) {
+      var d = document.createElement('div'); d.innerHTML = fmtText(seg); container.appendChild(d);
     }
-    else if (seg.trim()) { var d = document.createElement('div'); d.innerHTML = fmtText(seg); container.appendChild(d); }
   });
+  if (pluginConnected && allCodeBlocks.length > 0) {
+    var combined = allCodeBlocks.join('\n\n');
+    addChangeButtons(combined, 'Apply all AI changes', container);
+  }
 }
 
 function addMessage(content, isUser) {
@@ -1031,30 +1036,31 @@ function addChangeButtons(code, description, msgEl) {
   bar.className = 'change-btns';
   var acceptBtn = document.createElement('button');
   acceptBtn.className = 'change-btn change-btn-accept';
-  acceptBtn.textContent = 'Accept Change';
+  acceptBtn.textContent = 'Apply All Changes';
   var rejectBtn = document.createElement('button');
   rejectBtn.className = 'change-btn change-btn-reject';
-  rejectBtn.textContent = 'Reject Change';
+  rejectBtn.textContent = 'Dismiss';
   var statusMsg = document.createElement('span');
   statusMsg.className = 'change-status';
   acceptBtn.addEventListener('click', function() {
     if (!pluginConnected) {
-      statusMsg.textContent = 'Plugin not connected - open plugin in Studio first';
+      statusMsg.textContent = 'Connect the plugin in Roblox Studio first';
       statusMsg.style.color = '#f43f5e';
       return;
     }
     acceptBtn.textContent = 'Sending to Studio...';
+    acceptBtn.style.minWidth = acceptBtn.offsetWidth + 'px';
     acceptBtn.disabled = true;
     rejectBtn.disabled = true;
     statusMsg.textContent = '';
     sendChangeToPlugin(code, description).then(function(data) {
       if (data.ok) {
-        acceptBtn.textContent = 'Sent to Studio';
+        acceptBtn.textContent = 'Applied to Studio';
         acceptBtn.className = 'change-btn change-btn-applied';
         rejectBtn.style.display = 'none';
-        statusMsg.textContent = 'Executing in Studio...';
+        statusMsg.textContent = 'Running in Studio...';
         statusMsg.style.color = '#10b981';
-        setTimeout(function() { statusMsg.textContent = 'Applied'; }, 1500);
+        setTimeout(function() { statusMsg.textContent = 'Done'; }, 1200);
       } else {
         acceptBtn.textContent = 'Accept Change';
         acceptBtn.disabled = false;
