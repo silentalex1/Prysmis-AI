@@ -29,6 +29,9 @@ userNameEl.textContent = storedUser || 'User';
 
 var currentMessages = [];
 var activeChatId = null;
+var userHasPremium = localStorage.getItem('isAdmin') === 'true';
+
+var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.1-pro-preview': true };
 
 var MODEL_API_MAP = {
   'gpt-5.2': 'gpt-5.2',
@@ -38,7 +41,39 @@ var MODEL_API_MAP = {
   'gpt-4o': 'gpt-4o'
 };
 
-var SYSTEM_PROMPT = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations.';
+fetch('/me?token=' + encodeURIComponent(storedToken))
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.premium || d.isAdmin) {
+      userHasPremium = true;
+      localStorage.setItem('isPremium', 'true');
+      unlockPremiumOptions();
+    }
+    if (d.username) userNameEl.textContent = d.username;
+  }).catch(function() {});
+
+function unlockPremiumOptions() {
+  var opts = document.querySelectorAll('#modelSelect option');
+  opts.forEach(function(opt) {
+    if (opt.value === 'claude-opus-4-5') opt.textContent = 'Claude Opus 4.5';
+    if (opt.value === 'gemini-3.1-pro-preview') opt.textContent = 'Gemini 3.1 Pro';
+  });
+}
+
+var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations. When the user has studio files loaded, reference the actual file paths in your code suggestions so they match the real game structure.';
+
+var SYSTEM_PROMPT = SYSTEM_PROMPT_BASE;
+var studioFileContext = '';
+
+function updateSystemPromptWithFiles(files) {
+  if (!files || files.length === 0) { SYSTEM_PROMPT = SYSTEM_PROMPT_BASE; return; }
+  var tree = files.slice(0, 80).map(function(f) {
+    var indent = new Array((f.depth || 0) + 1).join('  ');
+    return indent + f.name + ' (' + f.type + ')';
+  }).join('\n');
+  studioFileContext = tree;
+  SYSTEM_PROMPT = SYSTEM_PROMPT_BASE + '\n\nThe user\'s current Roblox Studio workspace contains these files:\n```\n' + tree + '\n```\nUse this structure to give accurate file paths and service references in your code.';
+}
 
 document.querySelectorAll('.tab-link').forEach(function(btn) {
   btn.addEventListener('click', function() { showTab(btn.dataset.tab, btn); });
@@ -181,6 +216,23 @@ function showThinking() {
 function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
 function getModel() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
+
+var premiumModal = document.getElementById('premiumModal');
+var premiumModalClose = document.getElementById('premiumModalClose');
+if (premiumModalClose) {
+  premiumModalClose.addEventListener('click', function() { premiumModal.style.display = 'none'; });
+}
+if (premiumModal) {
+  premiumModal.addEventListener('click', function(e) { if (e.target === premiumModal) premiumModal.style.display = 'none'; });
+}
+
+modelSelect.addEventListener('change', function() {
+  var val = modelSelect.value;
+  if (PREMIUM_MODELS[val] && !userHasPremium) {
+    premiumModal.style.display = 'flex';
+    modelSelect.value = 'gpt-5.2';
+  }
+});
 
 function buildPuterMessages() {
   var msgs = [];
@@ -540,8 +592,17 @@ function buildCommChatMsgEl(m) {
     var ref = commchatMsgMap[m.replyTo];
     inner += '<div class="commchat-reply-ref"><span class="commchat-reply-ref-author">' + escHtml(ref.author) + '</span><span class="commchat-reply-ref-text">' + escHtml(ref.text.substring(0, 60)) + (ref.text.length > 60 ? '...' : '') + '</span></div>';
   }
-  var adminBadge = m.isAdmin ? '<span class="commchat-admin-badge">admin</span>' : '';
-  inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span>' + adminBadge + '<span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
+  var rankBadge = '';
+  if (m.isAdmin || m.rank === 'admin') {
+    rankBadge = '<span class="rank-badge rank-admin">admin</span>';
+  } else if (m.rank === 'premium') {
+    rankBadge = '<span class="rank-badge rank-premium">premium</span>';
+  } else if (m.rank === 'early access') {
+    rankBadge = '<span class="rank-badge rank-early">early access</span>';
+  } else if (m.rank === 'chat mod') {
+    rankBadge = '<span class="rank-badge rank-mod">mod</span>';
+  }
+  inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span>' + rankBadge + '<span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
   inner += '<div class="commchat-text">' + escHtml(m.text) + '</div>';
   inner += '<div class="commchat-actions">';
   inner += '<button class="commchat-action-btn" onclick="setReply(\'' + m.id + '\',\'' + escHtml(m.author) + '\',\'' + escHtml(m.text.substring(0, 40).replace(/'/g, "\\'")) + '\')">Reply</button>';
@@ -818,6 +879,7 @@ function loadStudioFiles() {
         studioFilesList.innerHTML = '<div class="studio-empty">No files yet. Click "Send Files to Website" in the Studio plugin.</div>';
         return;
       }
+      updateSystemPromptWithFiles(files);
       studioFilesList.innerHTML = '';
       files.forEach(function(f) {
         var depth = f.depth || 0;
@@ -997,4 +1059,3 @@ settingsSaveBtn.addEventListener('click', function() {
 });
 
 loadChatHistory();
-        
