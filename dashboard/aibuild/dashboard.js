@@ -339,7 +339,7 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  fetch('/v1/chat/completions', {
+  fetch('https://api.prysmisai.wtf/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
