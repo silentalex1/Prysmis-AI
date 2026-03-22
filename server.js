@@ -16,15 +16,19 @@ const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000;
 const MAX_CHATS = 100;
 const MAX_PROJECTS = 500;
 const MAX_COMMUNITY_MSGS = 2000;
+const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET || 'prysmis_discord_secret_2025';
+const ALLOWED_DISCORD_IDS = ['841749813702688858', '1360884411154825336', '617174993242947585'];
 
 let db = {
   users: {},
   projects: [],
   tokens: {},
   communityChat: [],
-  meta: { version: 3, created: Date.now() }
+  admins: {},
+  meta: { version: 4, created: Date.now() }
 };
 let saveScheduled = false;
+const sseClients = new Set();
 
 function loadDb() {
   try {
@@ -34,7 +38,8 @@ function loadDb() {
       db.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
       db.tokens = parsed.tokens || {};
       db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
-      db.meta = parsed.meta || { version: 3, created: Date.now() };
+      db.admins = parsed.admins || {};
+      db.meta = parsed.meta || { version: 4, created: Date.now() };
       for (const u in db.users) {
         if (typeof db.users[u].hashed !== 'string') { delete db.users[u]; continue; }
         if (!Array.isArray(db.users[u].chats)) db.users[u].chats = [];
@@ -42,7 +47,7 @@ function loadDb() {
       }
       return;
     }
-  } catch (e) {
+  } catch (_) {
     try {
       if (fs.existsSync(DB_BACKUP)) {
         const parsed = JSON.parse(fs.readFileSync(DB_BACKUP, 'utf8'));
@@ -50,9 +55,10 @@ function loadDb() {
         db.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
         db.tokens = parsed.tokens || {};
         db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
+        db.admins = parsed.admins || {};
         return;
       }
-    } catch (_) {}
+    } catch (__) {}
   }
 }
 
@@ -109,7 +115,7 @@ function sendJson(res, status, data) {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Discord-Secret',
     'Content-Length': Buffer.byteLength(body)
   });
   res.end(body);
@@ -148,6 +154,16 @@ function validatePassword(p) {
   return null;
 }
 
+const PUTER_MODELS = [
+  'claude-opus-4-5',
+  'claude-sonnet-4-5',
+  'claude-haiku-3-5',
+  'gpt-4o',
+  'gpt-4o-mini',
+  'o3-mini',
+  'google/gemini-1.5-pro'
+];
+
 const MODEL_MAP = {
   'claude opus 4.6': 'claude-opus-4-5',
   'gemini 3.2': 'google/gemini-1.5-pro',
@@ -161,21 +177,35 @@ const MODEL_MAP = {
   'openai/gpt-5.4-mini': 'gpt-4o-mini',
   'openai/gpt-4o': 'gpt-4o',
   'openai/o3': 'o3-mini',
+  'openai/o4-mini': 'o3-mini',
   'google/gemini-3.2-pro': 'google/gemini-1.5-pro',
   'google/gemini-2.5-pro': 'google/gemini-1.5-pro',
-  'google/gemini-1.5-pro': 'google/gemini-1.5-pro'
+  'google/gemini-1.5-pro': 'google/gemini-1.5-pro',
+  'deepseek/deepseek-r1': 'claude-sonnet-4-5',
+  'deepseek/deepseek-v3': 'claude-sonnet-4-5',
+  'x-ai/grok-4': 'gpt-4o',
+  'meta-llama/llama-4': 'claude-sonnet-4-5',
+  'mistral/mistral-large': 'claude-sonnet-4-5'
 };
 
 function resolveModel(m) {
   if (!m) return 'claude-sonnet-4-5';
-  const lower = m.toLowerCase().trim();
+  if (PUTER_MODELS.includes(m)) return m;
+  const lower = (typeof m === 'string') ? m.toLowerCase().trim() : '';
   if (MODEL_MAP[lower]) return MODEL_MAP[lower];
   if (MODEL_MAP[m]) return MODEL_MAP[m];
-  if (m.includes('/')) {
+  if (typeof m === 'string' && m.includes('/')) {
     const short = m.split('/').pop();
-    return short || 'claude-sonnet-4-5';
+    if (short && PUTER_MODELS.includes(short)) return short;
   }
-  return m;
+  return 'claude-sonnet-4-5';
+}
+
+function broadcastSSE(data) {
+  const payload = 'data: ' + JSON.stringify(data) + '\n\n';
+  sseClients.forEach(res => {
+    try { res.write(payload); } catch (_) { sseClients.delete(res); }
+  });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -191,9 +221,25 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Discord-Secret'
     });
     res.end(); return;
+  }
+
+  if (req.method === 'GET' && pt === '/community-chat/stream') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.write('data: {"type":"connected"}\n\n');
+    sseClients.add(res);
+    const heartbeat = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (_) { clearInterval(heartbeat); sseClients.delete(res); }
+    }, 20000);
+    req.on('close', () => { clearInterval(heartbeat); sseClients.delete(res); });
+    return;
   }
 
   if (req.method === 'POST' && pt === '/account') {
@@ -219,7 +265,7 @@ const server = http.createServer(async (req, res) => {
       authToken: null,
       authTokenCreated: null
     };
-    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, device: req.headers['user-agent'] || 'unknown' };
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
   }
@@ -233,12 +279,74 @@ const server = http.createServer(async (req, res) => {
     if (user.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
     const token = randToken();
     const now = Date.now();
-    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, device: req.headers['user-agent'] || 'unknown' };
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
     user.lastLogin = now;
     user.lastSeen = now;
     user.loginCount = (user.loginCount || 0) + 1;
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/login') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
+    const uname = body.username.trim();
+    const admin = db.admins[uname];
+    if (!admin) return sendJson(res, 401, { error: 'No admin account found' });
+    if (admin.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
+    const token = randToken();
+    const now = Date.now();
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
+    admin.lastLogin = now;
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/setadmin') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, username, password } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!username || !password) return sendJson(res, 400, { error: 'username and password required' });
+    const uname = username.trim();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'Username not found. User must have a website account first.' });
+    db.admins[uname] = {
+      hashed: hash(password),
+      linkedUsername: uname,
+      grantedBy: discordUserId,
+      created: Date.now(),
+      lastLogin: null
+    };
+    saveDb();
+    return sendJson(res, 200, { success: true, message: 'Admin account created for ' + uname });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/blacklist') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, adminUsername } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!adminUsername) return sendJson(res, 400, { error: 'adminUsername required' });
+    const uname = adminUsername.trim();
+    if (!db.admins[uname]) return sendJson(res, 404, { error: 'Admin account not found' });
+    delete db.admins[uname];
+    for (const t in db.tokens) {
+      if (db.tokens[t].username === uname && db.tokens[t].isAdmin) delete db.tokens[t];
+    }
+    saveDb();
+    return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
+  }
+
+  if (req.method === 'GET' && pt === '/discord/check-user') {
+    const username = url.searchParams.get('username');
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const exists = !!db.users[username.trim()];
+    const isAdmin = !!db.admins[username.trim()];
+    return sendJson(res, 200, { exists, isAdmin, username: username.trim() });
   }
 
   if (req.method === 'GET' && pt === '/me') {
@@ -247,13 +355,7 @@ const server = http.createServer(async (req, res) => {
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     user.lastSeen = Date.now();
-    return sendJson(res, 200, {
-      username: td.username,
-      created: user.created,
-      lastLogin: user.lastLogin,
-      chatCount: (user.chats || []).length,
-      loginCount: user.loginCount || 1
-    });
+    return sendJson(res, 200, { username: td.username, created: user.created, lastLogin: user.lastLogin, chatCount: (user.chats || []).length, loginCount: user.loginCount || 1, isAdmin: !!db.admins[td.username] });
   }
 
   if (req.method === 'POST' && pt === '/logout') {
@@ -422,17 +524,11 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Message required' });
     if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
-    const msg = {
-      id: crypto.randomBytes(8).toString('hex'),
-      author: td.username,
-      text: body.text.trim(),
-      replyTo: body.replyTo || null,
-      created: Date.now(),
-      edited: false
-    };
+    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
     db.communityChat.push(msg);
     if (db.communityChat.length > MAX_COMMUNITY_MSGS) db.communityChat = db.communityChat.slice(-MAX_COMMUNITY_MSGS);
     saveDb();
+    broadcastSSE({ type: 'new_message', msg });
     return sendJson(res, 200, { success: true, msg });
   }
 
@@ -450,6 +546,7 @@ const server = http.createServer(async (req, res) => {
     db.communityChat[idx].edited = true;
     db.communityChat[idx].editedAt = Date.now();
     saveDb();
+    broadcastSSE({ type: 'edit_message', msg: db.communityChat[idx] });
     return sendJson(res, 200, { success: true, msg: db.communityChat[idx] });
   }
 
@@ -462,6 +559,7 @@ const server = http.createServer(async (req, res) => {
     if (db.communityChat[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your message' });
     db.communityChat.splice(idx, 1);
     saveDb();
+    broadcastSSE({ type: 'delete_message', id });
     return sendJson(res, 200, { success: true });
   }
 
@@ -522,34 +620,26 @@ const server = http.createServer(async (req, res) => {
     const rawModel = body.model || url.searchParams.get('model') || 'claude-sonnet-4-5';
     const modelToUse = resolveModel(rawModel);
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const validMessages = messages.filter(m => m && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0);
+    const validMessages = messages.filter(m => m && typeof m === 'object' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0).map(m => ({ role: m.role, content: m.content.trim() }));
     if (validMessages.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
+    const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
+    const maxTok = typeof body.max_tokens === 'number' ? Math.min(body.max_tokens, 4096) : 2048;
+    const tryModel = async (m) => {
+      return client.chat.completions.create({ model: m, messages: validMessages, stream: false, temperature: temp, max_tokens: maxTok });
+    };
     try {
-      const completion = await client.chat.completions.create({
-        model: modelToUse,
-        messages: validMessages,
-        stream: false,
-        temperature: typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7,
-        max_tokens: typeof body.max_tokens === 'number' ? Math.min(body.max_tokens, 8192) : 2048
-      });
-      return sendJson(res, 200, completion);
-    } catch (e) {
-      const errMsg = e.message || 'AI request failed';
-      if (modelToUse !== 'claude-sonnet-4-5') {
-        try {
-          const fallback = await client.chat.completions.create({
-            model: 'claude-sonnet-4-5',
-            messages: validMessages,
-            stream: false,
-            temperature: 0.7,
-            max_tokens: 2048
-          });
-          return sendJson(res, 200, fallback);
-        } catch (e2) {
-          return sendJson(res, 500, { error: e2.message || errMsg });
-        }
+      const result = await tryModel(modelToUse);
+      return sendJson(res, 200, result);
+    } catch (e1) {
+      if (modelToUse === 'claude-sonnet-4-5') {
+        return sendJson(res, 500, { error: e1.message || 'AI request failed' });
       }
-      return sendJson(res, 500, { error: errMsg });
+      try {
+        const fallback = await tryModel('claude-sonnet-4-5');
+        return sendJson(res, 200, fallback);
+      } catch (e2) {
+        return sendJson(res, 500, { error: e2.message || e1.message || 'AI request failed' });
+      }
     }
   }
 
