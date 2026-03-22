@@ -840,3 +840,12 @@ background: rgba(79,142,247,0.18);
 border-color: rgba(79,142,247,0.4);
 transform: translateY(-1px);
 }
+
+.chat-img-preview {
+max-width: 260px;
+max-height: 180px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.08);
+display: block;
+margin-bottom: 0.5rem;
+}
