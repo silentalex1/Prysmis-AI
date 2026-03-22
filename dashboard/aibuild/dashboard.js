@@ -260,6 +260,10 @@ modelSelect.addEventListener('change', function() {
   if (PREMIUM_MODELS[val] && !userHasPremium) {
     premiumModal.style.display = 'flex';
     modelSelect.value = 'gpt-5.2';
+    return;
+  }
+  if (val === 'psm-4.0') {
+    setTimeout(function() { loadPSM().catch(function(){}); }, 100);
   }
 });
 
@@ -295,51 +299,89 @@ function addContinueButton(msgEl, onContinue) {
 var psmPipeline = null;
 var psmVisionPipeline = null;
 var psmLoading = false;
+var psmVisionLoading = false;
+var PSM_MODEL = 'Qwen/Qwen2.5-0.5B-Instruct';
+var PSM_VISION_MODEL = 'Xenova/vit-gpt2-image-captioning';
+var HF_TRANSFORMERS = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.0/dist/transformers.min.js';
+
+async function getHFPipeline() {
+  if (window.__hfTransformers) return window.__hfTransformers;
+  var mod = await import(HF_TRANSFORMERS);
+  window.__hfTransformers = mod;
+  return mod;
+}
 
 async function loadPSM() {
   if (psmPipeline) return psmPipeline;
-  if (psmLoading) { await new Promise(function(r) { var iv = setInterval(function() { if (!psmLoading) { clearInterval(iv); r(); } }, 200); }); return psmPipeline; }
+  if (psmLoading) {
+    await new Promise(function(r) {
+      var iv = setInterval(function() { if (!psmLoading) { clearInterval(iv); r(); } }, 150);
+    });
+    return psmPipeline;
+  }
   psmLoading = true;
-  var { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
-  psmPipeline = await pipeline('text-generation', 'Xenova/Qwen2.5-0.5B-Instruct', { quantized: true });
+  var mod = await getHFPipeline();
+  var env = mod.env || (mod.default && mod.default.env);
+  if (env) { env.allowLocalModels = false; env.useBrowserCache = true; }
+  var pipelineFn = mod.pipeline || (mod.default && mod.default.pipeline);
+  psmPipeline = await pipelineFn('text-generation', PSM_MODEL, { dtype: 'q4', device: 'webgpu' }).catch(function() {
+    return pipelineFn('text-generation', PSM_MODEL, { dtype: 'q4' });
+  });
   psmLoading = false;
   return psmPipeline;
 }
 
 async function loadPSMVision() {
   if (psmVisionPipeline) return psmVisionPipeline;
-  var { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
-  psmVisionPipeline = await pipeline('image-to-text', 'Xenova/vit-gpt2-image-captioning', { quantized: true });
+  if (psmVisionLoading) {
+    await new Promise(function(r) {
+      var iv = setInterval(function() { if (!psmVisionLoading) { clearInterval(iv); r(); } }, 150);
+    });
+    return psmVisionPipeline;
+  }
+  psmVisionLoading = true;
+  var mod = await getHFPipeline();
+  var pipelineFn = mod.pipeline || (mod.default && mod.default.pipeline);
+  psmVisionPipeline = await pipelineFn('image-to-text', PSM_VISION_MODEL, { dtype: 'q8' });
+  psmVisionLoading = false;
   return psmVisionPipeline;
 }
 
 async function runPSM(messages, imageDataUrl) {
-  var systemMsg = SYSTEM_PROMPT;
   var userMsgs = messages.filter(function(m) { return m.role !== 'system'; });
   var lastUser = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
-  var userText = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : (Array.isArray(lastUser.content) ? lastUser.content.filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join(' ') : '')) : '';
+  var userText = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : (Array.isArray(lastUser.content) ? lastUser.content.filter(function(c) { return c.type === 'text'; }).map(function(c) { return c.text; }).join(' ') : '')) : '';
 
   if (imageDataUrl) {
-    var visionPipe = await loadPSMVision();
-    var caption = await visionPipe(imageDataUrl, { max_new_tokens: 100 });
-    var captionText = caption && caption[0] ? caption[0].generated_text : 'an image';
-    userText = 'Image description: ' + captionText + '. User question: ' + userText;
+    try {
+      var visionPipe = await loadPSMVision();
+      var caption = await visionPipe(imageDataUrl, { max_new_tokens: 80 });
+      var captionText = caption && caption[0] ? caption[0].generated_text : 'an image';
+      userText = 'The user shared an image. Image description: ' + captionText + '. User message: ' + userText;
+    } catch (_) {}
   }
 
   var pipe = await loadPSM();
-  var history = [];
-  history.push({ role: 'system', content: systemMsg });
-  userMsgs.slice(-4).forEach(function(m) {
+  var history = [{ role: 'system', content: SYSTEM_PROMPT }];
+  userMsgs.slice(-6).forEach(function(m) {
     history.push({ role: m.role, content: typeof m.content === 'string' ? m.content : userText });
   });
+  history[history.length - 1].content = userText;
 
-  var result = await pipe(history, { max_new_tokens: 512, temperature: 0.7, do_sample: true, return_full_text: false });
+  var result = await pipe(history, { max_new_tokens: 600, temperature: 0.7, do_sample: true, return_full_text: false });
   var text = '';
   if (result && result[0]) {
-    if (result[0].generated_text) text = result[0].generated_text;
-    else if (Array.isArray(result[0]) && result[0][result[0].length-1]) text = result[0][result[0].length-1].content || '';
+    if (typeof result[0].generated_text === 'string') {
+      text = result[0].generated_text;
+    } else if (Array.isArray(result[0].generated_text)) {
+      var last = result[0].generated_text[result[0].generated_text.length - 1];
+      text = last ? (last.content || '') : '';
+    } else if (Array.isArray(result[0]) && result[0].length > 0) {
+      var lastItem = result[0][result[0].length - 1];
+      text = lastItem ? (lastItem.content || lastItem.generated_text || '') : '';
+    }
   }
-  return text || 'PSM-4.0 could not generate a response.';
+  return text.trim() || 'PSM-4.0 could not generate a response.';
 }
 
 function doSend(overrideText, isContinue) {
