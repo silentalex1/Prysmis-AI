@@ -914,17 +914,13 @@ const server = http.createServer(async (req, res) => {
     }); return;
   }
 
-  if (req.method === 'GET' && pt === '/APIDoc/API.css') {
-    fs.readFile('./apidoc/API.css', (err, data) => {
+  if (req.method === 'GET' && (pt.startsWith('/APIDoc/') || pt.startsWith('/apidoc/'))) {
+    const filename = pt.split('/').pop();
+    const ext = path.extname(filename).toLowerCase();
+    const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8' }[ext] || 'text/plain';
+    fs.readFile('./apidoc/' + filename, (err, data) => {
       if (err) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' }); res.end(data);
-    }); return;
-  }
-
-  if (req.method === 'GET' && pt === '/APIDoc/API.js') {
-    fs.readFile('./apidoc/API.js', (err, data) => {
-      if (err) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' }); res.end(data);
+      res.writeHead(200, { 'Content-Type': mime }); res.end(data);
     }); return;
   }
 
