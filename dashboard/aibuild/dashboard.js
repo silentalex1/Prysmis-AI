@@ -31,9 +31,7 @@ var MODEL_API_MAP = {
 var SYSTEM_PROMPT = 'You are PrysmisAI, an expert Roblox game development assistant. You specialize in Lua scripting, Roblox Studio, game mechanics, UI design, animations, maps, and all aspects of Roblox game creation. When a user asks you to build, create, or generate something for their Roblox game, always break your work down into a clear numbered checklist of steps using this exact format at the start of your response:\n\n[TASKS]\n1. Task one description\n2. Task two description\n3. Task three description\n[/TASKS]\n\nThen complete each task thoroughly. Always provide complete, working Lua code in fenced code blocks using ```lua syntax. Use **bold** to highlight important concepts and *italics* for technical terms. When explaining how to recreate a game or feature, give detailed step-by-step instructions. Be thorough, professional, and always write production-quality code. Never simulate or fake responses - always give real, working implementations.';
 
 document.querySelectorAll('.tab-link').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    showTab(btn.dataset.tab, btn);
-  });
+  btn.addEventListener('click', function() { showTab(btn.dataset.tab, btn); });
 });
 
 function escHtml(s) {
@@ -54,8 +52,7 @@ var LUA_KW = ['local','function','end','if','then','else','elseif','for','do','w
 function highlightCode(code, lang) {
   var kw = LUA_KW;
   return code.split('\n').map(function(line) {
-    var r = '';
-    var i = 0;
+    var r = '', i = 0;
     while (i < line.length) {
       if (line[i] === '-' && line[i+1] === '-') { r += '<span class="tok-cmt">' + escHtml(line.slice(i)) + '</span>'; break; }
       if (line[i] === '"' || line[i] === "'") {
@@ -65,14 +62,11 @@ function highlightCode(code, lang) {
         i = j + 1; continue;
       }
       if (/[0-9]/.test(line[i]) && (i === 0 || /\W/.test(line[i-1]))) {
-        var k = i;
-        while (k < line.length && /[0-9._]/.test(line[k])) k++;
-        r += '<span class="tok-num">' + escHtml(line.slice(i, k)) + '</span>';
-        i = k; continue;
+        var k = i; while (k < line.length && /[0-9._]/.test(line[k])) k++;
+        r += '<span class="tok-num">' + escHtml(line.slice(i, k)) + '</span>'; i = k; continue;
       }
       if (/[a-zA-Z_]/.test(line[i])) {
-        var m = i;
-        while (m < line.length && /[a-zA-Z0-9_]/.test(line[m])) m++;
+        var m = i; while (m < line.length && /[a-zA-Z0-9_]/.test(line[m])) m++;
         var word = line.slice(i, m);
         if (kw.indexOf(word) !== -1) r += '<span class="tok-kw">' + word + '</span>';
         else if (line[m] === '(') r += '<span class="tok-fn">' + word + '</span>';
@@ -86,73 +80,54 @@ function highlightCode(code, lang) {
 }
 
 function buildCodeBlock(code, lang) {
-  var wrapper = document.createElement('div');
-  wrapper.className = 'code-block';
-  var header = document.createElement('div');
-  header.className = 'code-block-header';
-  var langLabel = document.createElement('span');
-  langLabel.className = 'code-lang';
-  langLabel.textContent = lang || 'code';
-  var copyBtn = document.createElement('button');
-  copyBtn.className = 'copy-btn';
-  copyBtn.textContent = 'Copy code';
+  var wrapper = document.createElement('div'); wrapper.className = 'code-block';
+  var header = document.createElement('div'); header.className = 'code-block-header';
+  var langLabel = document.createElement('span'); langLabel.className = 'code-lang'; langLabel.textContent = lang || 'code';
+  var copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn'; copyBtn.textContent = 'Copy code';
   copyBtn.addEventListener('click', function() {
     navigator.clipboard.writeText(code).then(function() {
-      copyBtn.textContent = 'Copied';
-      copyBtn.classList.add('copied');
+      copyBtn.textContent = 'Copied'; copyBtn.classList.add('copied');
       setTimeout(function() { copyBtn.textContent = 'Copy code'; copyBtn.classList.remove('copied'); }, 2000);
     }).catch(function() {
-      var ta = document.createElement('textarea');
-      ta.value = code; ta.style.cssText = 'position:fixed;opacity:0;';
+      var ta = document.createElement('textarea'); ta.value = code; ta.style.cssText = 'position:fixed;opacity:0;';
       document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
       copyBtn.textContent = 'Copied'; copyBtn.classList.add('copied');
       setTimeout(function() { copyBtn.textContent = 'Copy code'; copyBtn.classList.remove('copied'); }, 2000);
     });
   });
   header.appendChild(langLabel); header.appendChild(copyBtn);
-  var pre = document.createElement('pre');
-  var codeEl = document.createElement('code');
-  codeEl.innerHTML = highlightCode(code, lang);
-  pre.appendChild(codeEl); wrapper.appendChild(header); wrapper.appendChild(pre);
-  return wrapper;
+  var pre = document.createElement('pre'); var codeEl = document.createElement('code');
+  codeEl.innerHTML = highlightCode(code, lang); pre.appendChild(codeEl);
+  wrapper.appendChild(header); wrapper.appendChild(pre); return wrapper;
 }
 
 function buildChecklistBlock(tasks) {
-  var wrapper = document.createElement('div');
-  wrapper.className = 'checklist-block';
-  var header = document.createElement('div');
-  header.className = 'checklist-header';
+  var wrapper = document.createElement('div'); wrapper.className = 'checklist-block';
+  var header = document.createElement('div'); header.className = 'checklist-header';
   header.innerHTML = '<span class="checklist-title">Build Plan</span><span class="checklist-count">' + tasks.length + '</span>';
-  var items = document.createElement('div');
-  items.className = 'checklist-items';
-  tasks.forEach(function(task, idx) {
-    var item = document.createElement('div');
-    item.className = 'checklist-item';
+  var items = document.createElement('div'); items.className = 'checklist-items';
+  tasks.forEach(function(task) {
+    var item = document.createElement('div'); item.className = 'checklist-item';
     item.innerHTML = '<div class="check-circle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="check-label">' + escHtml(task) + '</span>';
     items.appendChild(item);
   });
   wrapper.appendChild(header); wrapper.appendChild(items);
-  var els = items.querySelectorAll('.checklist-item');
-  var cur = 0;
+  var els = items.querySelectorAll('.checklist-item'), cur = 0;
   function tick() {
     if (cur >= els.length) return;
-    els[cur].classList.add('active');
-    els[cur].querySelector('.check-circle').classList.add('active');
+    els[cur].classList.add('active'); els[cur].querySelector('.check-circle').classList.add('active');
     setTimeout(function() {
       els[cur].classList.remove('active'); els[cur].classList.add('done');
       els[cur].querySelector('.check-circle').classList.remove('active'); els[cur].querySelector('.check-circle').classList.add('done');
-      cur++;
-      if (cur < els.length) setTimeout(tick, 200);
+      cur++; if (cur < els.length) setTimeout(tick, 200);
     }, 700 + Math.random() * 300);
   }
-  setTimeout(tick, 400);
-  return wrapper;
+  setTimeout(tick, 400); return wrapper;
 }
 
 function parseAndRenderContent(rawText, container) {
   var taskMatch = rawText.match(/\[TASKS\]([\s\S]*?)\[\/TASKS\]/);
-  var tasks = [];
-  var bodyText = rawText;
+  var tasks = [], bodyText = rawText;
   if (taskMatch) {
     tasks = taskMatch[1].trim().split('\n').map(function(l) { return l.replace(/^\d+\.\s*/, '').trim(); }).filter(Boolean);
     bodyText = rawText.replace(/\[TASKS\][\s\S]*?\[\/TASKS\]/, '').trim();
@@ -161,88 +136,59 @@ function parseAndRenderContent(rawText, container) {
   var segs = bodyText.split(/(```[\s\S]*?```)/g);
   segs.forEach(function(seg) {
     var cm = seg.match(/^```(\w*)\n?([\s\S]*?)```$/);
-    if (cm) {
-      container.appendChild(buildCodeBlock(cm[2], cm[1] || 'lua'));
-    } else if (seg.trim()) {
-      var d = document.createElement('div');
-      d.innerHTML = fmtText(seg);
-      container.appendChild(d);
-    }
+    if (cm) { container.appendChild(buildCodeBlock(cm[2], cm[1] || 'lua')); }
+    else if (seg.trim()) { var d = document.createElement('div'); d.innerHTML = fmtText(seg); container.appendChild(d); }
   });
 }
 
 function addMessage(content, isUser) {
   if (presetsEl) presetsEl.style.display = 'none';
-  var msg = document.createElement('div');
-  msg.className = isUser ? 'user-msg' : 'ai-msg';
+  var msg = document.createElement('div'); msg.className = isUser ? 'user-msg' : 'ai-msg';
   if (isUser) {
     msg.textContent = content;
   } else {
-    var tag = document.createElement('span');
-    tag.className = 'ai-tag'; tag.textContent = 'PrysmisAI';
-    var body = document.createElement('div');
-    body.className = 'ai-msg-body';
-    parseAndRenderContent(content, body);
-    msg.appendChild(tag); msg.appendChild(body);
+    var tag = document.createElement('span'); tag.className = 'ai-tag'; tag.textContent = 'PrysmisAI';
+    var body = document.createElement('div'); body.className = 'ai-msg-body';
+    parseAndRenderContent(content, body); msg.appendChild(tag); msg.appendChild(body);
   }
-  chatArea.appendChild(msg);
-  chatArea.scrollTop = chatArea.scrollHeight;
+  chatArea.appendChild(msg); chatArea.scrollTop = chatArea.scrollHeight;
 }
 
 function showThinking() {
-  var el = document.createElement('div');
-  el.id = 'thinking'; el.className = 'thinking-anim';
+  var el = document.createElement('div'); el.id = 'thinking'; el.className = 'thinking-anim';
   el.innerHTML = '<span class="thinking-text">PrysmisAI is thinking...</span><div class="thinking-bar"></div>';
-  chatArea.appendChild(el);
-  chatArea.scrollTop = chatArea.scrollHeight;
+  chatArea.appendChild(el); chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-function removeThinking() {
-  var el = document.getElementById('thinking');
-  if (el) el.remove();
-}
+function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
-function getModel() {
-  return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5';
-}
+function getModel() { return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5'; }
 
 function buildMessages() {
   var msgs = [{ role: 'system', content: SYSTEM_PROMPT }];
-  currentMessages.forEach(function(m) { msgs.push(m); });
-  return msgs;
+  currentMessages.forEach(function(m) { msgs.push(m); }); return msgs;
 }
 
 function doSend() {
-  var text = inputEl.value.trim();
-  if (!text) return;
+  var text = inputEl.value.trim(); if (!text) return;
   var isFirst = currentMessages.length === 0;
-  addMessage(text, true);
-  currentMessages.push({ role: 'user', content: text });
-  inputEl.value = ''; inputEl.style.height = 'auto';
-  showThinking();
+  addMessage(text, true); currentMessages.push({ role: 'user', content: text });
+  inputEl.value = ''; inputEl.style.height = 'auto'; showThinking();
   fetch('/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: getModel(), messages: buildMessages(), temperature: 0.7, max_tokens: 2048 })
   }).then(function(r) { return r.json(); }).then(function(data) {
     removeThinking();
-    var reply = (data.choices && data.choices[0] && data.choices[0].message)
-      ? data.choices[0].message.content
-      : (data.error || 'No response received.');
-    addMessage(reply, false);
-    currentMessages.push({ role: 'assistant', content: reply });
+    var reply = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message.content : (data.error || 'No response received.');
+    addMessage(reply, false); currentMessages.push({ role: 'assistant', content: reply });
     if (isFirst) saveChat(text); else updateChat();
-  }).catch(function(e) {
-    removeThinking();
-    addMessage('Connection error: ' + e.message, false);
-  });
+  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
 }
 
 function saveChat(firstMsg) {
   var title = firstMsg.substring(0, 38) + (firstMsg.length > 38 ? '...' : '');
   fetch('/chats?token=' + encodeURIComponent(storedToken), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: title, messages: currentMessages })
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.success && data.chat) { activeChatId = data.chat.id; loadChatHistory(); }
@@ -252,8 +198,7 @@ function saveChat(firstMsg) {
 function updateChat() {
   if (!activeChatId) return;
   fetch('/chats/' + activeChatId + '?token=' + encodeURIComponent(storedToken), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: currentMessages })
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (!data.success) saveChat(currentMessages[0] ? currentMessages[0].content : 'Chat');
@@ -262,8 +207,7 @@ function updateChat() {
 
 function loadChatHistory() {
   fetch('/chats?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
-    .then(function(chats) {
+    .then(function(r) { return r.json(); }).then(function(chats) {
       chatHistoryEl.innerHTML = '';
       if (!Array.isArray(chats)) return;
       chats.forEach(function(chat) { renderHistoryItem(chat); });
@@ -271,16 +215,12 @@ function loadChatHistory() {
 }
 
 function renderHistoryItem(chat) {
-  var item = document.createElement('div');
-  item.className = 'history-item'; item.dataset.id = chat.id;
-  var textSpan = document.createElement('span');
-  textSpan.className = 'history-item-text'; textSpan.textContent = chat.title || 'Untitled chat';
-  var delBtn = document.createElement('button');
-  delBtn.className = 'history-del'; delBtn.textContent = 'x';
+  var item = document.createElement('div'); item.className = 'history-item'; item.dataset.id = chat.id;
+  var textSpan = document.createElement('span'); textSpan.className = 'history-item-text'; textSpan.textContent = chat.title || 'Untitled chat';
+  var delBtn = document.createElement('button'); delBtn.className = 'history-del'; delBtn.textContent = 'x';
   delBtn.addEventListener('click', function(e) { e.stopPropagation(); deleteChat(chat.id, item); });
   textSpan.addEventListener('click', function() { loadChat(chat); });
-  item.appendChild(textSpan); item.appendChild(delBtn);
-  chatHistoryEl.appendChild(item);
+  item.appendChild(textSpan); item.appendChild(delBtn); chatHistoryEl.appendChild(item);
 }
 
 function loadChat(chat) {
@@ -292,10 +232,7 @@ function loadChat(chat) {
 function deleteChat(id, itemEl) {
   fetch('/chats/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
     .then(function(r) { return r.json(); }).then(function(data) {
-      if (data.success) {
-        itemEl.remove();
-        if (activeChatId === id) { activeChatId = null; currentMessages = []; resetChatArea(); }
-      }
+      if (data.success) { itemEl.remove(); if (activeChatId === id) { activeChatId = null; currentMessages = []; resetChatArea(); } }
     }).catch(function() {});
 }
 
@@ -328,7 +265,7 @@ function showTab(tab, btnEl) {
   if (btnEl) btnEl.classList.add('active');
   document.getElementById(tab + 'Tab').style.display = 'flex';
   if (tab === 'projects') loadProjects();
-  if (tab === 'commchat') loadCommChat();
+  if (tab === 'commchat') initCommChat();
 }
 
 function loadProjects() {
@@ -352,8 +289,7 @@ function renderProjectCard(p) {
     var delBtn = document.createElement('button'); delBtn.className = 'delete-card-btn'; delBtn.textContent = 'Delete';
     delBtn.addEventListener('click', function() { deleteProject(p.id, card); }); footer.appendChild(delBtn);
   }
-  card.appendChild(authorDiv); card.appendChild(title); card.appendChild(desc); card.appendChild(footer);
-  projectsList.appendChild(card);
+  card.appendChild(authorDiv); card.appendChild(title); card.appendChild(desc); card.appendChild(footer); projectsList.appendChild(card);
 }
 
 function deleteProject(id, cardEl) {
@@ -384,57 +320,136 @@ modal.addEventListener('click', function(e) { if (e.target === modal) closeModal
 
 var commchatReplyTo = null;
 var editMsgId = null;
-var commchatPollInterval = null;
+var commchatSSE = null;
+var commchatMsgMap = {};
+var commchatActive = false;
 
-function loadCommChat() {
-  fetch('/community-chat').then(function(r) { return r.json(); }).then(function(msgs) {
-    renderCommChat(msgs);
-  }).catch(function() {});
-  if (commchatPollInterval) clearInterval(commchatPollInterval);
-  commchatPollInterval = setInterval(function() {
-    fetch('/community-chat').then(function(r) { return r.json(); }).then(function(msgs) { renderCommChat(msgs); }).catch(function() {});
-  }, 5000);
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
 }
 
-function renderCommChat(msgs) {
+function sendDesktopNotification(author, text) {
+  if (!commchatActive && 'Notification' in window && Notification.permission === 'granted') {
+    var n = new Notification('PrysmisAI Community', { body: author + ': ' + text, icon: '/favicon.ico', tag: 'prysmis-chat' });
+    setTimeout(function() { n.close(); }, 5000);
+    n.onclick = function() { window.focus(); document.querySelector('[data-tab="commchat"]').click(); n.close(); };
+  }
+}
+
+function initCommChat() {
+  commchatActive = true;
+  fetch('/community-chat').then(function(r) { return r.json(); }).then(function(msgs) {
+    commchatMsgMap = {};
+    if (Array.isArray(msgs)) msgs.forEach(function(m) { commchatMsgMap[m.id] = m; });
+    renderAllCommChat(msgs);
+  }).catch(function() {});
+  if (commchatSSE) { commchatSSE.close(); }
+  commchatSSE = new EventSource('/community-chat/stream');
+  commchatSSE.onmessage = function(e) {
+    try {
+      var data = JSON.parse(e.data);
+      if (data.type === 'new_message' && data.msg) {
+        commchatMsgMap[data.msg.id] = data.msg;
+        appendCommChatMsg(data.msg, true);
+        if (data.msg.author !== storedUser) sendDesktopNotification(data.msg.author, data.msg.text);
+      } else if (data.type === 'edit_message' && data.msg) {
+        commchatMsgMap[data.msg.id] = data.msg;
+        var el = document.querySelector('.commchat-msg[data-id="' + data.msg.id + '"]');
+        if (el) {
+          var textEl = el.querySelector('.commchat-text');
+          if (textEl) textEl.textContent = data.msg.text;
+          var timeEl = el.querySelector('.commchat-time');
+          if (timeEl) timeEl.textContent = formatTime(data.msg.created) + ' (edited)';
+        }
+      } else if (data.type === 'delete_message' && data.id) {
+        delete commchatMsgMap[data.id];
+        var el = document.querySelector('.commchat-msg[data-id="' + data.id + '"]');
+        if (el) { el.style.opacity = '0'; el.style.transform = 'scale(0.95)'; el.style.transition = 'all 0.25s'; setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 250); }
+      }
+    } catch (_) {}
+  };
+  commchatSSE.onerror = function() {
+    setTimeout(function() { if (commchatActive) { commchatSSE.close(); initCommChatSSEOnly(); } }, 3000);
+  };
+}
+
+function initCommChatSSEOnly() {
+  commchatSSE = new EventSource('/community-chat/stream');
+  commchatSSE.onmessage = function(e) {
+    try {
+      var data = JSON.parse(e.data);
+      if (data.type === 'new_message' && data.msg) {
+        commchatMsgMap[data.msg.id] = data.msg;
+        appendCommChatMsg(data.msg, true);
+        if (data.msg.author !== storedUser) sendDesktopNotification(data.msg.author, data.msg.text);
+      } else if (data.type === 'edit_message' && data.msg) {
+        commchatMsgMap[data.msg.id] = data.msg;
+        var el = document.querySelector('.commchat-msg[data-id="' + data.msg.id + '"]');
+        if (el) { var t = el.querySelector('.commchat-text'); if (t) t.textContent = data.msg.text; }
+      } else if (data.type === 'delete_message' && data.id) {
+        delete commchatMsgMap[data.id];
+        var el = document.querySelector('.commchat-msg[data-id="' + data.id + '"]');
+        if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.25s'; setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 260); }
+      }
+    } catch (_) {}
+  };
+}
+
+function renderAllCommChat(msgs) {
   var container = document.getElementById('commchatMessages');
-  var atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
   container.innerHTML = '';
   if (!msgs || msgs.length === 0) {
     container.innerHTML = '<div class="commchat-empty">No messages yet. Start the conversation.</div>';
     return;
   }
-  var msgMap = {};
-  msgs.forEach(function(m) { msgMap[m.id] = m; });
-  msgs.forEach(function(m) {
-    var wrap = document.createElement('div');
-    wrap.className = 'commchat-msg' + (m.author === storedUser ? ' commchat-msg-own' : '');
-    wrap.dataset.id = m.id;
-    var inner = '';
-    if (m.replyTo && msgMap[m.replyTo]) {
-      var ref = msgMap[m.replyTo];
-      inner += '<div class="commchat-reply-ref"><span class="commchat-reply-ref-author">' + escHtml(ref.author) + '</span><span class="commchat-reply-ref-text">' + escHtml(ref.text.substring(0, 60)) + (ref.text.length > 60 ? '...' : '') + '</span></div>';
-    }
-    inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span>';
-    inner += '<span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
-    inner += '<div class="commchat-text">' + escHtml(m.text) + '</div>';
-    inner += '<div class="commchat-actions">';
-    inner += '<button class="commchat-action-btn" onclick="setReply(\'' + m.id + '\',\'' + escHtml(m.author) + '\',\'' + escHtml(m.text.substring(0,40).replace(/'/g,"\\'")) + '\')">Reply</button>';
-    if (m.author === storedUser) {
-      inner += '<button class="commchat-action-btn commchat-edit-btn" onclick="openEditModal(\'' + m.id + '\',\'' + escHtml(m.text.replace(/'/g,"\\'")) + '\')">Edit</button>';
-      inner += '<button class="commchat-action-btn commchat-del-btn" onclick="deleteCommMsg(\'' + m.id + '\')">Delete</button>';
-    }
-    inner += '</div>';
-    wrap.innerHTML = inner;
+  msgs.forEach(function(m) { appendCommChatMsg(m, false); });
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendCommChatMsg(m, animate) {
+  var container = document.getElementById('commchatMessages');
+  var atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+  var empty = container.querySelector('.commchat-empty');
+  if (empty) empty.remove();
+  var wrap = buildCommChatMsgEl(m);
+  if (animate) {
+    wrap.style.opacity = '0'; wrap.style.transform = 'translateY(8px)';
     container.appendChild(wrap);
-  });
-  if (atBottom) container.scrollTop = container.scrollHeight;
+    requestAnimationFrame(function() {
+      wrap.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+      wrap.style.opacity = '1'; wrap.style.transform = 'translateY(0)';
+    });
+  } else {
+    container.appendChild(wrap);
+  }
+  if (atBottom || animate) container.scrollTop = container.scrollHeight;
+}
+
+function buildCommChatMsgEl(m) {
+  var wrap = document.createElement('div');
+  wrap.className = 'commchat-msg' + (m.author === storedUser ? ' commchat-msg-own' : '');
+  wrap.dataset.id = m.id;
+  var inner = '';
+  if (m.replyTo && commchatMsgMap[m.replyTo]) {
+    var ref = commchatMsgMap[m.replyTo];
+    inner += '<div class="commchat-reply-ref"><span class="commchat-reply-ref-author">' + escHtml(ref.author) + '</span><span class="commchat-reply-ref-text">' + escHtml(ref.text.substring(0, 60)) + (ref.text.length > 60 ? '...' : '') + '</span></div>';
+  }
+  inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span><span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
+  inner += '<div class="commchat-text">' + escHtml(m.text) + '</div>';
+  inner += '<div class="commchat-actions">';
+  inner += '<button class="commchat-action-btn" onclick="setReply(\'' + m.id + '\',\'' + escHtml(m.author) + '\',\'' + escHtml(m.text.substring(0, 40).replace(/'/g, "\\'")) + '\')">Reply</button>';
+  if (m.author === storedUser) {
+    inner += '<button class="commchat-action-btn commchat-edit-btn" onclick="openEditModal(\'' + m.id + '\',\'' + escHtml(m.text.replace(/'/g, "\\'")) + '\')">Edit</button>';
+    inner += '<button class="commchat-action-btn commchat-del-btn" onclick="deleteCommMsg(\'' + m.id + '\')">Delete</button>';
+  }
+  inner += '</div>';
+  wrap.innerHTML = inner;
+  return wrap;
 }
 
 function formatTime(ts) {
-  var d = new Date(ts);
-  var h = d.getHours(), m = d.getMinutes();
-  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  var d = new Date(ts), h = d.getHours(), mn = d.getMinutes();
+  return (h < 10 ? '0' : '') + h + ':' + (mn < 10 ? '0' : '') + mn;
 }
 
 function setReply(id, author, previewText) {
@@ -451,19 +466,13 @@ document.getElementById('commchatReplyCancel').addEventListener('click', functio
 });
 
 function sendCommMsg() {
-  var text = document.getElementById('commchatInput').value.trim();
-  if (!text) return;
+  var text = document.getElementById('commchatInput').value.trim(); if (!text) return;
   var payload = { text: text };
   if (commchatReplyTo) payload.replyTo = commchatReplyTo;
-  document.getElementById('commchatInput').value = '';
-  document.getElementById('commchatInput').style.height = 'auto';
-  commchatReplyTo = null;
-  document.getElementById('commchatReplyBar').style.display = 'none';
+  document.getElementById('commchatInput').value = ''; document.getElementById('commchatInput').style.height = 'auto';
+  commchatReplyTo = null; document.getElementById('commchatReplyBar').style.display = 'none';
   fetch('/community-chat?token=' + encodeURIComponent(storedToken), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.success) loadCommChat();
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
   }).catch(function() {});
 }
 
@@ -483,19 +492,16 @@ function openEditModal(id, currentText) {
 }
 
 function closeEditModal() {
-  editMsgId = null;
-  document.getElementById('editMsgModal').style.display = 'none';
+  editMsgId = null; document.getElementById('editMsgModal').style.display = 'none';
 }
 
 document.getElementById('editMsgSave').addEventListener('click', function() {
   if (!editMsgId) return;
-  var text = document.getElementById('editMsgText').value.trim();
-  if (!text) return;
+  var text = document.getElementById('editMsgText').value.trim(); if (!text) return;
   fetch('/community-chat/' + editMsgId + '?token=' + encodeURIComponent(storedToken), {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text })
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text })
   }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.success) { closeEditModal(); loadCommChat(); }
+    if (data.success) closeEditModal();
   }).catch(function() {});
 });
 
@@ -504,15 +510,17 @@ document.getElementById('editMsgModal').addEventListener('click', function(e) {
 });
 
 function deleteCommMsg(id) {
-  fetch('/community-chat/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
-    .then(function(r) { return r.json(); }).then(function(data) {
-      if (data.success) loadCommChat();
-    }).catch(function() {});
+  fetch('/community-chat/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' }).catch(function() {});
 }
+
+document.addEventListener('visibilitychange', function() {
+  commchatActive = !document.hidden && document.getElementById('commchatTab').style.display !== 'none';
+});
 
 document.getElementById('logoutBtn').addEventListener('click', function() {
   fetch('/logout?token=' + encodeURIComponent(storedToken), { method: 'POST' }).catch(function() {});
-  localStorage.removeItem('user'); localStorage.removeItem('token'); localStorage.removeItem('pluginToken');
+  if (commchatSSE) commchatSSE.close();
+  localStorage.removeItem('user'); localStorage.removeItem('token'); localStorage.removeItem('pluginToken'); localStorage.removeItem('isAdmin');
   location.href = '/accountauth/index.html';
 });
 
@@ -529,7 +537,6 @@ var settingsShowToken = document.getElementById('settingsShowToken');
 var settingsCopyToken = document.getElementById('settingsCopyToken');
 var settingsClose = document.getElementById('settingsClose');
 var settingsClose2 = document.getElementById('settingsClose2');
-
 var currentAuthToken = '';
 var tokenVisible = false;
 var settingsTokenShown = false;
@@ -540,7 +547,6 @@ function showTokenNotif(tokenUrl) {
 }
 
 tokenNotifClose.addEventListener('click', function() { tokenNotif.style.display = 'none'; });
-
 tokenNotifHide.addEventListener('click', function() {
   if (tokenVisible) { tokenNotifInput.type = 'password'; tokenNotifHide.textContent = 'Show'; tokenVisible = false; }
   else { tokenNotifInput.type = 'text'; tokenNotifHide.textContent = 'Hide'; tokenVisible = true; }
@@ -612,8 +618,7 @@ var currentStudioToken = '';
 
 function loadStudioToken() {
   var t = localStorage.getItem('pluginToken') || '';
-  currentStudioToken = t;
-  settingsStudioInput.value = t || '';
+  currentStudioToken = t; settingsStudioInput.value = t || '';
   settingsStudioInput.placeholder = t ? 'Token loaded' : 'Click Connect Plugin in header to generate';
 }
 
@@ -639,9 +644,7 @@ var connectBtn = document.getElementById('connectBtn');
 var statusDot = document.getElementById('statusDot');
 var statusText = document.getElementById('statusText');
 
-function getModelValue() {
-  return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5';
-}
+function getModelValue() { return MODEL_API_MAP[modelSelect.value] || 'claude-sonnet-4-5'; }
 
 function setExplorerStatus(connected, model) {
   pluginConnected = connected;
@@ -651,8 +654,7 @@ function setExplorerStatus(connected, model) {
 }
 
 function showPluginTokenBox(token) {
-  var existing = document.getElementById('pluginTokenBox');
-  if (existing) existing.remove();
+  var existing = document.getElementById('pluginTokenBox'); if (existing) existing.remove();
   var box = document.createElement('div'); box.id = 'pluginTokenBox';
   box.style.cssText = 'position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);width:240px;background:#0a0a14;border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:0.75rem;z-index:10;';
   var label = document.createElement('div'); label.style.cssText = 'font-size:0.65rem;font-weight:700;color:#5a5a72;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;'; label.textContent = 'Paste in Studio Plugin';
@@ -668,12 +670,12 @@ function hidePluginTokenBox() { var e = document.getElementById('pluginTokenBox'
 
 connectBtn.addEventListener('click', function() {
   if (pluginConnected) {
-    fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' }).then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); hidePluginTokenBox(); }).catch(function() {});
+    fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' })
+      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); hidePluginTokenBox(); }).catch(function() {});
     return;
   }
   fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: getModelValue() })
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: getModelValue() })
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.success && data.pluginToken) {
       pluginTokenStored = data.pluginToken; localStorage.setItem('pluginToken', data.pluginToken);
@@ -685,16 +687,14 @@ connectBtn.addEventListener('click', function() {
 modelSelect.addEventListener('change', function() {
   if (pluginConnected && storedToken) {
     fetch('/plugin/update-model?token=' + encodeURIComponent(storedToken), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: getModelValue() })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: getModelValue() })
     }).catch(function() {});
   }
 });
 
 if (pluginTokenStored) {
   fetch('/plugin/ping', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pluginToken: pluginTokenStored })
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pluginToken: pluginTokenStored })
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.ok) { setExplorerStatus(true, data.model); showPluginTokenBox(pluginTokenStored); }
     else { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; }
