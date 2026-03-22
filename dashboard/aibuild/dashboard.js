@@ -146,7 +146,15 @@ function parseAndRenderContent(rawText, container) {
   var segs = bodyText.split(/(```[\s\S]*?```)/g);
   segs.forEach(function(seg) {
     var cm = seg.match(/^```(\w*)\n?([\s\S]*?)```$/);
-    if (cm) { container.appendChild(buildCodeBlock(cm[2], cm[1] || 'lua')); }
+    if (cm) {
+      var lang = cm[1] || 'lua';
+      var code = cm[2];
+      var codeEl = buildCodeBlock(code, lang);
+      container.appendChild(codeEl);
+      if (pluginConnected && (lang === 'lua' || lang === 'javascript' || lang === '')) {
+        addChangeButtons(code, 'AI suggested change', container);
+      }
+    }
     else if (seg.trim()) { var d = document.createElement('div'); d.innerHTML = fmtText(seg); container.appendChild(d); }
   });
 }
@@ -750,6 +758,11 @@ var pluginTokenStored = localStorage.getItem('pluginToken') || '';
 var connectBtn = document.getElementById('connectBtn');
 var statusDot = document.getElementById('statusDot');
 var statusText = document.getElementById('statusText');
+var viewStudioBtn = document.getElementById('viewStudioBtn');
+var studioFilesPanel = document.getElementById('studioFilesPanel');
+var explorerDisconnected = document.getElementById('explorerDisconnected');
+var studioFilesList = document.getElementById('studioFilesList');
+var studioFilesVisible = false;
 
 function getModelValue() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
 
@@ -758,27 +771,120 @@ function setExplorerStatus(connected, model) {
   if (statusDot) statusDot.className = 'dot ' + (connected ? 'green' : 'red');
   if (statusText) { statusText.textContent = connected ? 'Connected' : 'Disconnected'; statusText.style.color = connected ? '#10b981' : '#f43f5e'; }
   if (connectBtn) { connectBtn.textContent = connected ? 'Plugin Connected' : 'Connect Plugin'; connectBtn.style.background = connected ? 'linear-gradient(135deg,#10b981,#059669)' : ''; }
+  if (viewStudioBtn) viewStudioBtn.style.display = connected ? 'flex' : 'none';
+  if (!connected) {
+    studioFilesVisible = false;
+    if (studioFilesPanel) studioFilesPanel.style.display = 'none';
+    if (explorerDisconnected) explorerDisconnected.style.display = 'block';
+  }
 }
 
-function showPluginTokenBox(token) {
-  var existing = document.getElementById('pluginTokenBox'); if (existing) existing.remove();
-  var box = document.createElement('div'); box.id = 'pluginTokenBox';
-  box.style.cssText = 'position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);width:240px;background:#0a0a14;border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:0.75rem;z-index:10;';
-  var label = document.createElement('div'); label.style.cssText = 'font-size:0.65rem;font-weight:700;color:#5a5a72;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;'; label.textContent = 'Paste in Studio Plugin';
-  var tokenEl = document.createElement('div'); tokenEl.style.cssText = 'font-size:0.7rem;color:#93c5fd;font-family:monospace;word-break:break-all;margin-bottom:0.5rem;line-height:1.4;'; tokenEl.textContent = token;
-  var copyBtn = document.createElement('button'); copyBtn.style.cssText = 'width:100%;padding:0.35rem;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.25);border-radius:6px;color:#4f8ef7;font-size:0.72rem;font-weight:700;cursor:pointer;'; copyBtn.textContent = 'Copy Token';
-  copyBtn.addEventListener('click', function() { copyToClipboard(token, copyBtn, 'Copy Token'); });
-  box.appendChild(label); box.appendChild(tokenEl); box.appendChild(copyBtn);
-  var explorerEl = document.getElementById('explorer');
-  if (explorerEl) { explorerEl.style.position = 'relative'; explorerEl.appendChild(box); if (!explorerEl.classList.contains('open')) explorerEl.classList.add('open'); }
+if (viewStudioBtn) {
+  viewStudioBtn.addEventListener('click', function() {
+    if (!pluginConnected) return;
+    studioFilesVisible = !studioFilesVisible;
+    if (studioFilesVisible) {
+      studioFilesPanel.style.display = 'flex';
+      if (explorerDisconnected) explorerDisconnected.style.display = 'none';
+      var explorer = document.getElementById('explorer');
+      if (explorer && !explorer.classList.contains('open')) explorer.classList.add('open');
+      loadStudioFiles();
+    } else {
+      studioFilesPanel.style.display = 'none';
+      if (explorerDisconnected) explorerDisconnected.style.display = 'block';
+    }
+  });
 }
 
-function hidePluginTokenBox() { var e = document.getElementById('pluginTokenBox'); if (e) e.remove(); }
+function loadStudioFiles() {
+  if (!studioFilesList) return;
+  studioFilesList.innerHTML = '<div class="studio-loading">Loading files...</div>';
+  fetch('/plugin/files?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var files = data.files || [];
+      if (files.length === 0) { studioFilesList.innerHTML = '<div class="studio-empty">No files yet. Files will appear here once the plugin sends them.</div>'; return; }
+      studioFilesList.innerHTML = '';
+      files.forEach(function(f) {
+        var item = document.createElement('div');
+        item.className = 'studio-file-item';
+        var icon = document.createElement('span');
+        icon.className = 'studio-file-icon';
+        icon.textContent = f.type === 'Script' ? 'S' : f.type === 'LocalScript' ? 'L' : f.type === 'ModuleScript' ? 'M' : 'F';
+        var name = document.createElement('span');
+        name.className = 'studio-file-name';
+        name.textContent = f.name || 'Unknown';
+        var path = document.createElement('span');
+        path.className = 'studio-file-path';
+        path.textContent = f.path || '';
+        item.appendChild(icon);
+        var info = document.createElement('div');
+        info.className = 'studio-file-info';
+        info.appendChild(name);
+        info.appendChild(path);
+        item.appendChild(info);
+        studioFilesList.appendChild(item);
+      });
+    }).catch(function() {
+      studioFilesList.innerHTML = '<div class="studio-empty">Could not load files.</div>';
+    });
+}
+
+function sendChangeToPlugin(code, description) {
+  return fetch('/plugin/execute?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: code, description: description || '' })
+  }).then(function(r) { return r.json(); });
+}
+
+function addChangeButtons(code, description, msgEl) {
+  var existing = msgEl.querySelector('.change-btns');
+  if (existing) existing.remove();
+  var bar = document.createElement('div');
+  bar.className = 'change-btns';
+  var acceptBtn = document.createElement('button');
+  acceptBtn.className = 'change-btn change-btn-accept';
+  acceptBtn.textContent = 'Accept Change';
+  var rejectBtn = document.createElement('button');
+  rejectBtn.className = 'change-btn change-btn-reject';
+  rejectBtn.textContent = 'Reject Change';
+  acceptBtn.addEventListener('click', function() {
+    if (!pluginConnected) { acceptBtn.textContent = 'Plugin not connected'; setTimeout(function() { acceptBtn.textContent = 'Accept Change'; }, 2000); return; }
+    acceptBtn.textContent = 'Applying...';
+    acceptBtn.disabled = true;
+    rejectBtn.disabled = true;
+    sendChangeToPlugin(code, description).then(function(data) {
+      if (data.ok) {
+        acceptBtn.textContent = 'Applied';
+        acceptBtn.className = 'change-btn change-btn-applied';
+        rejectBtn.style.display = 'none';
+      } else {
+        acceptBtn.textContent = data.error || 'Failed';
+        acceptBtn.disabled = false;
+        rejectBtn.disabled = false;
+      }
+    }).catch(function() {
+      acceptBtn.textContent = 'Network error';
+      acceptBtn.disabled = false;
+      rejectBtn.disabled = false;
+    });
+  });
+  rejectBtn.addEventListener('click', function() {
+    bar.style.opacity = '0';
+    bar.style.transform = 'translateY(-4px)';
+    bar.style.transition = 'all 0.2s';
+    setTimeout(function() { bar.remove(); }, 200);
+  });
+  bar.appendChild(acceptBtn);
+  bar.appendChild(rejectBtn);
+  msgEl.appendChild(bar);
+}
 
 connectBtn.addEventListener('click', function() {
   if (pluginConnected) {
     fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' })
-      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); hidePluginTokenBox(); }).catch(function() {});
+      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); }).catch(function() {});
     return;
   }
   fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
@@ -786,7 +892,7 @@ connectBtn.addEventListener('click', function() {
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.success && data.pluginToken) {
       pluginTokenStored = data.pluginToken; localStorage.setItem('pluginToken', data.pluginToken);
-      setExplorerStatus(true, data.model); showPluginTokenBox(data.pluginToken);
+      setExplorerStatus(true, data.model);
     }
   }).catch(function() {});
 });
@@ -803,7 +909,7 @@ if (pluginTokenStored) {
   fetch('/plugin/ping', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pluginToken: pluginTokenStored })
   }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.ok) { setExplorerStatus(true, data.model); showPluginTokenBox(pluginTokenStored); }
+    if (data.ok) { setExplorerStatus(true, data.model); }
     else { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; }
   }).catch(function() { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; });
 }
