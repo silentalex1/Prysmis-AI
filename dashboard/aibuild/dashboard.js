@@ -521,6 +521,152 @@ function usePreset(i) {
   inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
 }
 
+
+var annSidebar = document.getElementById('annSidebar');
+var annSidebarClose = document.getElementById('annSidebarClose');
+var postAnnBtn = document.getElementById('postAnnBtn');
+var postAnnModal = document.getElementById('postAnnModal');
+var annSubmitBtn = document.getElementById('annSubmitBtn');
+var annListEl = document.getElementById('annList');
+
+var isUserAdmin = localStorage.getItem('isAdmin') === 'true';
+
+fetch('/me?token=' + encodeURIComponent(storedToken))
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.isAdmin) {
+      isUserAdmin = true;
+      if (postAnnBtn) postAnnBtn.style.display = 'inline-flex';
+    }
+  }).catch(function() {});
+
+function fmtFullDate(ts) {
+  return new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtShortDate(ts) {
+  return new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function loadAnnouncements() {
+  if (!annListEl) return;
+  annListEl.innerHTML = '<div class="ann-loading">Loading...</div>';
+  fetch('/announcements')
+    .then(function(r) { return r.json(); })
+    .then(function(anns) {
+      annListEl.innerHTML = '';
+      if (!Array.isArray(anns) || anns.length === 0) {
+        annListEl.innerHTML = '<div class="ann-empty">No announcements yet.</div>';
+        return;
+      }
+      anns.forEach(function(ann) {
+        var card = document.createElement('div');
+        card.className = 'ann-card';
+        var titleEl = document.createElement('div');
+        titleEl.className = 'ann-card-title';
+        titleEl.textContent = ann.title;
+        var descEl = document.createElement('div');
+        descEl.className = 'ann-card-desc';
+        descEl.textContent = ann.description.length > 120 ? ann.description.slice(0, 120) + '...' : ann.description;
+        var dateEl = document.createElement('div');
+        dateEl.className = 'ann-card-date';
+        dateEl.textContent = 'Posted on: ' + fmtShortDate(ann.created);
+        var actions = document.createElement('div');
+        actions.className = 'ann-card-actions';
+        var readBtn = document.createElement('button');
+        readBtn.className = 'ann-read-btn';
+        readBtn.textContent = 'Read';
+        readBtn.addEventListener('click', function() { openAnnSidebar(ann); });
+        actions.appendChild(readBtn);
+        if (isUserAdmin) {
+          var delBtn = document.createElement('button');
+          delBtn.className = 'ann-del-btn';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', function() { deleteAnn(ann.id, card); });
+          actions.appendChild(delBtn);
+        }
+        card.appendChild(titleEl);
+        card.appendChild(descEl);
+        card.appendChild(dateEl);
+        card.appendChild(actions);
+        annListEl.appendChild(card);
+      });
+    }).catch(function() {
+      annListEl.innerHTML = '<div class="ann-empty">Could not load announcements.</div>';
+    });
+}
+
+function openAnnSidebar(ann) {
+  document.getElementById('annSidebarTitle').textContent = ann.title;
+  document.getElementById('annSidebarDesc').textContent = ann.description;
+  document.getElementById('annSidebarDate').textContent = 'Posted on: ' + fmtFullDate(ann.created);
+  annSidebar.style.display = 'flex';
+  annSidebar.classList.add('open');
+}
+
+if (annSidebarClose) {
+  annSidebarClose.addEventListener('click', function() {
+    annSidebar.style.display = 'none';
+    annSidebar.classList.remove('open');
+  });
+}
+
+if (postAnnBtn) {
+  postAnnBtn.addEventListener('click', function() {
+    document.getElementById('annTitleInput').value = '';
+    document.getElementById('annDescInput').value = '';
+    document.getElementById('annPostErr').textContent = '';
+    postAnnModal.style.display = 'flex';
+  });
+}
+
+function closePostAnn() {
+  postAnnModal.style.display = 'none';
+}
+
+if (annSubmitBtn) {
+  annSubmitBtn.addEventListener('click', function() {
+    var title = document.getElementById('annTitleInput').value.trim();
+    var desc = document.getElementById('annDescInput').value.trim();
+    var errEl = document.getElementById('annPostErr');
+    errEl.textContent = '';
+    if (!title) { errEl.textContent = 'Title required'; return; }
+    if (!desc) { errEl.textContent = 'Description required'; return; }
+    annSubmitBtn.disabled = true;
+    annSubmitBtn.textContent = 'Posting...';
+    fetch('/announcements?token=' + encodeURIComponent(storedToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, description: desc })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      annSubmitBtn.disabled = false;
+      annSubmitBtn.textContent = 'Post';
+      if (data.success) {
+        closePostAnn();
+        loadAnnouncements();
+      } else {
+        errEl.textContent = data.error || 'Failed to post';
+      }
+    }).catch(function() {
+      annSubmitBtn.disabled = false;
+      annSubmitBtn.textContent = 'Post';
+      errEl.textContent = 'Network error';
+    });
+  });
+}
+
+function deleteAnn(id, cardEl) {
+  fetch('/announcements/' + id + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        cardEl.style.opacity = '0';
+        cardEl.style.transition = 'opacity 0.2s';
+        setTimeout(function() { cardEl.remove(); }, 200);
+      }
+    }).catch(function() {});
+}
+
 function toggleExplorer() { document.getElementById('explorer').classList.toggle('open'); }
 
 function showTab(tab, btnEl) {
@@ -530,6 +676,7 @@ function showTab(tab, btnEl) {
   document.getElementById(tab + 'Tab').style.display = 'flex';
   if (tab === 'projects') loadProjects();
   if (tab === 'commchat') initCommChat();
+  if (tab === 'announcements') loadAnnouncements();
 }
 
 function loadProjects() {
