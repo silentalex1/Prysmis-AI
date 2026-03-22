@@ -31,6 +31,7 @@
 </div>
 <button id="generateTokenBtn">Generate Token</button>
 <button id="connectBtn">Connect Plugin</button>
+<button id="logoutBtn" class="logout-btn">Logout</button>
 </div>
 </header>
 <div class="app-container">
@@ -54,6 +55,7 @@ Settings
 <nav class="navigation-tabs">
 <button class="tab-link active" data-tab="chat">AI Chat</button>
 <button class="tab-link" data-tab="projects">Community Projects</button>
+<button class="tab-link" data-tab="commchat">Community Chat</button>
 </nav>
 <div class="welcome-tag">Welcome back, <span class="uname" id="userName">User</span></div>
 </div>
@@ -96,13 +98,30 @@ Settings
 <div class="projects-grid" id="projectsList"></div>
 </div>
 </section>
+<section id="commchatTab" class="viewport" style="display:none">
+<div class="commchat-container">
+<div id="commchatMessages" class="commchat-messages"></div>
+<div class="commchat-reply-bar" id="commchatReplyBar" style="display:none">
+<div class="commchat-reply-preview" id="commchatReplyPreview"></div>
+<button class="commchat-reply-cancel" id="commchatReplyCancel">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+</button>
+</div>
+<div class="commchat-input-row">
+<textarea id="commchatInput" class="commchat-input" rows="1" placeholder="Send a message to the community..."></textarea>
+<button id="commchatSend" class="commchat-send-btn">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+</button>
+</div>
+</div>
+</section>
 </main>
 <aside class="sidebar-right" id="explorer">
 <div class="sidebar-toggle" onclick="toggleExplorer()">Explorer</div>
 <div class="sidebar-inner">
 <div class="explorer-content">
 <div class="explorer-status">
-<span class="dot red"></span>
+<span class="dot red" id="statusDot"></span>
 <span id="statusText">Disconnected</span>
 </div>
 <div class="explorer-title">Studio Files</div>
@@ -153,7 +172,6 @@ Settings
 </div>
 </div>
 </div>
-
 <div id="settingsModal" class="settings-overlay" style="display:none">
 <div class="settings-panel">
 <div class="settings-sidebar">
@@ -198,7 +216,23 @@ Settings
 </div>
 </div>
 </div>
-
+<div id="editMsgModal" class="modal" style="display:none">
+<div class="modal-card" style="max-width:480px">
+<div class="modal-header">
+<h2>Edit Message</h2>
+</div>
+<div class="modal-divider"></div>
+<div class="modal-body">
+<div class="input-group">
+<textarea id="editMsgText" style="min-height:80px;resize:vertical;"></textarea>
+</div>
+</div>
+<div class="modal-footer">
+<button onclick="closeEditModal()" class="btn-secondary">Cancel</button>
+<button id="editMsgSave" class="btn-primary">Save</button>
+</div>
+</div>
+</div>
 <script src="dashboard.js"></script>
 </body>
 </html>
