@@ -191,8 +191,8 @@ color: #5a5a72;
 font-weight: 600;
 }
 
-.user-row.control-row { grid-template-columns: 1fr 140px 80px 60px 90px; }
-.user-row-head.control-head { grid-template-columns: 1fr 140px 80px 60px 90px; }
+.user-row.control-row { grid-template-columns: 1fr 160px 90px 60px 100px; gap: 0.5rem; }
+.user-row-head.control-head { grid-template-columns: 1fr 160px 90px 60px 100px; gap: 0.5rem; }
 
 .rank-select {
 appearance: none;
