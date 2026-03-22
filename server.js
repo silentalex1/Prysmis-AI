@@ -914,6 +914,20 @@ const server = http.createServer(async (req, res) => {
     }); return;
   }
 
+  if (req.method === 'GET' && (pt === '/APIDoc/API.css' || pt === '/apidoc/API.css')) {
+    fs.readFile('./apidoc/API.css', (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' }); res.end(data);
+    }); return;
+  }
+
+  if (req.method === 'GET' && (pt === '/APIDoc/API.js' || pt === '/apidoc/API.js')) {
+    fs.readFile('./apidoc/API.js', (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' }); res.end(data);
+    }); return;
+  }
+
   if (req.method === 'GET') {
     let filePath = '.' + (pt === '/' ? '/index.html' : pt);
     if (filePath.endsWith('/')) filePath += 'index.html';
