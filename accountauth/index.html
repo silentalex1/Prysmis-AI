@@ -21,8 +21,9 @@ Back to home
 <h1>Welcome back</h1>
 <p class="subtitle">Sign in to continue building</p>
 <div class="tab-row">
-<button class="tab-pill active" id="tabLoginBtn" onclick="switchTab('login')">Log In</button>
-<button class="tab-pill" id="tabSignupBtn" onclick="switchTab('signup')">Sign Up</button>
+<button class="tab-pill active" onclick="switchTab('login')">Log In</button>
+<button class="tab-pill" onclick="switchTab('signup')">Sign Up</button>
+<button class="tab-pill" onclick="switchTab('admin')">Admin</button>
 </div>
 <div class="form-group">
 <label>USERNAME</label>
@@ -32,7 +33,7 @@ Back to home
 <label>PASSWORD</label>
 <div class="pw-wrap">
 <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password">
-<button type="button" class="eye-btn" id="loginEye" onclick="toggleEye('loginPass','loginEye')">
+<button type="button" class="eye-btn" onclick="toggleEye('loginPass')">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
@@ -48,8 +49,9 @@ Back to home
 <h1>Create account</h1>
 <p class="subtitle">Start building with PrysmisAI</p>
 <div class="tab-row">
-<button class="tab-pill" id="tabLoginBtn2" onclick="switchTab('login')">Log In</button>
-<button class="tab-pill active" id="tabSignupBtn2" onclick="switchTab('signup')">Sign Up</button>
+<button class="tab-pill" onclick="switchTab('login')">Log In</button>
+<button class="tab-pill active" onclick="switchTab('signup')">Sign Up</button>
+<button class="tab-pill" onclick="switchTab('admin')">Admin</button>
 </div>
 <div class="form-group">
 <label>USERNAME</label>
@@ -59,7 +61,7 @@ Back to home
 <label>PASSWORD</label>
 <div class="pw-wrap">
 <input type="password" id="signupPass" placeholder="At least 6 characters" autocomplete="new-password">
-<button type="button" class="eye-btn" id="signupEye" onclick="toggleEye('signupPass','signupEye')">
+<button type="button" class="eye-btn" onclick="toggleEye('signupPass')">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
@@ -70,6 +72,34 @@ Back to home
 <span id="signupSpinner" class="spinner" style="display:none"></span>
 </button>
 <p class="switch-text">Already have an account? <button class="link-btn" onclick="switchTab('login')">Log in</button></p>
+</div>
+<div class="card-inner" id="adminCard" style="display:none">
+<h1>Admin Login</h1>
+<p class="subtitle">Authorized personnel only</p>
+<div class="tab-row">
+<button class="tab-pill" onclick="switchTab('login')">Log In</button>
+<button class="tab-pill" onclick="switchTab('signup')">Sign Up</button>
+<button class="tab-pill active" onclick="switchTab('admin')">Admin</button>
+</div>
+<div class="form-group">
+<label>ADMIN USERNAME</label>
+<input type="text" id="adminUser" placeholder="Enter admin username" autocomplete="off" spellcheck="false">
+</div>
+<div class="form-group">
+<label>ADMIN PASSWORD</label>
+<div class="pw-wrap">
+<input type="password" id="adminPass" placeholder="Enter admin password" autocomplete="current-password">
+<button type="button" class="eye-btn" onclick="toggleEye('adminPass')">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</div>
+<div id="adminErr" class="err-msg"></div>
+<button class="submit-btn admin-submit" id="adminBtn">
+<span id="adminBtnText">Admin Login</span>
+<span id="adminSpinner" class="spinner" style="display:none"></span>
+</button>
+<p class="switch-text admin-note">Admin accounts are granted via Discord bot by authorized users only.</p>
 </div>
 </div>
 </div>
