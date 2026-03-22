@@ -411,10 +411,10 @@ function doSend() {
   inputEl.style.height = 'auto';
   showThinking();
 
-  fetch('/v1/chat/completions?model=' + encodeURIComponent(getModel()), {
+  fetch('/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: buildMessages(), temperature: 0.7, max_tokens: 4096 })
+    body: JSON.stringify({ model: getModel(), messages: buildMessages(), temperature: 0.7, max_tokens: 4096 })
   }).then(function(r) {
     return r.json();
   }).then(function(data) {
@@ -1133,4 +1133,90 @@ settingsCopyToken.addEventListener('click', function() {
     settingsCopyToken.textContent = 'Copied';
     setTimeout(function() { settingsCopyToken.textContent = 'Copy Token'; }, 2000);
   });
+});
+
+var settingsClose2 = document.getElementById('settingsClose2');
+if (settingsClose2) {
+  settingsClose2.addEventListener('click', function() {
+    settingsModal.style.display = 'none';
+  });
+}
+
+var settingsNavAccount = document.getElementById('settingsNavAccount');
+var settingsNavStudio = document.getElementById('settingsNavStudio');
+var settingsPageAccount = document.getElementById('settingsPageAccount');
+var settingsPageStudio = document.getElementById('settingsPageStudio');
+
+function switchSettingsTab(tab) {
+  if (tab === 'account') {
+    settingsPageAccount.style.display = 'block';
+    settingsPageStudio.style.display = 'none';
+    settingsNavAccount.classList.add('active');
+    settingsNavStudio.classList.remove('active');
+  } else {
+    settingsPageAccount.style.display = 'none';
+    settingsPageStudio.style.display = 'block';
+    settingsNavStudio.classList.add('active');
+    settingsNavAccount.classList.remove('active');
+    loadStudioToken();
+  }
+}
+
+var settingsStudioInput = document.getElementById('settingsStudioInput');
+var settingsShowStudio = document.getElementById('settingsShowStudio');
+var settingsCopyStudio = document.getElementById('settingsCopyStudio');
+var studioTokenShown = false;
+var currentStudioToken = '';
+
+function loadStudioToken() {
+  if (pluginTokenStored) {
+    currentStudioToken = pluginTokenStored;
+    settingsStudioInput.value = pluginTokenStored;
+  } else {
+    settingsStudioInput.value = '';
+    settingsStudioInput.placeholder = 'Click Connect Plugin in header to generate';
+  }
+}
+
+settingsShowStudio.addEventListener('click', function() {
+  if (!currentStudioToken) return;
+  if (studioTokenShown) {
+    settingsStudioInput.type = 'password';
+    settingsShowStudio.textContent = 'Show Token';
+    studioTokenShown = false;
+  } else {
+    settingsStudioInput.type = 'text';
+    settingsStudioInput.value = currentStudioToken;
+    settingsShowStudio.textContent = 'Hide Token';
+    studioTokenShown = true;
+  }
+});
+
+settingsCopyStudio.addEventListener('click', function() {
+  if (!currentStudioToken) return;
+  navigator.clipboard.writeText(currentStudioToken).then(function() {
+    settingsCopyStudio.textContent = 'Copied';
+    setTimeout(function() { settingsCopyStudio.textContent = 'Copy Token'; }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = currentStudioToken;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    settingsCopyStudio.textContent = 'Copied';
+    setTimeout(function() { settingsCopyStudio.textContent = 'Copy Token'; }, 2000);
+  });
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (settingsModal && settingsModal.style.display !== 'none') {
+      settingsModal.style.display = 'none';
+    }
+    if (tokenNotif && tokenNotif.style.display !== 'none') {
+      tokenNotif.style.display = 'none';
+    }
+  }
 });
