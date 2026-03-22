@@ -1051,3 +1051,29 @@ color: var(--accent);
 margin-bottom: 0.35rem;
 letter-spacing: 0.2px;
 }
+
+.commchat-topbar {
+display: flex;
+justify-content: flex-end;
+padding: 0.5rem 1rem 0;
+min-height: 0;
+}
+
+.clear-chat-btn {
+display: inline-flex;
+align-items: center;
+gap: 0.4rem;
+padding: 0.35rem 0.85rem;
+background: rgba(244,63,94,0.08);
+border: 1px solid rgba(244,63,94,0.2);
+border-radius: 7px;
+color: var(--red);
+font-size: 0.74rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.clear-chat-btn:hover { background: rgba(244,63,94,0.16); }
+.clear-chat-btn:disabled { opacity: 0.5; cursor: not-allowed; }
