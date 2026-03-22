@@ -139,7 +139,7 @@ document.getElementById('adminBtn').addEventListener('click', function() {
       localStorage.setItem('user', res.d.username);
       localStorage.setItem('token', res.d.token);
       localStorage.setItem('isAdmin', 'true');
-      location.href = '/dashboard/aibuild/index.html';
+      location.href = '/adminpanel';
     } else {
       showErr('adminErr', res.d.error || 'Admin login failed');
     }
@@ -171,7 +171,7 @@ document.getElementById('createAdminBtn').addEventListener('click', function() {
       localStorage.setItem('user', res.d.username);
       localStorage.setItem('token', res.d.token);
       localStorage.setItem('isAdmin', 'true');
-      location.href = '/dashboard/aibuild/index.html';
+      location.href = '/adminpanel';
     } else {
       showErr('createAdminErr', res.d.error || 'Failed to create admin account');
     }
