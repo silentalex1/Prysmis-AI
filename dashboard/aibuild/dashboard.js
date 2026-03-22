@@ -37,6 +37,7 @@ var imagePasteImg = null;
 var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.2-pro': true, 'grok-4': true };
 
 var MODEL_API_MAP = {
+  'psm-4.0': 'psm-4.0',
   'gpt-5.2': 'gpt-5.2',
   'gpt-5.2-mini': 'gpt-5.2-mini',
   'gpt-4o': 'gpt-4o',
@@ -291,6 +292,56 @@ function addContinueButton(msgEl, onContinue) {
   msgEl.appendChild(bar);
 }
 
+var psmPipeline = null;
+var psmVisionPipeline = null;
+var psmLoading = false;
+
+async function loadPSM() {
+  if (psmPipeline) return psmPipeline;
+  if (psmLoading) { await new Promise(function(r) { var iv = setInterval(function() { if (!psmLoading) { clearInterval(iv); r(); } }, 200); }); return psmPipeline; }
+  psmLoading = true;
+  var { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+  psmPipeline = await pipeline('text-generation', 'Xenova/Qwen2.5-0.5B-Instruct', { quantized: true });
+  psmLoading = false;
+  return psmPipeline;
+}
+
+async function loadPSMVision() {
+  if (psmVisionPipeline) return psmVisionPipeline;
+  var { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+  psmVisionPipeline = await pipeline('image-to-text', 'Xenova/vit-gpt2-image-captioning', { quantized: true });
+  return psmVisionPipeline;
+}
+
+async function runPSM(messages, imageDataUrl) {
+  var systemMsg = SYSTEM_PROMPT;
+  var userMsgs = messages.filter(function(m) { return m.role !== 'system'; });
+  var lastUser = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
+  var userText = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : (Array.isArray(lastUser.content) ? lastUser.content.filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join(' ') : '')) : '';
+
+  if (imageDataUrl) {
+    var visionPipe = await loadPSMVision();
+    var caption = await visionPipe(imageDataUrl, { max_new_tokens: 100 });
+    var captionText = caption && caption[0] ? caption[0].generated_text : 'an image';
+    userText = 'Image description: ' + captionText + '. User question: ' + userText;
+  }
+
+  var pipe = await loadPSM();
+  var history = [];
+  history.push({ role: 'system', content: systemMsg });
+  userMsgs.slice(-4).forEach(function(m) {
+    history.push({ role: m.role, content: typeof m.content === 'string' ? m.content : userText });
+  });
+
+  var result = await pipe(history, { max_new_tokens: 512, temperature: 0.7, do_sample: true, return_full_text: false });
+  var text = '';
+  if (result && result[0]) {
+    if (result[0].generated_text) text = result[0].generated_text;
+    else if (Array.isArray(result[0]) && result[0][result[0].length-1]) text = result[0][result[0].length-1].content || '';
+  }
+  return text || 'PSM-4.0 could not generate a response.';
+}
+
 function doSend(overrideText, isContinue) {
   var text = isContinue ? overrideText : inputEl.value.trim();
   if (!text && !pastedImageData) return;
@@ -351,6 +402,18 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
+  if (model === 'psm-4.0') {
+    var imgForPSM = (userHasPremium && pastedImageData) ? pastedImageData : null;
+    var thinkMsg = document.getElementById('thinking');
+    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-4.0 is thinking...'; }
+    runPSM(allMsgs, imgForPSM).then(function(reply) {
+      handleReply(reply, null);
+    }).catch(function(e) {
+      removeThinking();
+      addMessage('PSM-4.0 error: ' + (e.message || String(e)), false);
+    });
+    return;
+  }
   fetch('/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
