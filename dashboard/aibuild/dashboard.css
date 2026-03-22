@@ -546,3 +546,216 @@ color: #f43f5e;
 
 .change-btn-reject:hover:not(:disabled) { background: rgba(244,63,94,0.18); }
 .change-btn-reject:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.studio-file-type {
+font-size: 0.62rem;
+color: var(--dim2);
+font-family: 'Fira Code', monospace;
+margin-top: 1px;
+}
+
+.model-select-row {
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 0.5rem 0 0.2rem;
+}
+
+.model-select-wrap {
+position: relative;
+display: inline-flex;
+align-items: center;
+}
+
+.model-select-inline {
+appearance: none;
+padding: 0.42rem 2.2rem 0.42rem 0.9rem;
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.09);
+border-radius: 8px;
+color: var(--text);
+font-size: 0.82rem;
+font-family: inherit;
+cursor: pointer;
+outline: none;
+transition: border-color 0.2s;
+min-width: 180px;
+}
+
+.model-select-inline:hover { border-color: var(--border2); }
+.model-select-inline:focus { border-color: var(--border2); }
+
+.model-select-wrap::after {
+content: '';
+position: absolute;
+right: 0.7rem;
+top: 50%;
+transform: translateY(-50%);
+width: 0;
+height: 0;
+border-left: 4px solid transparent;
+border-right: 4px solid transparent;
+border-top: 5px solid var(--dim);
+pointer-events: none;
+}
+
+.model-select-inline optgroup {
+font-size: 0.7rem;
+font-weight: 700;
+color: var(--dim);
+background: #0d0d1a;
+}
+
+.model-select-inline option {
+background: #0d0d1a;
+color: var(--text);
+font-size: 0.82rem;
+}
+
+.premium-option { color: #a78bfa; }
+
+.premium-modal-overlay {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.75);
+backdrop-filter: blur(12px);
+z-index: 2000;
+display: flex;
+align-items: center;
+justify-content: center;
+animation: fadeIn 0.2s ease;
+}
+
+.premium-modal-card {
+background: #09090f;
+border: 1px solid rgba(139,92,246,0.25);
+border-radius: 18px;
+width: 420px;
+padding: 2rem;
+position: relative;
+box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 60px rgba(139,92,246,0.08);
+animation: slideUp 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+
+.premium-modal-close {
+position: absolute;
+top: 1rem;
+right: 1rem;
+background: none;
+border: 1px solid rgba(255,255,255,0.08);
+border-radius: 7px;
+color: var(--dim);
+cursor: pointer;
+padding: 5px;
+display: flex;
+align-items: center;
+transition: all 0.2s;
+}
+
+.premium-modal-close:hover { color: var(--text); border-color: var(--dim); }
+
+.premium-modal-icon {
+width: 52px;
+height: 52px;
+border-radius: 14px;
+background: rgba(139,92,246,0.1);
+border: 1px solid rgba(139,92,246,0.25);
+display: flex;
+align-items: center;
+justify-content: center;
+color: #a78bfa;
+margin-bottom: 1.2rem;
+}
+
+.premium-modal-title {
+font-size: 1.3rem;
+font-weight: 900;
+color: #fff;
+letter-spacing: -0.3px;
+margin-bottom: 0.4rem;
+}
+
+.premium-modal-sub {
+font-size: 0.85rem;
+color: var(--dim);
+margin-bottom: 1.5rem;
+line-height: 1.5;
+}
+
+.premium-features-list {
+display: flex;
+flex-direction: column;
+gap: 0.6rem;
+margin-bottom: 1.8rem;
+padding: 1rem;
+background: rgba(255,255,255,0.02);
+border: 1px solid rgba(255,255,255,0.06);
+border-radius: 10px;
+}
+
+.premium-feature-item {
+display: flex;
+align-items: center;
+gap: 0.7rem;
+font-size: 0.84rem;
+color: var(--text);
+}
+
+.premium-feature-dot {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: #a78bfa;
+flex-shrink: 0;
+}
+
+.premium-buy-btn {
+display: block;
+text-align: center;
+padding: 0.8rem;
+background: linear-gradient(135deg, #7c3aed, #6d28d9);
+border-radius: 10px;
+color: #fff;
+font-weight: 700;
+font-size: 0.9rem;
+text-decoration: none;
+transition: opacity 0.2s, transform 0.2s;
+box-shadow: 0 4px 20px rgba(124,58,237,0.35);
+}
+
+.premium-buy-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+.rank-badge {
+font-size: 0.6rem;
+font-weight: 800;
+letter-spacing: 0.4px;
+text-transform: uppercase;
+padding: 2px 6px;
+border-radius: 4px;
+margin-left: 0.3rem;
+vertical-align: middle;
+}
+
+.rank-admin {
+background: rgba(244,63,94,0.15);
+border: 1px solid rgba(244,63,94,0.3);
+color: #f43f5e;
+}
+
+.rank-premium {
+background: rgba(139,92,246,0.15);
+border: 1px solid rgba(139,92,246,0.3);
+color: #a78bfa;
+}
+
+.rank-early {
+background: rgba(245,158,11,0.12);
+border: 1px solid rgba(245,158,11,0.25);
+color: #fbbf24;
+}
+
+.rank-mod {
+background: rgba(59,130,246,0.12);
+border: 1px solid rgba(59,130,246,0.25);
+color: #60a5fa;
+}
