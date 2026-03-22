@@ -1,18 +1,20 @@
 var storedToken = localStorage.getItem('token');
 var storedUser = localStorage.getItem('user');
-var isAdmin = localStorage.getItem('isAdmin') === 'true';
-
-var gateOverlay = document.getElementById('gateOverlay');
 var adminLayout = document.getElementById('adminLayout');
+var gateOverlay = document.getElementById('gateOverlay');
 
-function showGate() {
-  gateOverlay.style.display = 'flex';
-  adminLayout.style.display = 'none';
+function blockAccess() {
+  if (adminLayout) adminLayout.style.display = 'none';
+  if (gateOverlay) gateOverlay.style.display = 'none';
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('isAdmin');
+  location.href = '/accountauth/index.html';
 }
 
 function showPanel() {
-  gateOverlay.style.display = 'none';
-  adminLayout.style.display = 'flex';
+  if (gateOverlay) gateOverlay.style.display = 'none';
+  if (adminLayout) adminLayout.style.display = 'flex';
   document.getElementById('adminUserTag').textContent = storedUser || 'Admin';
   showPage('stats');
   loadStats();
@@ -21,8 +23,10 @@ function showPanel() {
 function showPage(page) {
   document.querySelectorAll('.admin-page').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.admin-nav-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
-  document.getElementById('nav' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+  var pageEl = document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1));
+  var navEl = document.getElementById('nav' + page.charAt(0).toUpperCase() + page.slice(1));
+  if (pageEl) pageEl.classList.add('active');
+  if (navEl) navEl.classList.add('active');
   var titles = { stats: 'Website Stats', control: 'Admin Control' };
   document.getElementById('pageTitle').textContent = titles[page] || page;
   if (page === 'control') loadControl();
@@ -30,8 +34,11 @@ function showPage(page) {
 
 function fmtDate(ts) {
   if (!ts) return 'Unknown';
-  var d = new Date(ts);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function loadStats() {
@@ -48,15 +55,16 @@ function loadStats() {
   }).catch(function() {});
 
   fetch('/admin/users?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if (r.status === 401 || r.status === 403) { blockAccess(); return null; }
+      return r.json();
+    })
     .then(function(data) {
+      if (!data) return;
       document.getElementById('statAdmins').textContent = data.adminCount || 0;
       var users = data.users || [];
       var body = document.getElementById('usersTableBody');
-      if (users.length === 0) {
-        body.innerHTML = '<div class="empty-table">No users found.</div>';
-        return;
-      }
+      if (users.length === 0) { body.innerHTML = '<div class="empty-table">No users found.</div>'; return; }
       var html = '<div class="user-row-head"><span>Username</span><span>Joined</span><span>Chats</span><span>Role</span></div>';
       users.forEach(function(u) {
         html += '<div class="user-row">';
@@ -72,83 +80,15 @@ function loadStats() {
     });
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function verifyTokenIsAdmin() {
-  if (!storedToken) { showGate(); return; }
-  fetch('/me?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.isAdmin) {
-        storedUser = d.username;
-        localStorage.setItem('isAdmin', 'true');
-        showPanel();
-      } else {
-        showGate();
-      }
-    }).catch(function() { showGate(); });
-}
-
-verifyTokenIsAdmin();
-
-var gateBtn = document.getElementById('gateBtn');
-var gateCode = document.getElementById('gateCode');
-var gateErr = document.getElementById('gateErr');
-
-function showGateErr(msg) {
-  gateErr.textContent = msg;
-  gateErr.classList.add('show');
-}
-
-function clearGateErr() {
-  gateErr.textContent = '';
-  gateErr.classList.remove('show');
-}
-
-function setGateLoading(on) {
-  gateBtn.disabled = on;
-  document.getElementById('gateBtnText').style.display = on ? 'none' : 'inline';
-  document.getElementById('gateSpinner').style.display = on ? 'inline-block' : 'none';
-}
-
-gateBtn.addEventListener('click', function() {
-  clearGateErr();
-  var code = gateCode.value.trim();
-  if (!code) { showGateErr('Please enter the admin passcode'); return; }
-  if (!code.startsWith('PrysmisAI_admin')) { showGateErr('Invalid code format'); return; }
-  setGateLoading(true);
-  fetch('/admin/gate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code })
-  }).then(function(r) { return r.json().then(function(d) { return { s: r.status, d: d }; }); })
-  .then(function(res) {
-    setGateLoading(false);
-    if (res.s === 200 && res.d.success) {
-      storedToken = res.d.token;
-      storedUser = res.d.username;
-      localStorage.setItem('token', res.d.token);
-      localStorage.setItem('user', res.d.username);
-      localStorage.setItem('isAdmin', 'true');
-      showPanel();
-    } else {
-      showGateErr(res.d.error || 'Invalid or expired code');
-    }
-  }).catch(function() {
-    setGateLoading(false);
-    showGateErr('Network error. Please try again.');
-  });
-});
-
-gateCode.addEventListener('keydown', function(e) { if (e.key === 'Enter') gateBtn.click(); });
-
 function loadControl() {
   document.getElementById('controlTableBody').innerHTML = '<div class="table-loading">Loading...</div>';
   fetch('/admin/users?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if (r.status === 401 || r.status === 403) { blockAccess(); return null; }
+      return r.json();
+    })
     .then(function(data) {
+      if (!data) return;
       var users = data.users || [];
       document.getElementById('controlUserCount').textContent = users.length;
       var body = document.getElementById('controlTableBody');
@@ -196,3 +136,18 @@ document.getElementById('adminLogoutBtn').addEventListener('click', function() {
   localStorage.removeItem('isAdmin');
   location.href = '/accountauth/index.html';
 });
+
+if (!storedToken || !storedUser) {
+  blockAccess();
+} else {
+  fetch('/me?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.username || !d.isAdmin) {
+        blockAccess();
+      } else {
+        storedUser = d.username;
+        showPanel();
+      }
+    }).catch(function() { blockAccess(); });
+}
