@@ -133,3 +133,104 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #020205; color: 
 .badge-user { font-size: 0.65rem; font-weight: 700; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #5a5a72; padding: 2px 7px; border-radius: 5px; }
 
 .empty-table { padding: 3rem; text-align: center; color: #5a5a72; font-size: 0.85rem; }
+
+.user-row.control-row { grid-template-columns: 1fr 1fr 1fr 80px 90px; }
+.user-row-head.control-head { grid-template-columns: 1fr 1fr 1fr 80px 90px; }
+
+.remove-user-btn {
+padding: 0.28rem 0.7rem;
+background: rgba(244,63,94,0.1);
+border: 1px solid rgba(244,63,94,0.25);
+border-radius: 6px;
+color: #f43f5e;
+font-size: 0.7rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.remove-user-btn:hover {
+background: rgba(244,63,94,0.2);
+border-color: #f43f5e;
+}
+
+.remove-protected {
+font-size: 0.7rem;
+color: #3a3a52;
+font-weight: 600;
+}
+
+.control-header-row {
+display: flex;
+gap: 1.5rem;
+margin-bottom: 0.5rem;
+}
+
+.control-stat {
+background: rgba(10,10,20,0.8);
+border: 1px solid rgba(255,255,255,0.06);
+border-radius: 14px;
+padding: 1.2rem 1.8rem;
+display: flex;
+flex-direction: column;
+gap: 0.25rem;
+}
+
+.control-stat-value {
+font-size: 2rem;
+font-weight: 900;
+color: #fff;
+letter-spacing: -0.5px;
+line-height: 1;
+}
+
+.control-stat-label {
+font-size: 0.75rem;
+color: #5a5a72;
+font-weight: 600;
+}
+
+.user-row.control-row { grid-template-columns: 1fr 140px 80px 60px 90px; }
+.user-row-head.control-head { grid-template-columns: 1fr 140px 80px 60px 90px; }
+
+.rank-select {
+appearance: none;
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.1);
+border-radius: 6px;
+color: #dde0ff;
+font-size: 0.72rem;
+font-family: inherit;
+padding: 0.3rem 0.6rem;
+cursor: pointer;
+outline: none;
+width: 100%;
+}
+
+.rank-select:focus { border-color: rgba(99,102,241,0.4); }
+.rank-select option { background: #0d0d1a; }
+
+.premium-toggle-btn {
+padding: 0.25rem 0.65rem;
+background: rgba(99,102,241,0.1);
+border: 1px solid rgba(99,102,241,0.25);
+border-radius: 6px;
+color: #818cf8;
+font-size: 0.7rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+white-space: nowrap;
+}
+
+.premium-toggle-btn:hover { background: rgba(99,102,241,0.2); }
+
+.premium-toggle-btn.active {
+background: rgba(244,63,94,0.1);
+border-color: rgba(244,63,94,0.25);
+color: #f43f5e;
+}
+
+.premium-toggle-btn.active:hover { background: rgba(244,63,94,0.18); }
