@@ -856,7 +856,7 @@ const server = http.createServer(async (req, res) => {
     const puterFetch = async (model, msgs) => {
       const r = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (process.env.PUTER_TOKEN || 'anonymous') },
+        headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' },
         body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok })
       });
       const data = await r.json();
