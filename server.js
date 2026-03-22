@@ -432,7 +432,41 @@ const server = http.createServer(async (req, res) => {
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     user.lastSeen = Date.now();
-    return sendJson(res, 200, { username: td.username, created: user.created, lastLogin: user.lastLogin, chatCount: (user.chats || []).length, loginCount: user.loginCount || 1, isAdmin: !!db.admins[td.username] });
+    const isAdmin = !!db.admins[td.username];
+    return sendJson(res, 200, { username: td.username, created: user.created, lastLogin: user.lastLogin, chatCount: (user.chats || []).length, loginCount: user.loginCount || 1, isAdmin, premium: isAdmin || !!user.premium, rank: user.rank || null });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/set-rank') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const rawToken = getReqToken(req, url);
+    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    const { username, rank } = body;
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    const validRanks = ['early access', 'premium', 'chat mod', null, ''];
+    if (!validRanks.includes(rank)) return sendJson(res, 400, { error: 'Invalid rank' });
+    db.users[uname].rank = rank || null;
+    if (rank === 'premium') db.users[uname].premium = true;
+    saveDb();
+    return sendJson(res, 200, { success: true, username: uname, rank: db.users[uname].rank });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/set-premium') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const rawToken = getReqToken(req, url);
+    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    const { username, premium } = body;
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    db.users[uname].premium = !!premium;
+    saveDb();
+    return sendJson(res, 200, { success: true, username: uname, premium: db.users[uname].premium });
   }
 
   if (req.method === 'POST' && pt === '/logout') {
@@ -581,7 +615,8 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Message required' });
     if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
-    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, isAdmin: !!db.admins[td.username], text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
+    const isAdminSender = !!db.admins[td.username]; const senderUser = db.users[td.username] || {};
+    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, isAdmin: isAdminSender, rank: isAdminSender ? 'admin' : (senderUser.rank || null), text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
     db.communityChat.push(msg);
     if (db.communityChat.length > MAX_COMMUNITY_MSGS) db.communityChat = db.communityChat.slice(-MAX_COMMUNITY_MSGS);
     saveDb(); broadcastSSE({ type: 'new_message', msg });
@@ -698,7 +733,7 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const rawToken = getReqToken(req, url);
     if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-    const users = Object.entries(db.users).map(([uname, u]) => ({ username: uname, created: u.created, lastLogin: u.lastLogin, chatCount: (u.chats || []).length, loginCount: u.loginCount || 1, isAdmin: !!db.admins[uname] }));
+    const users = Object.entries(db.users).map(([uname, u]) => ({ username: uname, created: u.created, lastLogin: u.lastLogin, chatCount: (u.chats || []).length, loginCount: u.loginCount || 1, isAdmin: !!db.admins[uname], premium: !!u.premium || !!db.admins[uname], rank: db.admins[uname] ? 'admin' : (u.rank || null) }));
     return sendJson(res, 200, { users, adminCount: Object.keys(db.admins).length });
   }
 
