@@ -841,7 +841,7 @@ const server = http.createServer(async (req, res) => {
     const userOnly = validMessages.filter(m => m.role !== 'system');
     if (userOnly.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
-    const maxTok = Math.min(typeof body.max_tokens === 'number' ? body.max_tokens : 2048, 4096);
+    const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
     const tryCall = async (m, msgs) => client.chat.completions.create({ model: m, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
     const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
     const tryList = [modelToUse, ...fallbacks.filter(f => f !== modelToUse)];
