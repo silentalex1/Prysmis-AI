@@ -18,7 +18,7 @@
 </div>
 <div class="header-actions">
 <nav class="nav-links">
-<a href="#" class="nav-item">API Doc</a>
+<a href="/apidoc/index.html" class="nav-item">API Doc</a>
 <a href="#" class="nav-item donate-link">Donate to me?</a>
 <a href="#" class="nav-item">Our Plugin</a>
 </nav>
@@ -53,6 +53,7 @@ Settings
 <button class="tab-link active" data-tab="chat">AI Chat</button>
 <button class="tab-link" data-tab="projects">Community Projects</button>
 <button class="tab-link" data-tab="commchat">Community Chat</button>
+<button class="tab-link" data-tab="announcements">Announcements</button>
 </nav>
 <div class="welcome-tag">Welcome back, <span class="uname" id="userName">User</span></div>
 </div>
@@ -162,7 +163,48 @@ Settings
 </div>
 </div>
 </section>
+<section id="announcementsTab" class="viewport" style="display:none">
+<div class="viewport-scroll">
+<div class="ann-header">
+<h2>Announcements</h2>
+<button id="postAnnBtn" class="post-ann-btn" style="display:none">+ Post Announcement</button>
+</div>
+<div id="annList" class="ann-list"></div>
+</div>
+</section>
 </main>
+<div id="annSidebar" class="ann-sidebar" style="display:none">
+<div class="ann-sidebar-inner">
+<button class="ann-sidebar-close" id="annSidebarClose">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+</button>
+<div class="ann-sidebar-tag">Announcement</div>
+<h2 id="annSidebarTitle" class="ann-sidebar-title"></h2>
+<div id="annSidebarDesc" class="ann-sidebar-desc"></div>
+<div id="annSidebarDate" class="ann-sidebar-date"></div>
+</div>
+</div>
+<div id="postAnnModal" class="modal" style="display:none">
+<div class="modal-card" style="max-width:500px">
+<div class="modal-header"><h2>Post Announcement</h2></div>
+<div class="modal-divider"></div>
+<div class="modal-body">
+<div class="input-group">
+<label>Title</label>
+<input type="text" id="annTitleInput" placeholder="Announcement title..." maxlength="80">
+</div>
+<div class="input-group">
+<label>Description</label>
+<textarea id="annDescInput" style="min-height:100px;resize:vertical" placeholder="Announcement description..."></textarea>
+</div>
+<div id="annPostErr" class="err-msg"></div>
+</div>
+<div class="modal-footer">
+<button onclick="closePostAnn()" class="btn-secondary">Cancel</button>
+<button id="annSubmitBtn" class="btn-primary">Post</button>
+</div>
+</div>
+</div>
 <aside class="sidebar-right" id="explorer">
 <div class="sidebar-toggle" onclick="toggleExplorer()">Explorer</div>
 <div class="sidebar-inner">
