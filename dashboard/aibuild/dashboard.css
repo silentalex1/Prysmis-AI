@@ -347,3 +347,56 @@ header { padding: 0 1rem; }
 .intro-sub { font-size: 0.78rem; }
 .modal-card { width: calc(100vw - 2rem); }
 }
+
+.commchat-admin-badge {
+font-size: 0.62rem;
+font-weight: 800;
+background: rgba(244,63,94,0.15);
+border: 1px solid rgba(244,63,94,0.3);
+color: #f43f5e;
+padding: 1px 6px;
+border-radius: 4px;
+letter-spacing: 0.3px;
+margin-left: 0.35rem;
+vertical-align: middle;
+}
+
+.settings-username-row { display: flex; align-items: center; gap: 0.6rem; }
+
+.settings-username-err {
+font-size: 0.75rem;
+color: #f43f5e;
+font-weight: 600;
+min-height: 1rem;
+margin-top: 0.3rem;
+display: none;
+}
+
+.settings-username-err.show { display: block; animation: errIn 0.2s ease; }
+
+@keyframes errIn { from { opacity:0; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
+
+.settings-save-row {
+display: flex;
+justify-content: flex-end;
+margin-top: auto;
+padding-top: 1.5rem;
+border-top: 1px solid var(--border);
+}
+
+.settings-save-btn {
+padding: 0.6rem 1.4rem;
+background: linear-gradient(135deg, var(--accent), var(--accent2));
+border: none;
+border-radius: 9px;
+color: #fff;
+font-weight: 700;
+font-size: 0.85rem;
+font-family: inherit;
+cursor: pointer;
+transition: opacity 0.2s, transform 0.2s;
+box-shadow: 0 2px 12px var(--glow);
+}
+
+.settings-save-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.settings-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
