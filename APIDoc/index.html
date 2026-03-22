@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrysmisAI - API Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="api.css">
+</head>
+<body>
+<header class="api-header">
+<div class="api-header-inner">
+<div class="api-brand">
+<span class="api-logo">PrysmisAI</span>
+<span class="api-badge">API</span>
+</div>
+<button class="api-back-btn" id="backBtn">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+Go Back
+</button>
+</div>
+</header>
+<div class="api-layout">
+<aside class="api-sidebar">
+<div class="api-sidebar-label">Contents</div>
+<nav class="api-nav">
+<a href="#overview" class="api-nav-link active">Overview</a>
+<a href="#endpoint" class="api-nav-link">Endpoint</a>
+<a href="#request" class="api-nav-link">Request Format</a>
+<a href="#models" class="api-nav-link">Available Models</a>
+<a href="#examples" class="api-nav-link">Examples</a>
+<a href="#response" class="api-nav-link">Response Format</a>
+<a href="#errors" class="api-nav-link">Errors</a>
+</nav>
+</aside>
+<main class="api-main">
+<section class="api-section" id="overview">
+<div class="api-section-tag">Introduction</div>
+<h1 class="api-page-title">PrysmisAI API</h1>
+<p class="api-lead">The PrysmisAI API gives you direct access to multiple AI models through a single OpenAI-compatible endpoint. No keys, no accounts, no quotas. Send messages, get responses.</p>
+<div class="api-callout">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+<span>The API is OpenAI-compatible. Any client that works with OpenAI's Chat Completions API will work here with a URL change.</span>
+</div>
+</section>
+<section class="api-section" id="endpoint">
+<h2 class="api-section-title">Endpoint</h2>
+<p class="api-text">There is one endpoint for all chat completions:</p>
+<div class="api-url-block">
+<span class="api-method">POST</span>
+<span class="api-url">https://prysmisai.wtf/v1/chat/completions</span>
+<button class="api-copy-btn" data-copy="https://prysmisai.wtf/v1/chat/completions">Copy</button>
+</div>
+<p class="api-text" style="margin-top:1rem">You can also pass the model as a query parameter:</p>
+<div class="api-url-block">
+<span class="api-method">POST</span>
+<span class="api-url">https://prysmisai.wtf/v1/chat/completions?model=gpt-5.2</span>
+</div>
+</section>
+<section class="api-section" id="request">
+<h2 class="api-section-title">Request Format</h2>
+<p class="api-text">Send a JSON body with the following fields:</p>
+<div class="api-table-wrap">
+<table class="api-table">
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>model</code></td><td>string</td><td>No</td><td>AI model ID. Defaults to <code>gpt-5.2</code>.</td></tr>
+<tr><td><code>messages</code></td><td>array</td><td>Yes</td><td>Array of message objects with <code>role</code> and <code>content</code>.</td></tr>
+<tr><td><code>temperature</code></td><td>number</td><td>No</td><td>0–2. Controls randomness. Default: <code>0.7</code>.</td></tr>
+<tr><td><code>max_tokens</code></td><td>number</td><td>No</td><td>Max tokens in response. Default: <code>4096</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="api-text" style="margin-top:1.5rem">Each message object:</p>
+<div class="api-table-wrap">
+<table class="api-table">
+<thead>
+<tr><th>Field</th><th>Values</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>role</code></td><td><code>system</code> / <code>user</code> / <code>assistant</code></td><td>Who sent the message.</td></tr>
+<tr><td><code>content</code></td><td>string or array</td><td>Message text. Pass an array for vision (image + text).</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="api-section" id="models">
+<h2 class="api-section-title">Available Models</h2>
+<p class="api-text">Pass any of these values as the <code>model</code> field. The API automatically falls back to the next available model if one fails.</p>
+<div class="model-grid">
+<div class="model-card model-free">
+<div class="model-tier">Free</div>
+<div class="model-name">gpt-5.2</div>
+<div class="model-desc">ChatGPT 5.2 - Latest OpenAI model</div>
+</div>
+<div class="model-card model-free">
+<div class="model-tier">Free</div>
+<div class="model-name">gpt-4o</div>
+<div class="model-desc">GPT-4o - Fast, capable multimodal</div>
+</div>
+<div class="model-card model-free">
+<div class="model-tier">Free</div>
+<div class="model-name">gpt-4o-mini</div>
+<div class="model-desc">GPT-4o Mini - Lightweight and fast</div>
+</div>
+<div class="model-card model-free">
+<div class="model-tier">Free</div>
+<div class="model-name">claude-sonnet-4-5</div>
+<div class="model-desc">Claude Sonnet 4.5 - Anthropic's balanced model</div>
+</div>
+<div class="model-card model-free">
+<div class="model-tier">Free</div>
+<div class="model-name">claude-haiku-3-5</div>
+<div class="model-desc">Claude Haiku 3.5 - Fast and efficient</div>
+</div>
+<div class="model-card model-free">
+<div class="model-tier">Free</div>
+<div class="model-name">o3-mini</div>
+<div class="model-desc">o3 Mini - OpenAI reasoning model</div>
+</div>
+<div class="model-card model-premium">
+<div class="model-tier">Premium</div>
+<div class="model-name">claude-opus-4-5</div>
+<div class="model-desc">Claude Opus 4.5 - Anthropic's most powerful</div>
+</div>
+<div class="model-card model-premium">
+<div class="model-tier">Premium</div>
+<div class="model-name">gemini-3.1-pro-preview</div>
+<div class="model-desc">Gemini 3.1 Pro - Google's latest</div>
+</div>
+</div>
+<div class="api-callout api-callout-tip" style="margin-top:1.5rem">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+<span>If your chosen model is unavailable, the API automatically tries <code>gpt-5.2</code>, then <code>gpt-4o</code>, then <code>claude-sonnet-4-5</code>, then <code>gpt-4o-mini</code>.</span>
+</div>
+</section>
+<section class="api-section" id="examples">
+<h2 class="api-section-title">Examples</h2>
+<div class="api-example-label">Basic request (JavaScript)</div>
+<div class="api-code-block">
+<button class="api-code-copy" data-target="ex1">Copy</button>
+<pre id="ex1"><code>const response = await fetch('https://prysmisai.wtf/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'gpt-5.2',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: 'Write a Roblox health bar script.' }
+    ],
+    temperature: 0.7,
+    max_tokens: 2048
+  })
+});
+
+const data = await response.json();
+console.log(data.choices[0].message.content);</code></pre>
+</div>
+<div class="api-example-label" style="margin-top:1.5rem">Python</div>
+<div class="api-code-block">
+<button class="api-code-copy" data-target="ex2">Copy</button>
+<pre id="ex2"><code>import requests
+
+res = requests.post('https://prysmisai.wtf/v1/chat/completions', json={
+    'model': 'claude-sonnet-4-5',
+    'messages': [
+        {'role': 'user', 'content': 'Create a Roblox shop system.'}
+    ],
+    'max_tokens': 4096
+})
+
+print(res.json()['choices'][0]['message']['content'])</code></pre>
+</div>
+<div class="api-example-label" style="margin-top:1.5rem">cURL</div>
+<div class="api-code-block">
+<button class="api-code-copy" data-target="ex3">Copy</button>
+<pre id="ex3"><code>curl -X POST https://prysmisai.wtf/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'</code></pre>
+</div>
+</section>
+<section class="api-section" id="response">
+<h2 class="api-section-title">Response Format</h2>
+<p class="api-text">Responses follow the OpenAI Chat Completions format:</p>
+<div class="api-code-block">
+<pre><code>{
+  "id": "chatcmpl-...",
+  "object": "chat.completion",
+  "model": "gpt-5.2",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "The AI response text here..."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 24,
+    "completion_tokens": 180,
+    "total_tokens": 204
+  }
+}</code></pre>
+</div>
+<p class="api-text" style="margin-top:1rem">Access the response text at: <code>data.choices[0].message.content</code></p>
+</section>
+<section class="api-section" id="errors">
+<h2 class="api-section-title">Errors</h2>
+<div class="api-table-wrap">
+<table class="api-table">
+<thead>
+<tr><th>Status</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="status-code status-400">400</span></td><td>Bad request - missing or invalid messages</td></tr>
+<tr><td><span class="status-code status-500">500</span></td><td>All model fallbacks failed - try again shortly</td></tr>
+</tbody>
+</table>
+</div>
+<p class="api-text" style="margin-top:1rem">Error responses have this shape:</p>
+<div class="api-code-block">
+<pre><code>{ "error": "No valid messages provided" }</code></pre>
+</div>
+</section>
+</main>
+</div>
+<script src="api.js"></script>
+</body>
+</html>
