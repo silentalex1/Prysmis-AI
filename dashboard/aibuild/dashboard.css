@@ -168,8 +168,9 @@ header { height: 60px; background: rgba(2,2,5,0.92); backdrop-filter: blur(24px)
 .preset-label { display: block; font-weight: 800; font-size: 0.88rem; color: var(--text); margin-bottom: 0.3rem; }
 .preset-card p { font-size: 0.77rem; color: var(--dim); line-height: 1.4; }
 
-.input-container { padding: 1.2rem 1.5rem 1.5rem; display: flex; flex-direction: column; align-items: flex-start; flex-shrink: 0; background: rgba(2,2,5,0.4); border-top: 1px solid var(--border); }
-.input-wrapper { width: 100%; max-width: 680px; background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 8px 8px 8px 16px; display: flex; align-items: flex-end; gap: 8px; transition: border-color 0.25s, box-shadow 0.25s; }
+.input-container { padding: 1rem 1.5rem 1.4rem; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; background: rgba(2,2,5,0.4); border-top: 1px solid var(--border); }
+.input-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; max-width: 760px; }
+.input-wrapper { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 8px 8px 8px 16px; display: flex; align-items: flex-end; gap: 8px; transition: border-color 0.25s, box-shadow 0.25s; min-width: 0; }
 .input-wrapper:focus-within { border-color: var(--border2); box-shadow: 0 0 0 3px rgba(79,142,247,0.08); }
 #input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); padding: 8px 0; resize: none; font-size: 0.9rem; font-family: inherit; line-height: 1.5; max-height: 140px; }
 #input::placeholder { color: var(--dim); }
@@ -327,7 +328,7 @@ header { height: 60px; background: rgba(2,2,5,0.92); backdrop-filter: blur(24px)
 #generateTokenBtn { display: none; }
 .preset-grid { grid-template-columns: 1fr; max-width: 100%; }
 .messages-container { padding: 1rem; }
-.input-container { padding: 0.8rem; }
+.input-container { padding: 0.8rem; } .input-row { gap: 6px; } .model-select-inline { min-width: 110px; font-size: 0.72rem; }
 .top-nav-container { padding-right: 1rem; }
 .navigation-tabs { padding: 0 1rem; }
 .tab-link { margin-right: 1rem; font-size: 0.78rem; }
@@ -554,35 +555,27 @@ font-family: 'Fira Code', monospace;
 margin-top: 1px;
 }
 
-.model-select-row {
-display: flex;
-align-items: center;
-justify-content: flex-start;
-padding: 0.5rem 0 0.3rem;
-max-width: 680px;
-width: 100%;
-padding-left: 2px;
-}
-
 .model-select-wrap {
 position: relative;
 display: inline-flex;
 align-items: center;
+flex-shrink: 0;
 }
 
 .model-select-inline {
 appearance: none;
-padding: 0.42rem 2.2rem 0.42rem 0.9rem;
+padding: 0.55rem 2.4rem 0.55rem 0.9rem;
 background: rgba(255,255,255,0.04);
 border: 1px solid rgba(255,255,255,0.09);
-border-radius: 8px;
+border-radius: 10px;
 color: var(--text);
-font-size: 0.82rem;
+font-size: 0.8rem;
 font-family: inherit;
 cursor: pointer;
 outline: none;
 transition: border-color 0.2s;
-min-width: 180px;
+min-width: 150px;
+white-space: nowrap;
 }
 
 .model-select-inline:hover { border-color: var(--border2); }
@@ -591,14 +584,14 @@ min-width: 180px;
 .model-select-wrap::after {
 content: '';
 position: absolute;
-right: 0.7rem;
+right: 0.75rem;
 top: 50%;
 transform: translateY(-50%);
 width: 0;
 height: 0;
 border-left: 4px solid transparent;
 border-right: 4px solid transparent;
-border-top: 5px solid var(--dim);
+border-bottom: 5px solid var(--dim);
 pointer-events: none;
 }
 
@@ -612,7 +605,7 @@ background: #0d0d1a;
 .model-select-inline option {
 background: #0d0d1a;
 color: var(--text);
-font-size: 0.82rem;
+font-size: 0.8rem;
 }
 
 .premium-option { color: #a78bfa; }
@@ -764,7 +757,7 @@ color: #60a5fa;
 }
 
 .image-paste-preview {
-max-width: 680px;
+max-width: 760px;
 width: 100%;
 margin-bottom: 0.5rem;
 position: relative;
@@ -806,4 +799,13 @@ transition: background 0.2s;
 background: rgba(245,158,11,0.15);
 border: 1px solid rgba(245,158,11,0.4);
 color: #f59e0b;
+}
+
+.change-status {
+font-size: 0.75rem;
+font-weight: 600;
+color: #10b981;
+margin-left: 0.5rem;
+align-self: center;
+transition: color 0.2s;
 }
