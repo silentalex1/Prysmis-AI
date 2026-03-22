@@ -639,7 +639,7 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Message required' });
     if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
-    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
+    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, isAdmin: !!db.admins[td.username], text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
     db.communityChat.push(msg);
     if (db.communityChat.length > MAX_COMMUNITY_MSGS) db.communityChat = db.communityChat.slice(-MAX_COMMUNITY_MSGS);
     saveDb();
@@ -671,7 +671,8 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const idx = db.communityChat.findIndex(m => m.id === id);
     if (idx === -1) return sendJson(res, 404, { error: 'Message not found' });
-    if (db.communityChat[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your message' });
+    const isAdminUser = !!db.admins[td.username];
+    if (db.communityChat[idx].author !== td.username && !isAdminUser) return sendJson(res, 403, { error: 'Not your message' });
     db.communityChat.splice(idx, 1);
     saveDb();
     broadcastSSE({ type: 'delete_message', id });
@@ -732,30 +733,47 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions')) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const rawModel = body.model || url.searchParams.get('model') || 'claude-sonnet-4-5';
+    const rawModel = body.model || url.searchParams.get('model') || 'gpt-4o';
     const modelToUse = resolveModel(rawModel);
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const validMessages = messages.filter(m => m && typeof m === 'object' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0).map(m => ({ role: m.role, content: m.content.trim() }));
-    if (validMessages.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
+    const userOnly = validMessages.filter(m => m.role !== 'system');
+    if (userOnly.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
-    const maxTok = typeof body.max_tokens === 'number' ? Math.min(body.max_tokens, 4096) : 2048;
-    const tryModel = async (m) => {
-      return client.chat.completions.create({ model: m, messages: validMessages, stream: false, temperature: temp, max_tokens: maxTok });
-    };
-    try {
-      const result = await tryModel(modelToUse);
-      return sendJson(res, 200, result);
-    } catch (e1) {
-      if (modelToUse === 'claude-sonnet-4-5') {
-        return sendJson(res, 500, { error: e1.message || 'AI request failed' });
-      }
+    const maxTok = Math.min(typeof body.max_tokens === 'number' ? body.max_tokens : 2048, 4096);
+    const tryModel = async (m, msgs) => client.chat.completions.create({ model: m, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
+    const FALLBACKS = ['gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
+    let lastErr = null;
+    const tryList = [modelToUse, ...FALLBACKS.filter(f => f !== modelToUse)];
+    for (const m of tryList) {
       try {
-        const fallback = await tryModel('claude-sonnet-4-5');
-        return sendJson(res, 200, fallback);
-      } catch (e2) {
-        return sendJson(res, 500, { error: e2.message || e1.message || 'AI request failed' });
+        const result = await tryModel(m, validMessages);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        lastErr = e;
+        try {
+          const result2 = await tryModel(m, userOnly);
+          return sendJson(res, 200, result2);
+        } catch (e2) { lastErr = e2; }
       }
     }
+    return sendJson(res, 500, { error: (lastErr && lastErr.message) ? lastErr.message : 'AI request failed' });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/admin/users/')) {
+    const uname = decodeURIComponent(pt.slice('/admin/users/'.length));
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.tokens[getReqToken(req, url)] || !db.tokens[getReqToken(req, url)].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    if (db.admins[uname]) return sendJson(res, 403, { error: 'Cannot remove an admin account. Blacklist them via Discord first.' });
+    delete db.users[uname];
+    for (const t in db.tokens) { if (db.tokens[t].username === uname) delete db.tokens[t]; }
+    db.communityChat = db.communityChat.filter(m => m.author !== uname);
+    db.projects = db.projects.filter(p => p.author !== uname);
+    saveDb();
+    broadcastSSE({ type: 'user_removed', username: uname });
+    return sendJson(res, 200, { success: true });
   }
 
   if (req.method === 'GET' && pt === '/adminpanel') {
