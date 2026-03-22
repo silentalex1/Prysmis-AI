@@ -225,7 +225,69 @@ function saveChat(firstMsg) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: title, messages: currentMessages })
   }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.success && data.chat) { activeChatId = data.chat.id; loadChatHistory(); }
+    if (data.success && data.chat) { activeChatId = data.chat.id; 
+var settingsSaveBtn = document.getElementById('settingsSaveBtn');
+
+settingsSaveBtn.addEventListener('click', function() {
+  var usernameInput = document.getElementById('settingsUsernameInput');
+  var errEl = document.getElementById('settingsUsernameErr');
+  errEl.textContent = '';
+  errEl.classList.remove('show');
+  var newUsername = usernameInput.value.trim().toLowerCase();
+  if (!newUsername) {
+    errEl.textContent = 'Please enter a username';
+    errEl.classList.add('show');
+    return;
+  }
+  if (newUsername.length < 3) {
+    errEl.textContent = 'Username must be at least 3 characters';
+    errEl.classList.add('show');
+    return;
+  }
+  if (newUsername.length > 24) {
+    errEl.textContent = 'Username must be 24 characters or less';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+    errEl.textContent = 'Letters, numbers, and underscores only';
+    errEl.classList.add('show');
+    return;
+  }
+  if (newUsername === (storedUser || '').toLowerCase()) {
+    errEl.textContent = 'That is already your username';
+    errEl.classList.add('show');
+    return;
+  }
+  settingsSaveBtn.disabled = true;
+  settingsSaveBtn.textContent = 'Saving...';
+  fetch('/account/change-username?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newUsername: newUsername })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    settingsSaveBtn.disabled = false;
+    settingsSaveBtn.textContent = 'Save Settings';
+    if (data.success) {
+      storedUser = data.username;
+      localStorage.setItem('user', data.username);
+      userNameEl.textContent = data.username;
+      usernameInput.value = data.username;
+      settingsSaveBtn.textContent = 'Saved';
+      setTimeout(function() { settingsSaveBtn.textContent = 'Save Settings'; }, 2000);
+    } else {
+      errEl.textContent = data.error || 'Failed to save';
+      errEl.classList.add('show');
+    }
+  }).catch(function() {
+    settingsSaveBtn.disabled = false;
+    settingsSaveBtn.textContent = 'Save Settings';
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.classList.add('show');
+  });
+});
+
+loadChatHistory(); }
   }).catch(function() {});
 }
 
@@ -620,7 +682,13 @@ function loadExistingAuthToken() {
     }).catch(function() {});
 }
 
-settingsBtn.addEventListener('click', function() { loadExistingAuthToken(); switchSettingsTab('account'); settingsModal.style.display = 'flex'; });
+settingsBtn.addEventListener('click', function() {
+  loadExistingAuthToken();
+  switchSettingsTab('account');
+  var usernameInput = document.getElementById('settingsUsernameInput');
+  if (usernameInput) usernameInput.value = storedUser || '';
+  settingsModal.style.display = 'flex';
+});
 settingsClose.addEventListener('click', function() { settingsModal.style.display = 'none'; });
 settingsClose2.addEventListener('click', function() { settingsModal.style.display = 'none'; });
 settingsModal.addEventListener('click', function(e) { if (e.target === settingsModal) settingsModal.style.display = 'none'; });
@@ -739,5 +807,67 @@ if (pluginTokenStored) {
     else { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; }
   }).catch(function() { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; });
 }
+
+
+var settingsSaveBtn = document.getElementById('settingsSaveBtn');
+
+settingsSaveBtn.addEventListener('click', function() {
+  var usernameInput = document.getElementById('settingsUsernameInput');
+  var errEl = document.getElementById('settingsUsernameErr');
+  errEl.textContent = '';
+  errEl.classList.remove('show');
+  var newUsername = usernameInput.value.trim().toLowerCase();
+  if (!newUsername) {
+    errEl.textContent = 'Please enter a username';
+    errEl.classList.add('show');
+    return;
+  }
+  if (newUsername.length < 3) {
+    errEl.textContent = 'Username must be at least 3 characters';
+    errEl.classList.add('show');
+    return;
+  }
+  if (newUsername.length > 24) {
+    errEl.textContent = 'Username must be 24 characters or less';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+    errEl.textContent = 'Letters, numbers, and underscores only';
+    errEl.classList.add('show');
+    return;
+  }
+  if (newUsername === (storedUser || '').toLowerCase()) {
+    errEl.textContent = 'That is already your username';
+    errEl.classList.add('show');
+    return;
+  }
+  settingsSaveBtn.disabled = true;
+  settingsSaveBtn.textContent = 'Saving...';
+  fetch('/account/change-username?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newUsername: newUsername })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    settingsSaveBtn.disabled = false;
+    settingsSaveBtn.textContent = 'Save Settings';
+    if (data.success) {
+      storedUser = data.username;
+      localStorage.setItem('user', data.username);
+      userNameEl.textContent = data.username;
+      usernameInput.value = data.username;
+      settingsSaveBtn.textContent = 'Saved';
+      setTimeout(function() { settingsSaveBtn.textContent = 'Save Settings'; }, 2000);
+    } else {
+      errEl.textContent = data.error || 'Failed to save';
+      errEl.classList.add('show');
+    }
+  }).catch(function() {
+    settingsSaveBtn.disabled = false;
+    settingsSaveBtn.textContent = 'Save Settings';
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.classList.add('show');
+  });
+});
 
 loadChatHistory();
