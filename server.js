@@ -6,7 +6,7 @@ const { OpenAI } = require('openai');
 
 const client = new OpenAI({
   baseURL: 'https://api.puter.com/puterai/openai/v1/',
-  apiKey: process.env.PUTER_TOKEN || 'dummy'
+  apiKey: process.env.PUTER_TOKEN
 });
 
 const DB_FILE = 'db.json';
@@ -18,6 +18,7 @@ const MAX_PROJECTS = 500;
 const MAX_COMMUNITY_MSGS = 2000;
 const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET || 'prysmis_discord_secret_2025';
 const ALLOWED_DISCORD_IDS = ['841749813702688858', '1360884411154825336', '617174993242947585'];
+const sseClients = new Set();
 
 let db = {
   users: {},
@@ -28,8 +29,8 @@ let db = {
   adminCodes: {},
   meta: { version: 5, created: Date.now() }
 };
+
 let saveScheduled = false;
-const sseClients = new Set();
 
 function loadDb() {
   try {
@@ -49,7 +50,7 @@ function loadDb() {
       }
       return;
     }
-  } catch (_) {
+  } catch (e) {
     try {
       if (fs.existsSync(DB_BACKUP)) {
         const parsed = JSON.parse(fs.readFileSync(DB_BACKUP, 'utf8'));
@@ -61,7 +62,7 @@ function loadDb() {
         db.adminCodes = parsed.adminCodes || {};
         return;
       }
-    } catch (__) {}
+    } catch (_) {}
   }
 }
 
@@ -198,20 +199,17 @@ const MODEL_MAP = {
   'deepseek/deepseek-r1': 'claude-sonnet-4-5',
   'deepseek/deepseek-v3': 'claude-sonnet-4-5',
   'x-ai/grok-4': 'gpt-5.2',
-  'meta-llama/llama-4': 'claude-sonnet-4-5',
-  'mistral/mistral-large': 'claude-sonnet-4-5'
+  'meta-llama/llama-4': 'claude-sonnet-4-5'
 };
 
 function resolveModel(m) {
-  if (!m || typeof m !== 'string') return 'gpt-5.2';
-  const trimmed = m.trim();
-  if (PUTER_MODELS.includes(trimmed)) return trimmed;
-  const lower = trimmed.toLowerCase();
+  if (!m) return 'gpt-5.2';
+  const lower = m.toLowerCase().trim();
   if (MODEL_MAP[lower]) return MODEL_MAP[lower];
-  if (MODEL_MAP[trimmed]) return MODEL_MAP[trimmed];
-  if (trimmed.includes('/')) {
-    const short = trimmed.split('/').pop();
-    if (short && PUTER_MODELS.includes(short)) return short;
+  if (MODEL_MAP[m]) return MODEL_MAP[m];
+  if (m.includes('/')) {
+    const short = m.split('/').pop();
+    return short || 'gpt-5.2';
   }
   return 'gpt-5.2';
 }
@@ -231,7 +229,6 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(400); res.end(); return;
   }
   const pt = url.pathname;
-
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -240,7 +237,6 @@ const server = http.createServer(async (req, res) => {
     });
     res.end(); return;
   }
-
   if (req.method === 'GET' && pt === '/community-chat/stream') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -256,7 +252,6 @@ const server = http.createServer(async (req, res) => {
     req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
     return;
   }
-
   if (req.method === 'POST' && pt === '/account') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const uErr = validateUsername(body.username);
@@ -267,12 +262,23 @@ const server = http.createServer(async (req, res) => {
     if (db.users[uname]) return sendJson(res, 409, { error: 'Account is already created' });
     const token = randToken();
     const now = Date.now();
-    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'gpt-5.2', authToken: null, authTokenCreated: null };
+    db.users[uname] = {
+      hashed: hash(body.password),
+      created: now,
+      lastLogin: now,
+      lastSeen: now,
+      loginCount: 1,
+      chats: [],
+      pluginToken: null,
+      pluginConnected: false,
+      pluginModel: 'claude-sonnet-4-5',
+      authToken: null,
+      authTokenCreated: null
+    };
     db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
   }
-
   if (req.method === 'POST' && pt === '/login') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
@@ -288,7 +294,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
   }
-
   if (req.method === 'POST' && pt === '/admin/create') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { username, password, code } = body;
@@ -310,7 +315,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
   }
-
   if (req.method === 'POST' && pt === '/admin/login') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
@@ -325,7 +329,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
   }
-
   if (req.method === 'POST' && pt === '/discord/generate-code') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
@@ -351,7 +354,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, code, username: uname, expiresIn: '30 minutes' });
   }
-
   if (req.method === 'POST' && pt === '/discord/verify-code') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
@@ -367,13 +369,11 @@ const server = http.createServer(async (req, res) => {
     if (codeData.expires < Date.now()) { delete db.adminCodes[foundUname]; saveDb(); return sendJson(res, 401, { error: 'Code expired' }); }
     return sendJson(res, 200, { success: true, username: foundUname });
   }
-
   if (req.method === 'GET' && pt === '/discord/ping') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     return sendJson(res, 200, { ok: true, status: 'connected', site: 'prysmisai.wtf', users: Object.keys(db.users).length, admins: Object.keys(db.admins).length });
   }
-
   if (req.method === 'POST' && pt === '/discord/connect') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
@@ -387,7 +387,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { ok: true, message: 'Bot connected to PrysmisAI', site: 'prysmisai.wtf' });
   }
-
   if (req.method === 'POST' && pt === '/discord/setadmin') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
@@ -401,7 +400,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, message: 'Admin account created for ' + uname });
   }
-
   if (req.method === 'POST' && pt === '/discord/blacklist') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
@@ -416,7 +414,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
   }
-
   if (req.method === 'GET' && pt === '/discord/check-user') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
@@ -425,7 +422,6 @@ const server = http.createServer(async (req, res) => {
     const uname = username.trim().toLowerCase();
     return sendJson(res, 200, { exists: !!db.users[uname], isAdmin: !!db.admins[uname], username: uname });
   }
-
   if (req.method === 'GET' && pt === '/me') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -434,18 +430,19 @@ const server = http.createServer(async (req, res) => {
     user.lastSeen = Date.now();
     return sendJson(res, 200, { username: td.username, created: user.created, lastLogin: user.lastLogin, chatCount: (user.chats || []).length, loginCount: user.loginCount || 1, isAdmin: !!db.admins[td.username] });
   }
-
   if (req.method === 'POST' && pt === '/logout') {
     const t = getReqToken(req, url);
     if (t && db.tokens[t]) { delete db.tokens[t]; saveDb(); }
     return sendJson(res, 200, { success: true });
   }
-
   if (req.method === 'GET' && pt === '/stats') {
     const now = Date.now();
-    return sendJson(res, 200, { users: Object.keys(db.users).length, active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1), projects: db.projects.length });
+    return sendJson(res, 200, {
+      users: Object.keys(db.users).length,
+      active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1),
+      projects: db.projects.length
+    });
   }
-
   if (req.method === 'GET' && pt === '/status') {
     const pluginToken = url.searchParams.get('pluginToken') || '';
     let status = 'disconnected', model = 'gpt-5.2', username = 'unknown';
@@ -456,7 +453,6 @@ const server = http.createServer(async (req, res) => {
     }
     return sendJson(res, 200, { status, model, user: username });
   }
-
   if (req.method === 'POST' && pt === '/plugin/connect') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const td = getTokenData(getReqToken(req, url));
@@ -471,7 +467,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, pluginToken, username: td.username, model: user.pluginModel });
   }
-
   if (req.method === 'POST' && pt === '/plugin/disconnect') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -479,7 +474,6 @@ const server = http.createServer(async (req, res) => {
     if (user) { user.pluginConnected = false; saveDb(); }
     return sendJson(res, 200, { success: true });
   }
-
   if (req.method === 'POST' && pt === '/plugin/verify') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
@@ -491,7 +485,6 @@ const server = http.createServer(async (req, res) => {
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
   }
-
   if (req.method === 'POST' && pt === '/plugin/ping') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
@@ -503,7 +496,6 @@ const server = http.createServer(async (req, res) => {
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
   }
-
   if (req.method === 'POST' && pt === '/plugin/update-model') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const td = getTokenData(getReqToken(req, url));
@@ -515,7 +507,6 @@ const server = http.createServer(async (req, res) => {
     saveDb();
     return sendJson(res, 200, { success: true, model: user.pluginModel });
   }
-
   if (req.method === 'POST' && pt === '/auth-token/generate') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -530,7 +521,6 @@ const server = http.createServer(async (req, res) => {
     user.authToken = authToken; user.authTokenCreated = now; saveDb();
     return sendJson(res, 200, { success: true, authToken, url: 'prysmisai.wtf/token/' + authToken });
   }
-
   if (req.method === 'GET' && pt === '/auth-token') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -539,11 +529,9 @@ const server = http.createServer(async (req, res) => {
     const now = Date.now();
     return sendJson(res, 200, { authToken: user.authToken || null, canGenerate: !user.authTokenCreated || (now - user.authTokenCreated) >= 24 * 3600000, url: user.authToken ? 'prysmisai.wtf/token/' + user.authToken : null });
   }
-
   if (req.method === 'GET' && pt === '/projects') {
     return sendJson(res, 200, db.projects);
   }
-
   if (req.method === 'POST' && pt === '/projects') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const td = getTokenData(getReqToken(req, url));
@@ -559,7 +547,6 @@ const server = http.createServer(async (req, res) => {
     db.projects.unshift(project); saveDb();
     return sendJson(res, 200, { success: true, project });
   }
-
   if (req.method === 'DELETE' && pt.startsWith('/projects/')) {
     const id = pt.slice('/projects/'.length);
     const td = getTokenData(getReqToken(req, url));
@@ -570,11 +557,9 @@ const server = http.createServer(async (req, res) => {
     db.projects.splice(idx, 1); saveDb();
     return sendJson(res, 200, { success: true });
   }
-
   if (req.method === 'GET' && pt === '/community-chat') {
     return sendJson(res, 200, db.communityChat.slice(-200));
   }
-
   if (req.method === 'POST' && pt === '/community-chat') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const td = getTokenData(getReqToken(req, url));
@@ -587,7 +572,6 @@ const server = http.createServer(async (req, res) => {
     saveDb(); broadcastSSE({ type: 'new_message', msg });
     return sendJson(res, 200, { success: true, msg });
   }
-
   if (req.method === 'PUT' && pt.startsWith('/community-chat/')) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const id = pt.slice('/community-chat/'.length);
@@ -602,7 +586,6 @@ const server = http.createServer(async (req, res) => {
     saveDb(); broadcastSSE({ type: 'edit_message', msg: db.communityChat[idx] });
     return sendJson(res, 200, { success: true, msg: db.communityChat[idx] });
   }
-
   if (req.method === 'DELETE' && pt.startsWith('/community-chat/')) {
     const id = pt.slice('/community-chat/'.length);
     const td = getTokenData(getReqToken(req, url));
@@ -615,7 +598,6 @@ const server = http.createServer(async (req, res) => {
     broadcastSSE({ type: 'delete_message', id });
     return sendJson(res, 200, { success: true });
   }
-
   if (req.method === 'GET' && pt === '/chats') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -623,7 +605,6 @@ const server = http.createServer(async (req, res) => {
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     return sendJson(res, 200, Array.isArray(user.chats) ? user.chats : []);
   }
-
   if (req.method === 'POST' && pt === '/chats') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const td = getTokenData(getReqToken(req, url));
@@ -637,7 +618,6 @@ const server = http.createServer(async (req, res) => {
     if (user.chats.length > MAX_CHATS) user.chats = user.chats.slice(0, MAX_CHATS);
     saveDb(); return sendJson(res, 200, { success: true, chat });
   }
-
   if (req.method === 'PUT' && pt.startsWith('/chats/')) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const id = pt.slice('/chats/'.length);
@@ -652,7 +632,6 @@ const server = http.createServer(async (req, res) => {
     user.chats[idx].updated = Date.now(); saveDb();
     return sendJson(res, 200, { success: true, chat: user.chats[idx] });
   }
-
   if (req.method === 'DELETE' && pt.startsWith('/chats/')) {
     const id = pt.slice('/chats/'.length);
     const td = getTokenData(getReqToken(req, url));
@@ -664,80 +643,6 @@ const server = http.createServer(async (req, res) => {
     user.chats.splice(idx, 1); saveDb();
     return sendJson(res, 200, { success: true });
   }
-
-  if (req.method === 'GET' && pt === '/adminpanel') {
-    fs.readFile('./adminpanel/index.html', (err, data) => {
-      if (err) { res.writeHead(404); res.end(); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(data);
-    }); return;
-  }
-
-  if (req.method === 'GET' && pt === '/admin/users') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const rawToken = getReqToken(req, url);
-    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-    const users = Object.entries(db.users).map(([uname, u]) => ({ username: uname, created: u.created, lastLogin: u.lastLogin, chatCount: (u.chats || []).length, loginCount: u.loginCount || 1, isAdmin: !!db.admins[uname] }));
-    return sendJson(res, 200, { users, adminCount: Object.keys(db.admins).length });
-  }
-
-  if (req.method === 'DELETE' && pt.startsWith('/admin/users/')) {
-    const uname = decodeURIComponent(pt.slice('/admin/users/'.length)).toLowerCase();
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const rawToken = getReqToken(req, url);
-    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
-    if (db.admins[uname]) return sendJson(res, 403, { error: 'Cannot remove an admin. Blacklist them via Discord first.' });
-    delete db.users[uname];
-    for (const t in db.tokens) { if (db.tokens[t].username === uname) delete db.tokens[t]; }
-    db.communityChat = db.communityChat.filter(m => m.author !== uname);
-    db.projects = db.projects.filter(p => p.author !== uname);
-    saveDb(); broadcastSSE({ type: 'user_removed', username: uname });
-    return sendJson(res, 200, { success: true });
-  }
-
-  if (req.method === 'POST' && pt === '/admin/gate') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const { code } = body;
-    if (!code) return sendJson(res, 400, { error: 'Code required' });
-    const codeClean = code.trim();
-    let foundUname = null;
-    for (const u in db.adminCodes) {
-      if (db.adminCodes[u].code === codeClean) { foundUname = u; break; }
-    }
-    if (!foundUname) return sendJson(res, 401, { error: 'Invalid or expired code' });
-    const codeData = db.adminCodes[foundUname];
-    if (codeData.expires < Date.now()) { delete db.adminCodes[foundUname]; saveDb(); return sendJson(res, 401, { error: 'Code expired. Request a new one via Discord.' }); }
-    if (!db.admins[foundUname]) return sendJson(res, 401, { error: 'Admin account not set up yet. Create your account first.' });
-    const token = randToken();
-    const now = Date.now();
-    db.tokens[token] = { username: foundUname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
-    db.admins[foundUname].lastLogin = now; saveDb();
-    return sendJson(res, 200, { success: true, token, username: foundUname, isAdmin: true });
-  }
-
-  if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions')) {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const rawModel = body.model || url.searchParams.get('model') || 'gpt-5.2';
-    const modelToUse = resolveModel(rawModel);
-    const messages = Array.isArray(body.messages) ? body.messages : [];
-    const validMessages = messages.filter(m => m && typeof m === 'object' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0).map(m => ({ role: m.role, content: m.content.trim() }));
-    const userOnly = validMessages.filter(m => m.role !== 'system');
-    if (userOnly.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
-    const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
-    const maxTok = Math.min(typeof body.max_tokens === 'number' ? body.max_tokens : 2048, 4096);
-    const tryCall = async (m, msgs) => client.chat.completions.create({ model: m, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
-    const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
-    const tryList = [modelToUse, ...fallbacks.filter(f => f !== modelToUse)];
-    let lastErr = null;
-    for (const m of tryList) {
-      try { const r = await tryCall(m, validMessages); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
-      try { const r = await tryCall(m, userOnly); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
-    }
-    return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
-  }
-
   if (req.method === 'GET') {
     let filePath = '.' + (pt === '/' ? '/index.html' : pt);
     if (filePath.endsWith('/')) filePath += 'index.html';
@@ -748,7 +653,6 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': mime }); res.end(data);
     }); return;
   }
-
   res.writeHead(404); res.end();
 });
 
