@@ -809,3 +809,34 @@ margin-left: 0.5rem;
 align-self: center;
 transition: color 0.2s;
 }
+
+.continue-bar {
+display: flex;
+align-items: center;
+margin-top: 0.75rem;
+padding-top: 0.6rem;
+border-top: 1px solid rgba(255,255,255,0.05);
+animation: msgIn 0.25s ease;
+}
+
+.continue-btn {
+display: inline-flex;
+align-items: center;
+gap: 0.45rem;
+padding: 0.45rem 1rem;
+background: rgba(79,142,247,0.1);
+border: 1px solid rgba(79,142,247,0.25);
+border-radius: 8px;
+color: #4f8ef7;
+font-size: 0.78rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.continue-btn:hover {
+background: rgba(79,142,247,0.18);
+border-color: rgba(79,142,247,0.4);
+transform: translateY(-1px);
+}
