@@ -159,61 +159,69 @@ function validatePassword(p) {
   return null;
 }
 
-const PUTER_MODELS = [
-  'gpt-5.2',
+const YOU_MODELS = [
   'gpt-4o',
   'gpt-4o-mini',
   'o3-mini',
-  'claude-opus-4-5',
+  'claude-opus-4-5-20251101',
   'claude-sonnet-4-5',
   'claude-haiku-3-5',
-  'gemini-3.1-pro-preview',
-  'google/gemini-1.5-pro'
+  'gemini-3.2-pro',
+  'gemini-3.2-flash',
+  'grok-4',
+  'llama-4-maverick',
+  'deepseek-r1',
+  'deepseek-v3',
+  'mistral-large-2',
+  'gpt-5.2',
+  'gpt-5.2-mini'
 ];
 
 const MODEL_MAP = {
   'gpt-5.2': 'gpt-5.2',
+  'gpt-5.2-mini': 'gpt-5.2-mini',
   'chatgpt 5.2': 'gpt-5.2',
-  'claude opus 4.6': 'claude-opus-4-5',
-  'claude opus 4.5': 'claude-opus-4-5',
-  'claude-opus-4-6': 'claude-opus-4-5',
-  'claude-opus-4-5': 'claude-opus-4-5',
-  'claude-sonnet-4-6': 'claude-sonnet-4-5',
+  'gpt-4o': 'gpt-4o',
+  'gpt-4o-mini': 'gpt-4o-mini',
+  'o3-mini': 'o3-mini',
+  'claude-opus-4-5': 'claude-opus-4-5-20251101',
+  'claude-opus-4-5-20251101': 'claude-opus-4-5-20251101',
+  'claude opus 4.5': 'claude-opus-4-5-20251101',
   'claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'claude-haiku-4-5': 'claude-haiku-3-5',
   'claude-haiku-3-5': 'claude-haiku-3-5',
-  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
-  'gemini 3.1 pro': 'gemini-3.1-pro-preview',
-  'anthropic/claude-opus-4-6': 'claude-opus-4-5',
-  'anthropic/claude-opus-4-5': 'claude-opus-4-5',
-  'anthropic/claude-sonnet-4-6': 'claude-sonnet-4-5',
+  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
+  'gemini-3.2-pro': 'gemini-3.2-pro',
+  'gemini-3.2-flash': 'gemini-3.2-flash',
+  'gemini 3.1 pro': 'gemini-3.2-pro',
+  'grok-4': 'grok-4',
+  'x-ai/grok-4': 'grok-4',
+  'llama-4-maverick': 'llama-4-maverick',
+  'meta-llama/llama-4': 'llama-4-maverick',
+  'deepseek-r1': 'deepseek-r1',
+  'deepseek-v3': 'deepseek-v3',
+  'deepseek/deepseek-r1': 'deepseek-r1',
+  'deepseek/deepseek-v3': 'deepseek-v3',
+  'mistral-large-2': 'mistral-large-2',
+  'mistral/mistral-large': 'mistral-large-2',
+  'anthropic/claude-opus-4-5': 'claude-opus-4-5-20251101',
   'anthropic/claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'anthropic/claude-haiku-4-5': 'claude-haiku-3-5',
+  'anthropic/claude-haiku-3-5': 'claude-haiku-3-5',
   'openai/gpt-5.2': 'gpt-5.2',
-  'openai/gpt-5.4': 'gpt-5.2',
   'openai/gpt-4o': 'gpt-4o',
-  'openai/o3': 'o3-mini',
-  'google/gemini-3.1-pro': 'gemini-3.1-pro-preview',
-  'google/gemini-3.2-pro': 'gemini-3.1-pro-preview',
-  'google/gemini-2.5-pro': 'gemini-3.1-pro-preview',
-  'google/gemini-1.5-pro': 'google/gemini-1.5-pro',
-  'deepseek/deepseek-r1': 'claude-sonnet-4-5',
-  'deepseek/deepseek-v3': 'claude-sonnet-4-5',
-  'x-ai/grok-4': 'gpt-5.2',
-  'meta-llama/llama-4': 'claude-sonnet-4-5',
-  'mistral/mistral-large': 'claude-sonnet-4-5'
+  'openai/o3-mini': 'o3-mini',
+  'google/gemini-3.2-pro': 'gemini-3.2-pro'
 };
 
 function resolveModel(m) {
   if (!m || typeof m !== 'string') return 'gpt-5.2';
   const trimmed = m.trim();
-  if (PUTER_MODELS.includes(trimmed)) return trimmed;
+  if (YOU_MODELS.includes(trimmed)) return trimmed;
   const lower = trimmed.toLowerCase();
   if (MODEL_MAP[lower]) return MODEL_MAP[lower];
   if (MODEL_MAP[trimmed]) return MODEL_MAP[trimmed];
   if (trimmed.includes('/')) {
     const short = trimmed.split('/').pop();
-    if (short && PUTER_MODELS.includes(short)) return short;
+    if (short && YOU_MODELS.includes(short)) return short;
   }
   return 'gpt-5.2';
 }
@@ -867,7 +875,10 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 401, { error: 'Invalid plugin token' });
   }
 
-  if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions')) {
+  const host = (req.headers['host'] || '').split(':')[0];
+  const isApiSubdomain = host === 'api.prysmisai.wtf';
+
+  if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions' || (isApiSubdomain && pt === '/'))) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const rawModel = body.model || url.searchParams.get('model') || 'gpt-5.2';
     const modelToUse = resolveModel(rawModel);
@@ -885,14 +896,17 @@ const server = http.createServer(async (req, res) => {
     if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
     const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
-    const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
+    const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini', 'gemini-3.2-pro'];
     const tryList = [modelToUse, ...fallbacks.filter(f => f !== modelToUse)];
     const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
-    const puterFetch = async (model, msgs) => {
-      const r = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
+    const youFetch = async (model, msgs) => {
+      const r = await fetch('https://api.you.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' },
-        body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (process.env.YOU_API_KEY || '')
+        },
+        body: JSON.stringify({ model, messages: msgs, temperature: temp, max_tokens: maxTok })
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error && data.error.message ? data.error.message : 'Status ' + r.status);
@@ -901,7 +915,7 @@ const server = http.createServer(async (req, res) => {
     let lastErr = null;
     for (const m of tryList) {
       for (const msgs of tryVariants) {
-        try { const r = await puterFetch(m, msgs); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
+        try { const r = await youFetch(m, msgs); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
       }
     }
     return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
