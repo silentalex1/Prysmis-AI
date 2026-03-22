@@ -247,3 +247,21 @@ transition: color 0.2s;
 .auth-card { padding: 2rem 1.4rem; border-radius: 12px; }
 .card-inner h1 { font-size: 1.6rem; }
 }
+
+.admin-submit {
+background: linear-gradient(135deg, #f43f5e, #9f1239);
+box-shadow: 0 4px 24px rgba(244, 63, 94, 0.3);
+}
+
+.admin-submit:hover:not(:disabled) {
+opacity: 0.92;
+transform: translateY(-1px);
+}
+
+.admin-note {
+font-size: 0.75rem;
+color: #6b7280;
+text-align: center;
+margin-top: 1rem;
+line-height: 1.4;
+}
