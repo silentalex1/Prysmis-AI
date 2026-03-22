@@ -796,6 +796,17 @@ if (viewStudioBtn) {
   });
 }
 
+var TYPE_ICON = {
+  'Script': 'S', 'LocalScript': 'L', 'ModuleScript': 'M',
+  'Part': 'P', 'Model': 'M', 'Frame': 'F', 'ScreenGui': 'G',
+  'RemoteEvent': 'E', 'RemoteFunction': 'F', 'Folder': 'D',
+  'SpawnLocation': 'S', 'Camera': 'C', 'BasePart': 'P'
+};
+var TYPE_COLOR = {
+  'Script': '#10b981', 'LocalScript': '#f59e0b', 'ModuleScript': '#8b5cf6',
+  'Part': '#6b7280', 'Model': '#3b82f6', 'Folder': '#f59e0b'
+};
+
 function loadStudioFiles() {
   if (!studioFilesList) return;
   studioFilesList.innerHTML = '<div class="studio-loading">Loading files...</div>';
@@ -803,25 +814,34 @@ function loadStudioFiles() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       var files = data.files || [];
-      if (files.length === 0) { studioFilesList.innerHTML = '<div class="studio-empty">No files yet. Files will appear here once the plugin sends them.</div>'; return; }
+      if (files.length === 0) {
+        studioFilesList.innerHTML = '<div class="studio-empty">No files yet. Click "Send Files to Website" in the Studio plugin.</div>';
+        return;
+      }
       studioFilesList.innerHTML = '';
       files.forEach(function(f) {
+        var depth = f.depth || 0;
         var item = document.createElement('div');
         item.className = 'studio-file-item';
+        item.style.paddingLeft = (12 + depth * 14) + 'px';
         var icon = document.createElement('span');
         icon.className = 'studio-file-icon';
-        icon.textContent = f.type === 'Script' ? 'S' : f.type === 'LocalScript' ? 'L' : f.type === 'ModuleScript' ? 'M' : 'F';
+        var letter = TYPE_ICON[f.type] || f.type.charAt(0).toUpperCase();
+        icon.textContent = letter;
+        icon.style.background = 'rgba(79,142,247,0.1)';
+        icon.style.borderColor = 'rgba(79,142,247,0.2)';
+        icon.style.color = TYPE_COLOR[f.type] || '#93c5fd';
         var name = document.createElement('span');
         name.className = 'studio-file-name';
         name.textContent = f.name || 'Unknown';
-        var path = document.createElement('span');
-        path.className = 'studio-file-path';
-        path.textContent = f.path || '';
+        var typeTag = document.createElement('span');
+        typeTag.className = 'studio-file-type';
+        typeTag.textContent = f.type || '';
         item.appendChild(icon);
         var info = document.createElement('div');
         info.className = 'studio-file-info';
         info.appendChild(name);
-        info.appendChild(path);
+        info.appendChild(typeTag);
         item.appendChild(info);
         studioFilesList.appendChild(item);
       });
@@ -977,3 +997,4 @@ settingsSaveBtn.addEventListener('click', function() {
 });
 
 loadChatHistory();
+        
