@@ -1365,3 +1365,38 @@ color: var(--dim);
 line-height: 1.5;
 max-width: 440px;
 }
+
+@media (max-width: 768px) {
+.chat-sidebar { display: none; }
+.sidebar-right { display: none; }
+.header-actions .nav-links { display: none; }
+.select-wrapper { display: none; }
+#generateTokenBtn { display: none; }
+.preset-grid { grid-template-columns: 1fr; max-width: 100%; }
+.messages-container { padding: 1rem; }
+.input-container { padding: 0.8rem; }
+.input-wrapper { border-radius: 12px; }
+.input-wrapper:focus-within { width: 100%; }
+.top-nav-container { padding-right: 1rem; }
+.navigation-tabs { padding: 0 1rem; gap: 1rem; }
+.tab-link { margin-right: 0; }
+.settings-panel { width: 95vw; height: 90vh; flex-direction: column; }
+.settings-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; padding: 0.6rem; }
+.settings-nav-btn { flex: 1; text-align: center; padding: 0.5rem; }
+header { padding: 0 1rem; }
+#connectBtn { font-size: 0.75rem; padding: 0.4rem 0.8rem; }
+.token-notif-inner { min-width: calc(100vw - 3rem); }
+.token-notif { right: 1rem; left: 1rem; }
+.token-notif-field { flex-wrap: wrap; }
+.token-notif-field input { width: 100%; }
+}
+
+@media (max-width: 480px) {
+.logo { font-size: 1rem; }
+.badge { display: none; }
+.welcome-tag { display: none; }
+.preset-grid { gap: 0.6rem; }
+.preset-card { padding: 1rem; }
+.intro { font-size: 1.3rem; margin: 2rem 0 1.5rem; }
+.intro-sub { font-size: 0.78rem; }
+}
