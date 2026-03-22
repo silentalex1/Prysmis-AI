@@ -670,7 +670,8 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const idx = db.projects.findIndex(p => p.id === id);
     if (idx === -1) return sendJson(res, 404, { error: 'Not found' });
-    if (db.projects[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your project' });
+    const isAdminUser = !!db.admins[td.username];
+    if (db.projects[idx].author !== td.username && !isAdminUser) return sendJson(res, 403, { error: 'Not your project' });
     db.projects.splice(idx, 1); saveDb();
     return sendJson(res, 200, { success: true });
   }
@@ -896,17 +897,37 @@ const server = http.createServer(async (req, res) => {
     if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
     const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
-    const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini', 'gemini-3.2-pro'];
-    const tryList = [modelToUse, ...fallbacks.filter(f => f !== modelToUse)];
+    const fallbacks = ['gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
+    const modelMap = {
+      'gpt-5.2': 'gpt-4o',
+      'gpt-5.2-mini': 'gpt-4o-mini',
+      'gemini-3.2-pro': 'claude-sonnet-4-5',
+      'gemini-3.2-flash': 'gpt-4o-mini',
+      'grok-4': 'gpt-4o',
+      'llama-4-maverick': 'gpt-4o',
+      'deepseek-r1': 'claude-sonnet-4-5',
+      'deepseek-v3': 'gpt-4o',
+      'mistral-large-2': 'gpt-4o',
+      'o3-mini': 'gpt-4o-mini',
+      'claude-haiku-3-5': 'claude-haiku-3-5',
+      'claude-opus-4-5': 'claude-opus-4-5',
+      'claude-opus-4-5-20251101': 'claude-opus-4-5',
+      'claude-sonnet-4-5': 'claude-sonnet-4-5',
+      'gpt-4o': 'gpt-4o',
+      'gpt-4o-mini': 'gpt-4o-mini'
+    };
+    const puterModel = modelMap[modelToUse] || 'gpt-4o';
+    const tryList = [puterModel, ...fallbacks.filter(f => f !== puterModel)];
     const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
-    const youFetch = async (model, msgs) => {
-      const r = await fetch('https://api.you.com/v1/chat/completions', {
+    const aiFetch = async (model, msgs) => {
+      const r = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (process.env.YOU_API_KEY || '')
+          'Origin': 'https://puter.com',
+          'Referer': 'https://puter.com/'
         },
-        body: JSON.stringify({ model, messages: msgs, temperature: temp, max_tokens: maxTok })
+        body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok })
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error && data.error.message ? data.error.message : 'Status ' + r.status);
@@ -915,7 +936,7 @@ const server = http.createServer(async (req, res) => {
     let lastErr = null;
     for (const m of tryList) {
       for (const msgs of tryVariants) {
-        try { const r = await youFetch(m, msgs); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
+        try { const r = await aiFetch(m, msgs); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
       }
     }
     return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
