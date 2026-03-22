@@ -574,6 +574,9 @@ function loadAnnouncements() {
       anns.forEach(function(ann) {
         var card = document.createElement('div');
         card.className = 'ann-card';
+        var postedBy = document.createElement('div');
+        postedBy.className = 'ann-card-author';
+        postedBy.textContent = 'posted by @' + (ann.author || 'admin');
         var titleEl = document.createElement('div');
         titleEl.className = 'ann-card-title';
         titleEl.textContent = ann.title;
@@ -597,6 +600,7 @@ function loadAnnouncements() {
           delBtn.addEventListener('click', function() { deleteAnn(ann.id, card); });
           actions.appendChild(delBtn);
         }
+        card.appendChild(postedBy);
         card.appendChild(titleEl);
         card.appendChild(descEl);
         card.appendChild(dateEl);
@@ -611,7 +615,7 @@ function loadAnnouncements() {
 function openAnnSidebar(ann) {
   document.getElementById('annSidebarTitle').textContent = ann.title;
   document.getElementById('annSidebarDesc').textContent = ann.description;
-  document.getElementById('annSidebarDate').textContent = 'Posted on: ' + fmtFullDate(ann.created);
+  document.getElementById('annSidebarDate').textContent = 'Posted on: ' + fmtFullDate(ann.created) + ' by @' + (ann.author || 'admin');
   annSidebar.style.display = 'flex';
   annSidebar.classList.add('open');
 }
@@ -708,7 +712,7 @@ function renderProjectCard(p) {
   var footer = document.createElement('div'); footer.className = 'game-card-footer';
   var link = document.createElement('a'); link.href = p.link; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = p.link;
   footer.appendChild(link);
-  if (p.author === storedUser) {
+  if (p.author === storedUser || isUserAdmin) {
     var delBtn = document.createElement('button'); delBtn.className = 'delete-card-btn'; delBtn.textContent = 'Delete';
     delBtn.addEventListener('click', function() { deleteProject(p.id, card); }); footer.appendChild(delBtn);
   }
