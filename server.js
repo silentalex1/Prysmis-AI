@@ -907,7 +907,7 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
   }
 
-  if (req.method === 'GET' && pt === '/apidoc') {
+  if (req.method === 'GET' && (pt === '/APIDoc' || pt === '/APIDoc/' || pt === '/apidoc' || pt === '/apidoc/')) {
     fs.readFile('./apidoc/index.html', (err, data) => {
       if (err) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(data);
