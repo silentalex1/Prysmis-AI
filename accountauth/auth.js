@@ -11,11 +11,13 @@ if (existingToken && existingUser) {
 function switchTab(tab) {
   document.getElementById('loginCard').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('signupCard').style.display = tab === 'signup' ? 'block' : 'none';
+  document.getElementById('adminCard').style.display = tab === 'admin' ? 'block' : 'none';
   clearErr('loginErr');
   clearErr('signupErr');
+  clearErr('adminErr');
 }
 
-function toggleEye(inputId, btnId) {
+function toggleEye(inputId) {
   var inp = document.getElementById(inputId);
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
@@ -96,15 +98,37 @@ document.getElementById('signupBtn').addEventListener('click', function() {
   });
 });
 
-document.getElementById('loginPass').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+document.getElementById('adminBtn').addEventListener('click', function() {
+  clearErr('adminErr');
+  var user = document.getElementById('adminUser').value.trim();
+  var pass = document.getElementById('adminPass').value;
+  if (!user) { showErr('adminErr', 'Please enter admin username'); return; }
+  if (!pass) { showErr('adminErr', 'Please enter admin password'); return; }
+  setLoading('admin', true);
+  fetch('/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: user, password: pass })
+  }).then(function(r) { return r.json().then(function(d) { return { s: r.status, d: d }; }); })
+  .then(function(res) {
+    setLoading('admin', false);
+    if (res.s === 200 && res.d.success) {
+      localStorage.setItem('user', res.d.username);
+      localStorage.setItem('token', res.d.token);
+      localStorage.setItem('isAdmin', 'true');
+      location.href = '/dashboard/aibuild/index.html';
+    } else {
+      showErr('adminErr', res.d.error || 'Admin login failed');
+    }
+  }).catch(function() {
+    setLoading('admin', false);
+    showErr('adminErr', 'Network error. Please try again.');
+  });
 });
-document.getElementById('loginUser').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') document.getElementById('loginPass').focus();
-});
-document.getElementById('signupPass').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') document.getElementById('signupBtn').click();
-});
-document.getElementById('signupUser').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') document.getElementById('signupPass').focus();
-});
+
+document.getElementById('loginPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+document.getElementById('loginUser').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
+document.getElementById('signupPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('signupBtn').click(); });
+document.getElementById('signupUser').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('signupPass').focus(); });
+document.getElementById('adminPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('adminBtn').click(); });
+document.getElementById('adminUser').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('adminPass').focus(); });
