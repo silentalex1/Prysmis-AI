@@ -509,3 +509,67 @@ body {
   .model-id { min-width: 140px; }
   .model-note { display: none; }
 }
+
+.tutorial-steps {
+display: flex;
+flex-direction: column;
+gap: 0;
+margin-top: 1.5rem;
+}
+
+.tutorial-step {
+display: flex;
+gap: 1.25rem;
+padding: 1.25rem 0;
+border-bottom: 1px solid rgba(255,255,255,0.045);
+}
+
+.tutorial-step:last-child { border-bottom: none; }
+
+.step-num {
+width: 28px;
+height: 28px;
+border-radius: 50%;
+background: rgba(79,142,247,0.1);
+border: 1px solid rgba(79,142,247,0.22);
+color: #4f8ef7;
+font-size: 0.75rem;
+font-weight: 800;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+margin-top: 2px;
+}
+
+.step-body { flex: 1; min-width: 0; }
+
+.step-title {
+font-size: 0.92rem;
+font-weight: 700;
+color: #e8eaff;
+margin-bottom: 0.4rem;
+}
+
+.step-desc {
+font-size: 0.84rem;
+color: #5a607a;
+line-height: 1.65;
+}
+
+.step-desc code {
+font-family: 'Fira Code', monospace;
+font-size: 0.78rem;
+background: rgba(255,255,255,0.07);
+padding: 1px 5px;
+border-radius: 4px;
+color: #c084fc;
+}
+
+.doc-link {
+color: #4f8ef7;
+text-decoration: none;
+font-weight: 600;
+}
+
+.doc-link:hover { text-decoration: underline; }
