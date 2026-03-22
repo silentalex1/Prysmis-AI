@@ -425,6 +425,8 @@ function appendCommChatMsg(m, animate) {
   if (atBottom || animate) container.scrollTop = container.scrollHeight;
 }
 
+var currentUserIsAdmin = localStorage.getItem('isAdmin') === 'true';
+
 function buildCommChatMsgEl(m) {
   var wrap = document.createElement('div');
   wrap.className = 'commchat-msg' + (m.author === storedUser ? ' commchat-msg-own' : '');
@@ -434,12 +436,15 @@ function buildCommChatMsgEl(m) {
     var ref = commchatMsgMap[m.replyTo];
     inner += '<div class="commchat-reply-ref"><span class="commchat-reply-ref-author">' + escHtml(ref.author) + '</span><span class="commchat-reply-ref-text">' + escHtml(ref.text.substring(0, 60)) + (ref.text.length > 60 ? '...' : '') + '</span></div>';
   }
-  inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span><span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
+  var adminBadge = m.isAdmin ? '<span class="commchat-admin-badge">admin</span>' : '';
+  inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span>' + adminBadge + '<span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
   inner += '<div class="commchat-text">' + escHtml(m.text) + '</div>';
   inner += '<div class="commchat-actions">';
   inner += '<button class="commchat-action-btn" onclick="setReply(\'' + m.id + '\',\'' + escHtml(m.author) + '\',\'' + escHtml(m.text.substring(0, 40).replace(/'/g, "\\'")) + '\')">Reply</button>';
   if (m.author === storedUser) {
     inner += '<button class="commchat-action-btn commchat-edit-btn" onclick="openEditModal(\'' + m.id + '\',\'' + escHtml(m.text.replace(/'/g, "\\'")) + '\')">Edit</button>';
+  }
+  if (m.author === storedUser || currentUserIsAdmin) {
     inner += '<button class="commchat-action-btn commchat-del-btn" onclick="deleteCommMsg(\'' + m.id + '\')">Delete</button>';
   }
   inner += '</div>';
