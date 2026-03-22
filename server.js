@@ -368,6 +368,22 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, username: foundUname });
   }
 
+  if (req.method === 'POST' && pt === '/discord/savedata') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    try {
+      const json = JSON.stringify(db, null, 2);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      fs.writeFileSync('db_backup_' + timestamp + '.json', json);
+      return sendJson(res, 200, { success: true, message: 'Data saved', users: Object.keys(db.users).length, timestamp });
+    } catch (e) {
+      return sendJson(res, 500, { error: 'Failed to save: ' + e.message });
+    }
+  }
+
   if (req.method === 'GET' && pt === '/discord/ping') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
