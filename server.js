@@ -130,7 +130,7 @@ function readBody(req) {
     let size = 0;
     req.on('data', c => {
       size += c.length;
-      if (size > 1024 * 1024) { reject(new Error('Body too large')); return; }
+      if (size > 20 * 1024 * 1024) { reject(new Error('Body too large')); return; }
       body += c;
     });
     req.on('end', () => {
@@ -837,18 +837,37 @@ const server = http.createServer(async (req, res) => {
     const rawModel = body.model || url.searchParams.get('model') || 'gpt-5.2';
     const modelToUse = resolveModel(rawModel);
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const validMessages = messages.filter(m => m && typeof m === 'object' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system') && typeof m.content === 'string' && m.content.trim().length > 0).map(m => ({ role: m.role, content: m.content.trim() }));
-    const userOnly = validMessages.filter(m => m.role !== 'system');
-    if (userOnly.length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
+    const cleanMessages = messages.filter(m => {
+      if (!m || typeof m !== 'object') return false;
+      if (!['user','assistant','system'].includes(m.role)) return false;
+      if (typeof m.content === 'string') return m.content.trim().length > 0;
+      if (Array.isArray(m.content)) return m.content.length > 0;
+      return false;
+    }).map(m => {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content.trim() };
+      return { role: m.role, content: m.content };
+    });
+    if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
     const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
-    const tryCall = async (m, msgs) => client.chat.completions.create({ model: m, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
     const fallbacks = ['gpt-5.2', 'gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
     const tryList = [modelToUse, ...fallbacks.filter(f => f !== modelToUse)];
+    const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
+    const puterFetch = async (model, msgs) => {
+      const r = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (process.env.PUTER_TOKEN || 'anonymous') },
+        body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error && data.error.message ? data.error.message : 'Status ' + r.status);
+      return data;
+    };
     let lastErr = null;
     for (const m of tryList) {
-      try { const r = await tryCall(m, validMessages); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
-      try { const r = await tryCall(m, userOnly); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
+      for (const msgs of tryVariants) {
+        try { const r = await puterFetch(m, msgs); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
+      }
     }
     return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
   }
