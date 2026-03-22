@@ -300,14 +300,12 @@ var psmPipeline = null;
 var psmVisionPipeline = null;
 var psmLoading = false;
 var psmVisionLoading = false;
-var PSM_MODEL = 'Qwen/Qwen2.5-0.5B-Instruct';
-var PSM_VISION_MODEL = 'Xenova/vit-gpt2-image-captioning';
-var HF_TRANSFORMERS = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.0/dist/transformers.min.js';
+var XENOVA_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
-async function getHFPipeline() {
-  if (window.__hfTransformers) return window.__hfTransformers;
-  var mod = await import(HF_TRANSFORMERS);
-  window.__hfTransformers = mod;
+async function getXenovaPipeline() {
+  if (window.__xenovaMod) return window.__xenovaMod;
+  var mod = await import(XENOVA_CDN);
+  window.__xenovaMod = mod;
   return mod;
 }
 
@@ -320,13 +318,9 @@ async function loadPSM() {
     return psmPipeline;
   }
   psmLoading = true;
-  var mod = await getHFPipeline();
-  var env = mod.env || (mod.default && mod.default.env);
-  if (env) { env.allowLocalModels = false; env.useBrowserCache = true; }
+  var mod = await getXenovaPipeline();
   var pipelineFn = mod.pipeline || (mod.default && mod.default.pipeline);
-  psmPipeline = await pipelineFn('text-generation', PSM_MODEL, { dtype: 'q4', device: 'webgpu' }).catch(function() {
-    return pipelineFn('text-generation', PSM_MODEL, { dtype: 'q4' });
-  });
+  psmPipeline = await pipelineFn('text-generation', 'Qwen/Qwen2.5-0.5B-Instruct');
   psmLoading = false;
   return psmPipeline;
 }
@@ -340,9 +334,9 @@ async function loadPSMVision() {
     return psmVisionPipeline;
   }
   psmVisionLoading = true;
-  var mod = await getHFPipeline();
+  var mod = await getXenovaPipeline();
   var pipelineFn = mod.pipeline || (mod.default && mod.default.pipeline);
-  psmVisionPipeline = await pipelineFn('image-to-text', PSM_VISION_MODEL, { dtype: 'q8' });
+  psmVisionPipeline = await pipelineFn('image-to-text', 'Xenova/vit-gpt2-image-captioning');
   psmVisionLoading = false;
   return psmVisionPipeline;
 }
@@ -357,29 +351,30 @@ async function runPSM(messages, imageDataUrl) {
       var visionPipe = await loadPSMVision();
       var caption = await visionPipe(imageDataUrl, { max_new_tokens: 80 });
       var captionText = caption && caption[0] ? caption[0].generated_text : 'an image';
-      userText = 'The user shared an image. Image description: ' + captionText + '. User message: ' + userText;
+      userText = 'The user shared an image. Description: ' + captionText + '. User: ' + userText;
     } catch (_) {}
   }
 
   var pipe = await loadPSM();
-  var history = [{ role: 'system', content: SYSTEM_PROMPT }];
+  var prompt = SYSTEM_PROMPT + '\n\n';
   userMsgs.slice(-6).forEach(function(m) {
-    history.push({ role: m.role, content: typeof m.content === 'string' ? m.content : userText });
+    var c = typeof m.content === 'string' ? m.content : userText;
+    prompt += (m.role === 'user' ? 'User: ' : 'Assistant: ') + c + '\n';
   });
-  history[history.length - 1].content = userText;
+  prompt += 'Assistant:';
 
-  var result = await pipe(history, { max_new_tokens: 600, temperature: 0.7, do_sample: true, return_full_text: false });
+  var result = await pipe(prompt, {
+    max_new_tokens: 512,
+    temperature: 0.7,
+    do_sample: true,
+    return_full_text: false
+  });
+
   var text = '';
-  if (result && result[0]) {
-    if (typeof result[0].generated_text === 'string') {
-      text = result[0].generated_text;
-    } else if (Array.isArray(result[0].generated_text)) {
-      var last = result[0].generated_text[result[0].generated_text.length - 1];
-      text = last ? (last.content || '') : '';
-    } else if (Array.isArray(result[0]) && result[0].length > 0) {
-      var lastItem = result[0][result[0].length - 1];
-      text = lastItem ? (lastItem.content || lastItem.generated_text || '') : '';
-    }
+  if (result && result[0] && result[0].generated_text) {
+    text = typeof result[0].generated_text === 'string'
+      ? result[0].generated_text
+      : '';
   }
   return text.trim() || 'PSM-4.0 could not generate a response.';
 }
