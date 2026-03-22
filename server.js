@@ -718,6 +718,58 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true });
   }
 
+  if (req.method === 'POST' && pt === '/plugin/files') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === body.pluginToken) {
+        db.users[u].studioFiles = Array.isArray(body.files) ? body.files : [];
+        db.users[u].studioFilesUpdated = Date.now();
+        saveDb();
+        return sendJson(res, 200, { ok: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/files') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    return sendJson(res, 200, { files: user.studioFiles || [], updated: user.studioFilesUpdated || null });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/execute') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
+    if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
+    if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
+    const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
+    user.pendingChanges.push(change);
+    if (user.pendingChanges.length > 20) user.pendingChanges = user.pendingChanges.slice(-20);
+    saveDb();
+    return sendJson(res, 200, { ok: true, changeId: change.id });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/pending') {
+    const pluginToken = url.searchParams.get('pluginToken') || '';
+    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === pluginToken) {
+        const changes = db.users[u].pendingChanges || [];
+        db.users[u].pendingChanges = [];
+        if (changes.length > 0) saveDb();
+        return sendJson(res, 200, { changes });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
   if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions')) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const rawModel = body.model || url.searchParams.get('model') || 'gpt-5.2';
