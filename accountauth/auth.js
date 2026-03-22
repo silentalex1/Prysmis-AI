@@ -4,8 +4,15 @@ var existingUser = localStorage.getItem('user');
 if (existingToken && existingUser) {
   fetch('/me?token=' + encodeURIComponent(existingToken))
     .then(function(r) { return r.json(); })
-    .then(function(d) { if (d.username) location.href = '/dashboard/aibuild/index.html'; })
-    .catch(function() {});
+    .then(function(d) {
+      if (d.username) {
+        if (d.isAdmin) {
+          location.href = '/adminpanel';
+        } else {
+          location.href = '/dashboard/aibuild/index.html';
+        }
+      }
+    }).catch(function() {});
 }
 
 function switchTab(tab) {
@@ -58,9 +65,12 @@ function clearErr(id) {
 }
 
 function setLoading(btnId, textId, spinnerId, on) {
-  document.getElementById(btnId).disabled = on;
-  document.getElementById(textId).style.display = on ? 'none' : 'inline';
-  document.getElementById(spinnerId).style.display = on ? 'inline-block' : 'none';
+  var btn = document.getElementById(btnId);
+  var txt = document.getElementById(textId);
+  var spin = document.getElementById(spinnerId);
+  if (btn) btn.disabled = on;
+  if (txt) txt.style.display = on ? 'none' : 'inline';
+  if (spin) spin.style.display = on ? 'inline-block' : 'none';
 }
 
 document.getElementById('loginBtn').addEventListener('click', function() {
@@ -80,6 +90,7 @@ document.getElementById('loginBtn').addEventListener('click', function() {
     if (res.s === 200 && res.d.success) {
       localStorage.setItem('user', res.d.username);
       localStorage.setItem('token', res.d.token);
+      localStorage.removeItem('isAdmin');
       location.href = '/dashboard/aibuild/index.html';
     } else {
       showErr('loginErr', res.d.error || 'Login failed');
@@ -111,6 +122,7 @@ document.getElementById('signupBtn').addEventListener('click', function() {
     if (res.s === 200 && res.d.success) {
       localStorage.setItem('user', res.d.username);
       localStorage.setItem('token', res.d.token);
+      localStorage.removeItem('isAdmin');
       location.href = '/dashboard/aibuild/index.html';
     } else {
       showErr('signupErr', res.d.error || 'Failed to create account');
