@@ -239,12 +239,6 @@ modelSelect.addEventListener('change', function() {
   }
 });
 
-function buildPuterMessages() {
-  var msgs = [];
-  msgs.push({ role: 'user', content: SYSTEM_PROMPT + '\n\nUser message: ' + (currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].content : '') });
-  return msgs;
-}
-
 function isTruncated(text) {
   var trimmed = text.trimEnd();
   var opens = (trimmed.match(/```/g) || []).length;
@@ -320,34 +314,16 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  if (typeof puter !== 'undefined' && puter.ai && puter.ai.chat) {
-    puter.ai.chat(allMsgs, { model: model }).then(function(response) {
-      var reply = '';
-      var finishReason = null;
-      if (response && response.message && response.message.content) {
-        var c = response.message.content;
-        if (Array.isArray(c)) { c.forEach(function(b) { if (b.text) reply += b.text; }); }
-        else if (typeof c === 'string') { reply = c; }
-      } else if (typeof response === 'string') {
-        reply = response;
-      }
-      if (response && response.finish_reason) finishReason = response.finish_reason;
-      handleReply(reply, finishReason);
-    }).catch(function(e) {
-      removeThinking();
-      addMessage('AI error: ' + (e.message || String(e)), false);
-    });
-  } else {
-    fetch('/v1/chat/completions', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
-    }).then(function(r) { return r.json(); }).then(function(data) {
-      var choice = data.choices && data.choices[0];
-      var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
-      var finishReason = choice ? choice.finish_reason : null;
-      handleReply(reply, finishReason);
-    }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
-  }
+  fetch('/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var choice = data.choices && data.choices[0];
+    var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
+    var finishReason = choice ? choice.finish_reason : null;
+    handleReply(reply, finishReason);
+  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
 }
 
 function saveChat(firstMsg) {
