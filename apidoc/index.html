@@ -33,6 +33,7 @@ Go Back
 <a class="sidenav-link" href="#examples">Examples</a>
 <a class="sidenav-link" href="#response">Response</a>
 <a class="sidenav-link" href="#errors">Errors</a>
+<a class="sidenav-link" href="#tutorial">Setup Tutorial</a>
 </nav>
 
 <main class="content">
@@ -305,6 +306,86 @@ res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completi
 <p class="section-text mt">Error body:</p>
 <div class="codebox">
 <pre><code>{ <span class="ck">"error"</span>: <span class="cs">"No valid messages provided"</span> }</code></pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="tutorial">
+<span class="eyebrow">Getting Started</span>
+<h2 class="section-title">Setup Tutorial</h2>
+<p class="section-text">Follow these steps to start using the PrysmisAI API in your own project.</p>
+
+<div class="tutorial-steps">
+
+<div class="tutorial-step">
+<div class="step-num">1</div>
+<div class="step-body">
+<div class="step-title">Create your account</div>
+<p class="step-desc">Go to <a href="https://prysmisai.wtf/accountauth/index.html" class="doc-link" target="_blank">prysmisai.wtf</a> and sign up for a free account. No credit card needed.</p>
+</div>
+</div>
+
+<div class="tutorial-step">
+<div class="step-num">2</div>
+<div class="step-body">
+<div class="step-title">Make your first request</div>
+<p class="step-desc">Copy this into your project. Replace the message content with whatever you want to ask.</p>
+<div class="codebox" style="margin-top:0.75rem">
+<div class="codebox-header"><span class="codebox-lang">JS</span><button class="codebox-copy" data-target="tut1">Copy</button></div>
+<pre id="tut1"><code><span class="ck">const</span> <span class="cv">res</span> = <span class="ck">await</span> fetch(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completions'</span>, {
+  method: <span class="cs">'POST'</span>,
+  headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'application/json'</span> },
+  body: JSON.stringify({
+    model: <span class="cs">'gpt-5.2'</span>,
+    messages: [{ role: <span class="cs">'user'</span>, content: <span class="cs">'Hello!'</span> }]
+  })
+});
+<span class="ck">const</span> <span class="cv">data</span> = <span class="ck">await</span> res.json();
+console.log(data.choices[<span class="cn">0</span>].message.content);</code></pre>
+</div>
+</div>
+</div>
+
+<div class="tutorial-step">
+<div class="step-num">3</div>
+<div class="step-body">
+<div class="step-title">Choose your model</div>
+<p class="step-desc">Change <code>gpt-5.2</code> to any model from the <a href="#models" class="doc-link">Available Models</a> list. Free models work right away. Premium models require a premium account.</p>
+</div>
+</div>
+
+<div class="tutorial-step">
+<div class="step-num">4</div>
+<div class="step-body">
+<div class="step-title">Add a system prompt</div>
+<p class="step-desc">Guide the AI's behavior by adding a <code>system</code> message as the first item in your messages array.</p>
+<div class="codebox" style="margin-top:0.75rem">
+<div class="codebox-header"><span class="codebox-lang">JS</span></div>
+<pre><code>messages: [
+  { role: <span class="cs">'system'</span>, content: <span class="cs">'You are a Roblox game development expert.'</span> },
+  { role: <span class="cs">'user'</span>, content: <span class="cs">'Write me a health bar script.'</span> }
+]</code></pre>
+</div>
+</div>
+</div>
+
+<div class="tutorial-step">
+<div class="step-num">5</div>
+<div class="step-body">
+<div class="step-title">Handle the response</div>
+<p class="step-desc">The AI text is always at <code>data.choices[0].message.content</code>. Check <code>data.choices[0].finish_reason</code> - if it is <code>"length"</code> the response was cut off and you can request a continuation.</p>
+</div>
+</div>
+
+<div class="tutorial-step">
+<div class="step-num">6</div>
+<div class="step-body">
+<div class="step-title">Connect the Roblox Studio plugin</div>
+<p class="step-desc">Install the official plugin from the <a href="https://create.roblox.com/store/asset/135923299325928/PrysmisAI?viewFromStudio=true" class="doc-link" target="_blank">Roblox Creator Store</a>. Open it in Studio, paste your plugin token from your dashboard Settings, and click Connect. The website and Studio are now linked - accepted AI changes run in your game instantly.</p>
+</div>
+</div>
+
 </div>
 </section>
 
