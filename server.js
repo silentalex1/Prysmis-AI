@@ -676,6 +676,16 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true });
   }
 
+  if (req.method === 'DELETE' && pt === '/community-chat') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.admins[td.username]) return sendJson(res, 403, { error: 'Admin only' });
+    db.communityChat = [];
+    saveDb();
+    broadcastSSE({ type: 'clear_chat' });
+    return sendJson(res, 200, { success: true });
+  }
+
   if (req.method === 'GET' && pt === '/community-chat') {
     return sendJson(res, 200, db.communityChat.slice(-200));
   }
@@ -920,18 +930,20 @@ const server = http.createServer(async (req, res) => {
     const tryList = [puterModel, ...fallbacks.filter(f => f !== puterModel)];
     const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
     const aiFetch = async (model, msgs) => {
-      const r = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'https://puter.com',
-          'Referer': 'https://puter.com/'
-        },
-        body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok })
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error && data.error.message ? data.error.message : 'Status ' + r.status);
-      return data;
+      const endpoints = [
+        { url: 'https://api.puter.com/puterai/openai/v1/chat/completions', headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } },
+        { url: 'https://api.puter.com/openai/v1/chat/completions', headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } }
+      ];
+      let lastE = null;
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(ep.url, { method: 'POST', headers: ep.headers, body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok }) });
+          const data = await r.json();
+          if (r.ok && data.choices) return data;
+          lastE = new Error(data.error && data.error.message ? data.error.message : 'Status ' + r.status);
+        } catch(e) { lastE = e; }
+      }
+      throw lastE;
     };
     let lastErr = null;
     for (const m of tryList) {
