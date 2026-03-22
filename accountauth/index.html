@@ -74,13 +74,18 @@ Back to home
 <p class="switch-text">Already have an account? <button class="link-btn" onclick="switchTab('login')">Log in</button></p>
 </div>
 <div class="card-inner" id="adminCard" style="display:none">
-<h1>Admin Login</h1>
+<h1>Admin Panel</h1>
 <p class="subtitle">Authorized personnel only</p>
 <div class="tab-row">
 <button class="tab-pill" onclick="switchTab('login')">Log In</button>
 <button class="tab-pill" onclick="switchTab('signup')">Sign Up</button>
 <button class="tab-pill active" onclick="switchTab('admin')">Admin</button>
 </div>
+<div class="admin-sub-tabs">
+<button class="admin-sub-pill active" id="adminSubLogin" onclick="switchAdminSub('login')">Sign In</button>
+<button class="admin-sub-pill" id="adminSubCreate" onclick="switchAdminSub('create')">Create Account</button>
+</div>
+<div id="adminLoginForm">
 <div class="form-group">
 <label>ADMIN USERNAME</label>
 <input type="text" id="adminUser" placeholder="Enter admin username" autocomplete="off" spellcheck="false">
@@ -99,7 +104,32 @@ Back to home
 <span id="adminBtnText">Admin Login</span>
 <span id="adminSpinner" class="spinner" style="display:none"></span>
 </button>
-<p class="switch-text admin-note">Admin accounts are granted via Discord bot by authorized users only.</p>
+</div>
+<div id="adminCreateForm" style="display:none">
+<div class="form-group">
+<label>ADMIN USERNAME</label>
+<input type="text" id="createAdminUser" placeholder="Enter your website username" autocomplete="off" spellcheck="false">
+</div>
+<div class="form-group">
+<label>SET ADMIN PASSWORD</label>
+<div class="pw-wrap">
+<input type="password" id="createAdminPass" placeholder="Create a password (min 6 chars)" autocomplete="new-password">
+<button type="button" class="eye-btn" onclick="toggleEye('createAdminPass')">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</div>
+<div class="form-group">
+<label>ADMIN CODE</label>
+<input type="text" id="createAdminCode" placeholder="Enter code from Discord bot" autocomplete="off" spellcheck="false">
+</div>
+<div id="createAdminErr" class="err-msg"></div>
+<button class="submit-btn admin-submit" id="createAdminBtn">
+<span id="createAdminBtnText">Create Admin Account</span>
+<span id="createAdminSpinner" class="spinner" style="display:none"></span>
+</button>
+</div>
+<p class="switch-text admin-note">Codes are generated via Discord bot by authorized users only.</p>
 </div>
 </div>
 </div>
