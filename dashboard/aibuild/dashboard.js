@@ -817,6 +817,9 @@ function initCommChatSSEOnly() {
         delete commchatMsgMap[data.id];
         var el = document.querySelector('.commchat-msg[data-id="' + data.id + '"]');
         if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.25s'; setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 260); }
+      } else if (data.type === 'clear_chat') {
+        commchatMsgMap = {};
+        document.getElementById('commchatMessages').innerHTML = '<div class="commchat-empty">No messages yet. Start the conversation.</div>';
       }
     } catch (_) {}
   };
@@ -853,6 +856,25 @@ function appendCommChatMsg(m, animate) {
 }
 
 var currentUserIsAdmin = localStorage.getItem('isAdmin') === 'true';
+
+fetch('/me?token=' + encodeURIComponent(storedToken)).then(function(r){return r.json();}).then(function(d){
+  if(d.isAdmin){ currentUserIsAdmin = true; localStorage.setItem('isAdmin','true'); var cb = document.getElementById('clearChatBtn'); if(cb) cb.style.display='inline-flex'; }
+}).catch(function(){});
+
+var clearChatBtn = document.getElementById('clearChatBtn');
+if(clearChatBtn){
+  clearChatBtn.addEventListener('click', function(){
+    if(!confirm('Clear the entire community chat? This cannot be undone.')) return;
+    clearChatBtn.textContent = 'Clearing...';
+    clearChatBtn.disabled = true;
+    fetch('/community-chat?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
+      .then(function(r){ return r.json(); }).then(function(data){
+        clearChatBtn.textContent = 'Clear Chat';
+        clearChatBtn.disabled = false;
+        if(data.success){ document.getElementById('commchatMessages').innerHTML = ''; }
+      }).catch(function(){ clearChatBtn.textContent = 'Clear Chat'; clearChatBtn.disabled = false; });
+  });
+}
 
 function buildCommChatMsgEl(m) {
   var wrap = document.createElement('div');
