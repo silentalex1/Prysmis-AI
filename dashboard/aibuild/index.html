@@ -79,9 +79,13 @@ Settings
 </div>
 </div>
 <div class="input-container">
-<div class="model-select-row">
+<div class="image-paste-preview" id="imagePastePreview">
+<img id="imagePasteImg" src="" alt="pasted image">
+<button class="image-paste-preview-remove" id="imagePasteRemove">&#215;</button>
+</div>
+<div class="input-row">
 <div class="model-select-wrap">
-<select id="modelSelect" class="model-select-inline">
+<select id="modelSelect" class="model-select-inline" size="1">
 <optgroup label="Free Models">
 <option value="gpt-5.2">ChatGPT 5.2</option>
 <option value="gpt-4o">GPT-4o</option>
@@ -93,16 +97,12 @@ Settings
 </optgroup>
 </select>
 </div>
-</div>
-<div class="image-paste-preview" id="imagePastePreview">
-<img id="imagePasteImg" src="" alt="pasted image">
-<button class="image-paste-preview-remove" id="imagePasteRemove">&#215;</button>
-</div>
 <div class="input-wrapper">
 <textarea id="input" rows="1" placeholder="Ask PrysmisAI anything about Roblox scripting..."></textarea>
 <button id="sendBtn">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
 </button>
+</div>
 </div>
 </div>
 <div id="premiumModal" class="premium-modal-overlay" style="display:none">
