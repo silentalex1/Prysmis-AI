@@ -1043,3 +1043,11 @@ font-weight: 600;
 min-height: 1rem;
 margin-top: 0.5rem;
 }
+
+.ann-card-author {
+font-size: 0.7rem;
+font-weight: 700;
+color: var(--accent);
+margin-bottom: 0.35rem;
+letter-spacing: 0.2px;
+}
