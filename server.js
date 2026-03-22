@@ -758,6 +758,58 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'GET' && pt === '/adminpanel') {
+    fs.readFile('./adminpanel/index.html', (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && pt === '/admin/users') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.tokens[getReqToken(req, url)] || !db.tokens[getReqToken(req, url)].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    const users = Object.entries(db.users).map(([uname, u]) => ({
+      username: uname,
+      created: u.created,
+      lastLogin: u.lastLogin,
+      chatCount: (u.chats || []).length,
+      loginCount: u.loginCount || 1,
+      isAdmin: !!db.admins[uname]
+    }));
+    return sendJson(res, 200, { users, adminCount: Object.keys(db.admins).length });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/gate') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { code } = body;
+    if (!code) return sendJson(res, 400, { error: 'Code required' });
+    const codeClean = code.trim();
+    if (!db.adminCodes) return sendJson(res, 401, { error: 'Invalid or expired code' });
+    let foundUname = null;
+    for (const u in db.adminCodes) {
+      if (db.adminCodes[u].code === codeClean) { foundUname = u; break; }
+    }
+    if (!foundUname) return sendJson(res, 401, { error: 'Invalid or expired code' });
+    const codeData = db.adminCodes[foundUname];
+    if (codeData.expires < Date.now()) {
+      delete db.adminCodes[foundUname];
+      saveDb();
+      return sendJson(res, 401, { error: 'Code has expired. Request a new one via Discord.' });
+    }
+    if (codeData.used) return sendJson(res, 401, { error: 'Code already used' });
+    if (!db.admins[foundUname]) return sendJson(res, 401, { error: 'Admin account not set up yet. Create your account first.' });
+    db.adminCodes[foundUname].used = true;
+    const token = randToken();
+    const now = Date.now();
+    db.tokens[token] = { username: foundUname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
+    db.admins[foundUname].lastLogin = now;
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: foundUname, isAdmin: true });
+  }
+
   if (req.method === 'GET') {
     let filePath = '.' + (pt === '/' ? '/index.html' : pt);
     if (filePath.endsWith('/')) filePath += 'index.html';
