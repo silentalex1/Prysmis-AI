@@ -327,7 +327,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pt === '/admin/login') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
-    const uname = body.username.trim();
+    const uname = body.username.trim().toLowerCase();
     const admin = db.admins[uname];
     if (!admin) return sendJson(res, 401, { error: 'No admin account found' });
     if (admin.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
