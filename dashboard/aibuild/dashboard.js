@@ -34,14 +34,25 @@ var pastedImageData = null;
 var imagePastePreview = null;
 var imagePasteImg = null;
 
-var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.1-pro-preview': true };
+var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.2-pro': true, 'grok-4': true };
 
 var MODEL_API_MAP = {
   'gpt-5.2': 'gpt-5.2',
-  'claude-opus-4-5': 'claude-opus-4-5',
-  'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
+  'gpt-5.2-mini': 'gpt-5.2-mini',
+  'gpt-4o': 'gpt-4o',
+  'gpt-4o-mini': 'gpt-4o-mini',
+  'o3-mini': 'o3-mini',
   'claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'gpt-4o': 'gpt-4o'
+  'claude-haiku-3-5': 'claude-haiku-3-5',
+  'claude-opus-4-5': 'claude-opus-4-5',
+  'gemini-3.2-flash': 'gemini-3.2-flash',
+  'gemini-3.2-pro': 'gemini-3.2-pro',
+  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
+  'grok-4': 'grok-4',
+  'llama-4-maverick': 'llama-4-maverick',
+  'deepseek-r1': 'deepseek-r1',
+  'deepseek-v3': 'deepseek-v3',
+  'mistral-large-2': 'mistral-large-2'
 };
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
@@ -59,7 +70,8 @@ function unlockPremiumOptions() {
   var opts = document.querySelectorAll('#modelSelect option');
   opts.forEach(function(opt) {
     if (opt.value === 'claude-opus-4-5') opt.textContent = 'Claude Opus 4.5';
-    if (opt.value === 'gemini-3.1-pro-preview') opt.textContent = 'Gemini 3.1 Pro';
+    if (opt.value === 'gemini-3.2-pro') opt.textContent = 'Gemini 3.2 Pro';
+    if (opt.value === 'grok-4') opt.textContent = 'Grok 4';
   });
 }
 
@@ -339,7 +351,7 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  fetch('https://api.prysmisai.wtf/v1/chat/completions', {
+  fetch('/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
