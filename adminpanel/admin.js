@@ -93,13 +93,20 @@ function loadControl() {
       document.getElementById('controlUserCount').textContent = users.length;
       var body = document.getElementById('controlTableBody');
       if (users.length === 0) { body.innerHTML = '<div class="empty-table">No users found.</div>'; return; }
-      var html = '<div class="user-row-head control-head"><span>Username</span><span>Joined</span><span>Chats</span><span>Role</span><span></span></div>';
+      var html = '<div class="user-row-head control-head"><span>Username</span><span>Rank</span><span>Premium</span><span>Chats</span><span></span></div>';
       users.forEach(function(u) {
+        var rankVal = u.rank || '';
+        var premVal = u.premium ? 'Yes' : 'No';
         html += '<div class="user-row control-row" data-user="' + escHtml(u.username) + '">';
-        html += '<span class="user-name">' + escHtml(u.username) + '</span>';
-        html += '<span class="user-joined">' + fmtDate(u.created) + '</span>';
+        html += '<span class="user-name">' + escHtml(u.username) + (u.isAdmin ? ' <span class="badge-admin" style="font-size:0.62rem;padding:1px 5px">admin</span>' : '') + '</span>';
+        html += '<span><select class="rank-select" onchange="setRank(\'' + escHtml(u.username) + '\', this.value)">';
+        html += '<option value="">None</option>';
+        ['early access','premium','chat mod'].forEach(function(r) {
+          html += '<option value="' + r + '"' + (rankVal === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+        });
+        html += '</select></span>';
+        html += '<span><button class="premium-toggle-btn ' + (u.premium ? 'active' : '') + '" onclick="togglePremium(\'' + escHtml(u.username) + '\', ' + (!u.premium) + ', this)">' + (u.premium ? 'Revoke' : 'Grant') + '</button></span>';
         html += '<span class="user-chats">' + (u.chatCount || 0) + '</span>';
-        html += '<span class="user-badge"><span class="' + (u.isAdmin ? 'badge-admin' : 'badge-user') + '">' + (u.isAdmin ? 'Admin' : 'User') + '</span></span>';
         if (!u.isAdmin) {
           html += '<span><button class="remove-user-btn" onclick="removeUser(\'' + escHtml(u.username) + '\')">Remove</button></span>';
         } else {
@@ -113,6 +120,28 @@ function loadControl() {
     });
 }
 
+
+function setRank(username, rank) {
+  fetch('/admin/set-rank?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: username, rank: rank || null })
+  }).catch(function() {});
+}
+
+function togglePremium(username, grantPremium, btn) {
+  fetch('/admin/set-premium?token=' + encodeURIComponent(storedToken), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: username, premium: grantPremium })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success) {
+      btn.textContent = grantPremium ? 'Revoke' : 'Grant';
+      btn.className = 'premium-toggle-btn ' + (grantPremium ? 'active' : '');
+      btn.setAttribute('onclick', 'togglePremium(\'' + username + '\', ' + (!grantPremium) + ', this)');
+    }
+  }).catch(function() {});
+}
 function removeUser(username) {
   if (!confirm('Remove user "' + username + '"? This cannot be undone.')) return;
   fetch('/admin/users/' + encodeURIComponent(username) + '?token=' + encodeURIComponent(storedToken), { method: 'DELETE' })
