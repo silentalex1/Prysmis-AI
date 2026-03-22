@@ -265,3 +265,34 @@ text-align: center;
 margin-top: 1rem;
 line-height: 1.4;
 }
+
+.admin-sub-tabs {
+display: flex;
+gap: 0.4rem;
+margin-bottom: 1.4rem;
+}
+
+.admin-sub-pill {
+flex: 1;
+padding: 0.45rem 0.75rem;
+background: transparent;
+border: 1px solid rgba(255,255,255,0.08);
+border-radius: 7px;
+color: #6b7280;
+font-size: 0.75rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.admin-sub-pill:hover {
+color: #e2e4f0;
+border-color: rgba(255,255,255,0.15);
+}
+
+.admin-sub-pill.active {
+background: rgba(244,63,94,0.12);
+border-color: rgba(244,63,94,0.3);
+color: #f43f5e;
+}
