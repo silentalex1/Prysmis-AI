@@ -347,7 +347,43 @@ settingsSaveBtn.addEventListener('click', function() {
   });
 });
 
-loadChatHistory(); }
+loadChatHistory();
+
+var imagePastePreview = document.getElementById('imagePastePreview');
+var imagePasteImg = document.getElementById('imagePasteImg');
+var imagePasteRemove = document.getElementById('imagePasteRemove');
+var pastedImageData = null;
+
+if (imagePasteRemove) {
+  imagePasteRemove.addEventListener('click', function() {
+    pastedImageData = null;
+    imagePasteImg.src = '';
+    imagePastePreview.classList.remove('show');
+  });
+}
+
+document.addEventListener('paste', function(e) {
+  if (document.getElementById('chatTab').style.display === 'none') return;
+  var items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      if (!userHasPremium) {
+        if (premiumModal) premiumModal.style.display = 'flex';
+        return;
+      }
+      var file = items[i].getAsFile();
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        pastedImageData = ev.target.result;
+        imagePasteImg.src = pastedImageData;
+        imagePastePreview.classList.add('show');
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+  }
+}); }
   }).catch(function() {});
 }
 
@@ -601,6 +637,8 @@ function buildCommChatMsgEl(m) {
     rankBadge = '<span class="rank-badge rank-early">early access</span>';
   } else if (m.rank === 'chat mod') {
     rankBadge = '<span class="rank-badge rank-mod">mod</span>';
+  } else if (m.rank === 'owner') {
+    rankBadge = '<span class="rank-badge rank-owner">owner</span>';
   }
   inner += '<div class="commchat-msg-header"><span class="commchat-author">' + escHtml(m.author) + '</span>' + rankBadge + '<span class="commchat-time">' + formatTime(m.created) + (m.edited ? ' (edited)' : '') + '</span></div>';
   inner += '<div class="commchat-text">' + escHtml(m.text) + '</div>';
