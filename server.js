@@ -930,20 +930,27 @@ const server = http.createServer(async (req, res) => {
     const tryList = [puterModel, ...fallbacks.filter(f => f !== puterModel)];
     const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
     const aiFetch = async (model, msgs) => {
-      const endpoints = [
-        { url: 'https://api.puter.com/puterai/openai/v1/chat/completions', headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } },
-        { url: 'https://api.puter.com/openai/v1/chat/completions', headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } }
+      const body = JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
+      const tryUrls = [
+        { url: 'https://api.puter.com/drivers/call', body: JSON.stringify({ interface: 'puter-chat-completion', driver: model.startsWith('claude') ? 'claude' : model.startsWith('gemini') ? 'gemini' : 'openai', method: 'complete', args: { messages: msgs, model, temperature: temp, max_tokens: maxTok } }), headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/', 'Authorization': 'Bearer anonymous' } },
+        { url: 'https://ai.puter.com/v1/chat/completions', body, headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } },
+        { url: 'https://api.puter.com/puterai/chat/completions', body, headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } }
       ];
       let lastE = null;
-      for (const ep of endpoints) {
+      for (const t of tryUrls) {
         try {
-          const r = await fetch(ep.url, { method: 'POST', headers: ep.headers, body: JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok }) });
-          const data = await r.json();
-          if (r.ok && data.choices) return data;
-          lastE = new Error(data.error && data.error.message ? data.error.message : 'Status ' + r.status);
+          const r = await fetch(t.url, { method: 'POST', headers: t.headers, body: t.body });
+          const txt = await r.text();
+          if (!txt || txt.trim().toLowerCase().startsWith('not found') || txt.trim().toLowerCase().startsWith('<!')) { lastE = new Error('Not Found'); continue; }
+          const data = JSON.parse(txt);
+          if (data.choices && data.choices[0]) return data;
+          if (data.result && data.result.message) {
+            return { choices: [{ message: data.result.message, finish_reason: 'stop' }] };
+          }
+          lastE = new Error(data.error && data.error.message ? data.error.message : 'No choices');
         } catch(e) { lastE = e; }
       }
-      throw lastE;
+      throw lastE || new Error('All endpoints failed');
     };
     let lastErr = null;
     for (const m of tryList) {
