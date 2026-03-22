@@ -3,59 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrysmisAI - Account</title>
+<title>PrysmisAI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth.css">
 </head>
 <body>
-<div class="bg-glow"></div>
-<div class="container">
-<div class="card">
-<div class="brand-row">
-<span class="brand-name">PrysmisAI</span>
-<span class="brand-badge">BETA</span>
+<div class="grid-bg"></div>
+<div class="page">
+<a href="/" class="back-link">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+Back to home
+</a>
+<div class="auth-card">
+<div class="card-inner" id="loginCard">
+<h1>Welcome back</h1>
+<p class="subtitle">Sign in to continue building</p>
+<div class="tab-row">
+<button class="tab-pill active" id="tabLoginBtn" onclick="switchTab('login')">Log In</button>
+<button class="tab-pill" id="tabSignupBtn" onclick="switchTab('signup')">Sign Up</button>
 </div>
-<div class="tabs">
-<button class="tab active" id="tabCreate" onclick="showTab('create')">Create Account</button>
-<button class="tab" id="tabLogin" onclick="showTab('login')">Sign In</button>
+<div class="form-group">
+<label>USERNAME</label>
+<input type="text" id="loginUser" placeholder="Enter your username" autocomplete="off" spellcheck="false">
 </div>
-<div id="createTab" class="tab-content">
-<h1>Get Started</h1>
-<p>Create your PrysmisAI account to start building</p>
-<div class="field">
-<label>Username</label>
-<input type="text" id="createUsername" placeholder="Choose a username" autocomplete="off" spellcheck="false">
-</div>
-<div class="field">
-<label>Password</label>
-<input type="password" id="createPassword" placeholder="At least 6 characters" autocomplete="new-password">
-</div>
-<div id="createError" class="error-msg"></div>
-<button id="createBtn" class="submit-btn">
-<span id="createBtnText">Create Account</span>
-<span id="createSpinner" class="spinner" style="display:none"></span>
+<div class="form-group">
+<label>PASSWORD</label>
+<div class="pw-wrap">
+<input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password">
+<button type="button" class="eye-btn" id="loginEye" onclick="toggleEye('loginPass','loginEye')">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
-<p class="switch-hint">Already have an account? <button class="link-btn" onclick="showTab('login')">Sign in</button></p>
 </div>
-<div id="loginTab" class="tab-content" style="display:none">
-<h1>Welcome Back</h1>
-<p>Sign in to your PrysmisAI account</p>
-<div class="field">
-<label>Username</label>
-<input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="off" spellcheck="false">
 </div>
-<div class="field">
-<label>Password</label>
-<input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
-</div>
-<div id="loginError" class="error-msg"></div>
-<button id="loginBtn" class="submit-btn">
-<span id="loginBtnText">Sign In</span>
+<div id="loginErr" class="err-msg"></div>
+<button class="submit-btn" id="loginBtn">
+<span id="loginBtnText">Log In</span>
 <span id="loginSpinner" class="spinner" style="display:none"></span>
 </button>
-<p class="switch-hint">No account yet? <button class="link-btn" onclick="showTab('create')">Create one</button></p>
+<p class="switch-text">Don't have an account? <button class="link-btn" onclick="switchTab('signup')">Sign up</button></p>
+</div>
+<div class="card-inner" id="signupCard" style="display:none">
+<h1>Create account</h1>
+<p class="subtitle">Start building with PrysmisAI</p>
+<div class="tab-row">
+<button class="tab-pill" id="tabLoginBtn2" onclick="switchTab('login')">Log In</button>
+<button class="tab-pill active" id="tabSignupBtn2" onclick="switchTab('signup')">Sign Up</button>
+</div>
+<div class="form-group">
+<label>USERNAME</label>
+<input type="text" id="signupUser" placeholder="Choose a username" autocomplete="off" spellcheck="false">
+</div>
+<div class="form-group">
+<label>PASSWORD</label>
+<div class="pw-wrap">
+<input type="password" id="signupPass" placeholder="At least 6 characters" autocomplete="new-password">
+<button type="button" class="eye-btn" id="signupEye" onclick="toggleEye('signupPass','signupEye')">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</div>
+<div id="signupErr" class="err-msg"></div>
+<button class="submit-btn" id="signupBtn">
+<span id="signupBtnText">Sign Up</span>
+<span id="signupSpinner" class="spinner" style="display:none"></span>
+</button>
+<p class="switch-text">Already have an account? <button class="link-btn" onclick="switchTab('login')">Log in</button></p>
 </div>
 </div>
 </div>
