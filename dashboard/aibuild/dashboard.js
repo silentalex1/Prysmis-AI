@@ -969,25 +969,39 @@ function addChangeButtons(code, description, msgEl) {
   var rejectBtn = document.createElement('button');
   rejectBtn.className = 'change-btn change-btn-reject';
   rejectBtn.textContent = 'Reject Change';
+  var statusMsg = document.createElement('span');
+  statusMsg.className = 'change-status';
   acceptBtn.addEventListener('click', function() {
-    if (!pluginConnected) { acceptBtn.textContent = 'Plugin not connected'; setTimeout(function() { acceptBtn.textContent = 'Accept Change'; }, 2000); return; }
-    acceptBtn.textContent = 'Applying...';
+    if (!pluginConnected) {
+      statusMsg.textContent = 'Plugin not connected - open plugin in Studio first';
+      statusMsg.style.color = '#f43f5e';
+      return;
+    }
+    acceptBtn.textContent = 'Sending to Studio...';
     acceptBtn.disabled = true;
     rejectBtn.disabled = true;
+    statusMsg.textContent = '';
     sendChangeToPlugin(code, description).then(function(data) {
       if (data.ok) {
-        acceptBtn.textContent = 'Applied';
+        acceptBtn.textContent = 'Sent to Studio';
         acceptBtn.className = 'change-btn change-btn-applied';
         rejectBtn.style.display = 'none';
+        statusMsg.textContent = 'Executing in Studio...';
+        statusMsg.style.color = '#10b981';
+        setTimeout(function() { statusMsg.textContent = 'Applied'; }, 1500);
       } else {
-        acceptBtn.textContent = data.error || 'Failed';
+        acceptBtn.textContent = 'Accept Change';
         acceptBtn.disabled = false;
         rejectBtn.disabled = false;
+        statusMsg.textContent = data.error || 'Failed to send';
+        statusMsg.style.color = '#f43f5e';
       }
     }).catch(function() {
-      acceptBtn.textContent = 'Network error';
+      acceptBtn.textContent = 'Accept Change';
       acceptBtn.disabled = false;
       rejectBtn.disabled = false;
+      statusMsg.textContent = 'Network error - check connection';
+      statusMsg.style.color = '#f43f5e';
     });
   });
   rejectBtn.addEventListener('click', function() {
@@ -998,6 +1012,7 @@ function addChangeButtons(code, description, msgEl) {
   });
   bar.appendChild(acceptBtn);
   bar.appendChild(rejectBtn);
+  bar.appendChild(statusMsg);
   msgEl.appendChild(bar);
 }
 
