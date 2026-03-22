@@ -12,7 +12,7 @@
 <body>
 <header class="hdr">
 <div class="hdr-inner">
-<a href="/dashboard/aibuild/index.html" class="hdr-logo">
+<a href="https://prysmisai.wtf" class="hdr-logo">
 <span class="hdr-wordmark">PrysmisAI</span>
 <span class="hdr-pill">API</span>
 </a>
@@ -40,10 +40,10 @@ Go Back
 <section class="section" id="overview">
 <span class="eyebrow">Documentation</span>
 <h1 class="page-title">PrysmisAI API</h1>
-<p class="page-desc">A single OpenAI-compatible endpoint that routes to multiple AI models. No API keys. No sign-up. Just send requests and get responses.</p>
+<p class="page-desc">A single OpenAI-compatible endpoint powered by you.com that routes to multiple top AI models. No API keys required. No sign-up. Just send requests and get responses.</p>
 <div class="note note-blue">
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-<p>This API is fully compatible with the OpenAI Chat Completions spec. Swap the base URL and everything works.</p>
+<p>Fully OpenAI Chat Completions compatible. Change the base URL in any existing OpenAI client and it works immediately.</p>
 </div>
 </section>
 
@@ -51,16 +51,16 @@ Go Back
 
 <section class="section" id="endpoint">
 <h2 class="section-title">Endpoint</h2>
-<p class="section-text">One endpoint handles all completions:</p>
+<p class="section-text">One endpoint handles all chat completions:</p>
 <div class="endpoint-card">
 <span class="method-badge">POST</span>
-<code class="endpoint-url">https://prysmisai.wtf/v1/chat/completions</code>
-<button class="copy-url-btn" data-copy="https://prysmisai.wtf/v1/chat/completions">Copy</button>
+<code class="endpoint-url">https://api.prysmisai.wtf/v1/chat/completions</code>
+<button class="copy-url-btn" data-copy="https://api.prysmisai.wtf/v1/chat/completions">Copy</button>
 </div>
-<p class="section-text mt">Model can also be passed as a query param:</p>
+<p class="section-text mt">Model can also be passed as a query parameter:</p>
 <div class="endpoint-card">
 <span class="method-badge">POST</span>
-<code class="endpoint-url">https://prysmisai.wtf/v1/chat/completions?model=gpt-5.2</code>
+<code class="endpoint-url">https://api.prysmisai.wtf/v1/chat/completions?model=gpt-5.2</code>
 </div>
 </section>
 
@@ -68,7 +68,7 @@ Go Back
 
 <section class="section" id="request">
 <h2 class="section-title">Request Format</h2>
-<p class="section-text">JSON body. All fields:</p>
+<p class="section-text">Send a JSON body. All fields:</p>
 <table class="tbl">
 <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
 <tbody>
@@ -92,7 +92,8 @@ Go Back
 
 <section class="section" id="models">
 <h2 class="section-title">Available Models</h2>
-<p class="section-text">Pass the model ID as the <code>model</code> field. If the chosen model fails, the API auto-falls back through the chain.</p>
+<p class="section-text">Pass the model ID in the <code>model</code> field. If the chosen model is unavailable, the API auto-falls back through the chain.</p>
+
 <div class="model-tiers">
 <div class="model-tier-block">
 <div class="tier-header tier-free">
@@ -103,17 +104,27 @@ Free Models
 <div class="model-row">
 <code class="model-id">gpt-5.2</code>
 <span class="model-label">ChatGPT 5.2</span>
-<span class="model-note">Latest from OpenAI</span>
+<span class="model-note">Latest OpenAI</span>
+</div>
+<div class="model-row">
+<code class="model-id">gpt-5.2-mini</code>
+<span class="model-label">ChatGPT 5.2 Mini</span>
+<span class="model-note">Fast OpenAI</span>
 </div>
 <div class="model-row">
 <code class="model-id">gpt-4o</code>
 <span class="model-label">GPT-4o</span>
-<span class="model-note">Fast multimodal</span>
+<span class="model-note">Multimodal</span>
 </div>
 <div class="model-row">
 <code class="model-id">gpt-4o-mini</code>
 <span class="model-label">GPT-4o Mini</span>
 <span class="model-note">Lightweight</span>
+</div>
+<div class="model-row">
+<code class="model-id">o3-mini</code>
+<span class="model-label">o3 Mini</span>
+<span class="model-note">Reasoning</span>
 </div>
 <div class="model-row">
 <code class="model-id">claude-sonnet-4-5</code>
@@ -123,15 +134,36 @@ Free Models
 <div class="model-row">
 <code class="model-id">claude-haiku-3-5</code>
 <span class="model-label">Claude Haiku 3.5</span>
-<span class="model-note">Fast and efficient</span>
+<span class="model-note">Fast Anthropic</span>
 </div>
 <div class="model-row">
-<code class="model-id">o3-mini</code>
-<span class="model-label">o3 Mini</span>
-<span class="model-note">OpenAI reasoning</span>
+<code class="model-id">gemini-3.2-flash</code>
+<span class="model-label">Gemini 3.2 Flash</span>
+<span class="model-note">Fast Google</span>
+</div>
+<div class="model-row">
+<code class="model-id">llama-4-maverick</code>
+<span class="model-label">Llama 4 Maverick</span>
+<span class="model-note">Meta open-source</span>
+</div>
+<div class="model-row">
+<code class="model-id">deepseek-r1</code>
+<span class="model-label">DeepSeek R1</span>
+<span class="model-note">Reasoning model</span>
+</div>
+<div class="model-row">
+<code class="model-id">deepseek-v3</code>
+<span class="model-label">DeepSeek V3</span>
+<span class="model-note">General purpose</span>
+</div>
+<div class="model-row">
+<code class="model-id">mistral-large-2</code>
+<span class="model-label">Mistral Large 2</span>
+<span class="model-note">European frontier</span>
 </div>
 </div>
 </div>
+
 <div class="model-tier-block">
 <div class="tier-header tier-premium">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -144,16 +176,22 @@ Premium Models
 <span class="model-note">Most powerful Anthropic</span>
 </div>
 <div class="model-row model-row-premium">
-<code class="model-id">gemini-3.1-pro-preview</code>
-<span class="model-label">Gemini 3.1 Pro</span>
-<span class="model-note">Google latest</span>
+<code class="model-id">gemini-3.2-pro</code>
+<span class="model-label">Gemini 3.2 Pro</span>
+<span class="model-note">Google flagship</span>
+</div>
+<div class="model-row model-row-premium">
+<code class="model-id">grok-4</code>
+<span class="model-label">Grok 4</span>
+<span class="model-note">xAI latest</span>
 </div>
 </div>
 </div>
 </div>
+
 <div class="note note-green mt">
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-<p>Fallback order: <code>gpt-5.2</code> then <code>gpt-4o</code> then <code>claude-sonnet-4-5</code> then <code>gpt-4o-mini</code></p>
+<p>Fallback chain: <code>gpt-5.2</code> then <code>gpt-4o</code> then <code>claude-sonnet-4-5</code> then <code>gpt-4o-mini</code></p>
 </div>
 </section>
 
@@ -168,7 +206,7 @@ Premium Models
 <span class="codebox-lang">JS</span>
 <button class="codebox-copy" data-target="ex1">Copy</button>
 </div>
-<pre id="ex1"><code><span class="ck">const</span> <span class="cv">response</span> = <span class="ck">await</span> fetch(<span class="cs">'https://prysmisai.wtf/v1/chat/completions'</span>, {
+<pre id="ex1"><code><span class="ck">const</span> <span class="cv">response</span> = <span class="ck">await</span> fetch(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completions'</span>, {
   method: <span class="cs">'POST'</span>,
   headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'application/json'</span> },
   body: JSON.stringify({
@@ -193,7 +231,7 @@ console.log(data.choices[<span class="cn">0</span>].message.content);</code></pr
 </div>
 <pre id="ex2"><code><span class="ck">import</span> requests
 
-res = requests.post(<span class="cs">'https://prysmisai.wtf/v1/chat/completions'</span>, json={
+res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completions'</span>, json={
     <span class="cs">'model'</span>: <span class="cs">'claude-sonnet-4-5'</span>,
     <span class="cs">'messages'</span>: [
         {<span class="cs">'role'</span>: <span class="cs">'user'</span>, <span class="cs">'content'</span>: <span class="cs">'Create a Roblox shop system.'</span>}
@@ -210,7 +248,7 @@ res = requests.post(<span class="cs">'https://prysmisai.wtf/v1/chat/completions'
 <span class="codebox-lang">SH</span>
 <button class="codebox-copy" data-target="ex3">Copy</button>
 </div>
-<pre id="ex3"><code>curl -X POST https://prysmisai.wtf/v1/chat/completions \
+<pre id="ex3"><code>curl -X POST https://api.prysmisai.wtf/v1/chat/completions \
   -H <span class="cs">"Content-Type: application/json"</span> \
   -d <span class="cs">'{
     "model": "gpt-4o",
