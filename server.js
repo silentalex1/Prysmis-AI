@@ -2,13 +2,6 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { OpenAI } = require('openai');
-
-const client = new OpenAI({
-  baseURL: 'https://api.puter.com/puterai/openai/v1/',
-  apiKey: process.env.PUTER_TOKEN || 'dummy'
-});
-
 const DB_FILE = 'db.json';
 const DB_BACKUP = 'db.backup.json';
 const SALT = 'prysmis_v3_kx9salt2025';
@@ -836,13 +829,15 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/plugin/files') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    const fileToken = body.pluginToken || url.searchParams.get('token') || url.searchParams.get('pluginToken') || '';
+    if (!fileToken) return sendJson(res, 400, { error: 'pluginToken required' });
     for (const u in db.users) {
-      if (db.users[u].pluginToken === body.pluginToken) {
+      if (db.users[u].pluginToken === fileToken) {
         db.users[u].studioFiles = Array.isArray(body.files) ? body.files : [];
         db.users[u].studioFilesUpdated = Date.now();
+        if (body.stats) db.users[u].studioStats = body.stats;
         saveDb();
-        return sendJson(res, 200, { ok: true });
+        return sendJson(res, 200, { ok: true, username: u });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -853,7 +848,47 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
-    return sendJson(res, 200, { files: user.studioFiles || [], updated: user.studioFilesUpdated || null });
+    return sendJson(res, 200, { files: user.studioFiles || [], updated: user.studioFilesUpdated || null, stats: user.studioStats || null });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/poll') {
+    const pluginToken = url.searchParams.get('pluginToken') || '';
+    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === pluginToken) {
+        db.users[u].pluginLastPing = Date.now();
+        db.users[u].pluginConnected = true;
+        const changes = db.users[u].pendingChanges || [];
+        const cmd = db.users[u].pendingCommand || null;
+        db.users[u].pendingChanges = [];
+        db.users[u].pendingCommand = null;
+        if (changes.length > 0 || cmd) saveDb();
+        return sendJson(res, 200, {
+          ok: true,
+          model: db.users[u].pluginModel || 'gpt-5.2',
+          username: u,
+          changes,
+          command: cmd
+        });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/ack') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const ackToken = body.pluginToken || url.searchParams.get('pluginToken') || '';
+    if (!ackToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === ackToken) {
+        if (!Array.isArray(db.users[u].ackLog)) db.users[u].ackLog = [];
+        db.users[u].ackLog.push({ changeId: body.changeId, ok: body.ok, results: body.results, ts: Date.now() });
+        if (db.users[u].ackLog.length > 50) db.users[u].ackLog = db.users[u].ackLog.slice(-50);
+        saveDb();
+        return sendJson(res, 200, { ok: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
   }
 
   if (req.method === 'POST' && pt === '/plugin/execute') {
@@ -863,6 +898,11 @@ const server = http.createServer(async (req, res) => {
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
+    if (body._command) {
+      user.pendingCommand = body._command;
+      saveDb();
+      return sendJson(res, 200, { ok: true });
+    }
     if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
     if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
     const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
@@ -877,10 +917,12 @@ const server = http.createServer(async (req, res) => {
     if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
     for (const u in db.users) {
       if (db.users[u].pluginToken === pluginToken) {
+        db.users[u].pluginLastPing = Date.now();
+        db.users[u].pluginConnected = true;
         const changes = db.users[u].pendingChanges || [];
         db.users[u].pendingChanges = [];
         if (changes.length > 0) saveDb();
-        return sendJson(res, 200, { changes });
+        return sendJson(res, 200, { changes, model: db.users[u].pluginModel || 'gpt-5.2', username: u });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -929,29 +971,62 @@ const server = http.createServer(async (req, res) => {
     const puterModel = modelMap[modelToUse] || 'gpt-4o';
     const tryList = [puterModel, ...fallbacks.filter(f => f !== puterModel)];
     const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
+
+    const getDriver = (m) => {
+      if (m.startsWith('claude')) return 'claude';
+      if (m.startsWith('gemini') || m.startsWith('google')) return 'gemini';
+      if (m.startsWith('grok') || m.startsWith('x-ai')) return 'xai';
+      if (m.startsWith('meta') || m.startsWith('llama')) return 'meta-llama';
+      if (m.startsWith('deepseek')) return 'deepseek';
+      if (m.startsWith('mistral')) return 'mistral';
+      return 'openai';
+    };
+
+    const baseHdrs = {
+      'Content-Type': 'application/json',
+      'Origin': 'https://puter.com',
+      'Referer': 'https://puter.com/',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site'
+    };
+
     const aiFetch = async (model, msgs) => {
-      const body = JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
+      const ocBody = JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
+      const drBody = JSON.stringify({ interface: 'puter-chat-completion', driver: getDriver(model), method: 'complete', args: { messages: msgs, model, temperature: temp, max_tokens: maxTok } });
       const tryUrls = [
-        { url: 'https://api.puter.com/drivers/call', body: JSON.stringify({ interface: 'puter-chat-completion', driver: model.startsWith('claude') ? 'claude' : model.startsWith('gemini') ? 'gemini' : 'openai', method: 'complete', args: { messages: msgs, model, temperature: temp, max_tokens: maxTok } }), headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/', 'Authorization': 'Bearer anonymous' } },
-        { url: 'https://ai.puter.com/v1/chat/completions', body, headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } },
-        { url: 'https://api.puter.com/puterai/chat/completions', body, headers: { 'Content-Type': 'application/json', 'Origin': 'https://puter.com', 'Referer': 'https://puter.com/' } }
+        { url: 'https://api.puter.com/drivers/call', body: drBody, headers: { ...baseHdrs, 'Authorization': 'Bearer anonymous' } },
+        { url: 'https://api.puter.com/drivers/call', body: drBody, headers: { ...baseHdrs, 'Authorization': 'Bearer null' } },
+        { url: 'https://ai.puter.com/v1/chat/completions', body: ocBody, headers: { ...baseHdrs } },
+        { url: 'https://api.puter.com/puterai/chat/completions', body: ocBody, headers: { ...baseHdrs } },
+        { url: 'https://api.puter.com/puterai/openai/v1/chat/completions', body: ocBody, headers: { ...baseHdrs } }
       ];
       let lastE = null;
       for (const t of tryUrls) {
         try {
           const r = await fetch(t.url, { method: 'POST', headers: t.headers, body: t.body });
           const txt = await r.text();
-          if (!txt || txt.trim().toLowerCase().startsWith('not found') || txt.trim().toLowerCase().startsWith('<!')) { lastE = new Error('Not Found'); continue; }
-          const data = JSON.parse(txt);
+          if (!txt) { lastE = new Error('Empty response'); continue; }
+          const low = txt.trim().toLowerCase();
+          if (low.startsWith('not found') || low.startsWith('<!') || low.startsWith('<html')) { lastE = new Error('HTML error page'); continue; }
+          let data;
+          try { data = JSON.parse(txt); } catch (_) { lastE = new Error('Invalid JSON'); continue; }
           if (data.choices && data.choices[0]) return data;
-          if (data.result && data.result.message) {
-            return { choices: [{ message: data.result.message, finish_reason: 'stop' }] };
-          }
-          lastE = new Error(data.error && data.error.message ? data.error.message : 'No choices');
+          if (data.result && data.result.message) return { choices: [{ message: data.result.message, finish_reason: 'stop' }] };
+          if (data.result && Array.isArray(data.result) && data.result[0] && data.result[0].message) return { choices: [{ message: data.result[0].message, finish_reason: 'stop' }] };
+          if (data.error && data.error.code === 401) { lastE = new Error('Unauthorized'); continue; }
+          lastE = new Error(data.error && data.error.message ? data.error.message : 'No choices in response');
         } catch(e) { lastE = e; }
       }
       throw lastE || new Error('All endpoints failed');
     };
+
     let lastErr = null;
     for (const m of tryList) {
       for (const msgs of tryVariants) {
