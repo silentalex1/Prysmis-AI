@@ -37,6 +37,10 @@ New Chat
 </div>
 <div id="chatHistory" class="history-list"></div>
 <div class="sidebar-footer">
+<button id="checkpointRevertBtn" class="checkpoint-revert-btn" style="display:none">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.5"></path></svg>
+Reverse to Checkpoint
+</button>
 <button id="viewStudioBtn" class="studio-files-btn" style="display:none">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
 View Studio Files
@@ -78,10 +82,12 @@ Settings
 </div>
 </div>
 </div>
-<div class="input-container">
-<div class="image-paste-preview" id="imagePastePreview">
-<img id="imagePasteImg" src="" alt="pasted image">
-<button class="image-paste-preview-remove" id="imagePasteRemove">&#215;</button>
+<div class="input-container" id="inputContainer">
+<div class="multi-image-preview" id="multiImagePreview"></div>
+<div class="file-attach-preview" id="fileAttachPreview" style="display:none">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+<span id="fileAttachName"></span>
+<button id="fileAttachRemove">&#215;</button>
 </div>
 <div class="input-row">
 <div class="model-select-wrap">
@@ -109,12 +115,17 @@ Settings
 </select>
 </div>
 <div class="input-wrapper">
+<button id="attachBtn" class="attach-btn" title="Attach file or image">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+</button>
+<input type="file" id="fileInput" accept="image/*,.lua,.txt,.json,.csv,.rbxmx,.rbxl" multiple style="display:none">
 <textarea id="input" rows="1" placeholder="Ask PrysmisAI anything about Roblox scripting..."></textarea>
 <button id="sendBtn">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
 </button>
 </div>
 </div>
+<div class="drop-overlay" id="dropOverlay">Drop files here</div>
 </div>
 <div id="premiumModal" class="premium-modal-overlay" style="display:none">
 <div class="premium-modal-card">
@@ -125,24 +136,12 @@ Settings
 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
 </div>
 <h2 class="premium-modal-title">Premium Required</h2>
-<p class="premium-modal-sub">This AI model is only available to premium members.</p>
+<p class="premium-modal-sub">This feature is only available to premium members.</p>
 <div class="premium-features-list">
-<div class="premium-feature-item">
-<span class="premium-feature-dot"></span>
-<span>Claude Opus 4.5 &amp; Gemini 3.1 Pro access</span>
-</div>
-<div class="premium-feature-item">
-<span class="premium-feature-dot"></span>
-<span>Image analysis for your games</span>
-</div>
-<div class="premium-feature-item">
-<span class="premium-feature-dot"></span>
-<span>Image generation for custom assets</span>
-</div>
-<div class="premium-feature-item">
-<span class="premium-feature-dot"></span>
-<span>Version control for your scripts</span>
-</div>
+<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Claude Opus 4.5 &amp; Gemini 3.2 Pro access</span></div>
+<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Multi-image analysis for your games</span></div>
+<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Checkpoint save &amp; revert system</span></div>
+<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Advanced multi-task AI handling</span></div>
 </div>
 <a href="#" class="premium-buy-btn">Buy Premium</a>
 </div>
@@ -203,14 +202,8 @@ Settings
 <div class="modal-header"><h2>Post Announcement</h2></div>
 <div class="modal-divider"></div>
 <div class="modal-body">
-<div class="input-group">
-<label>Title</label>
-<input type="text" id="annTitleInput" placeholder="Announcement title..." maxlength="80">
-</div>
-<div class="input-group">
-<label>Description</label>
-<textarea id="annDescInput" style="min-height:100px;resize:vertical" placeholder="Announcement description..."></textarea>
-</div>
+<div class="input-group"><label>Title</label><input type="text" id="annTitleInput" placeholder="Announcement title..." maxlength="80"></div>
+<div class="input-group"><label>Description</label><textarea id="annDescInput" style="min-height:100px;resize:vertical" placeholder="Announcement description..."></textarea></div>
 <div id="annPostErr" class="err-msg"></div>
 </div>
 <div class="modal-footer">
@@ -244,18 +237,9 @@ Settings
 </div>
 <div class="modal-divider"></div>
 <div class="modal-body">
-<div class="input-group">
-<label>Project Title</label>
-<input type="text" id="gameTitle" placeholder="My awesome game...">
-</div>
-<div class="input-group">
-<label>Roblox Link</label>
-<input type="text" id="gameLink" placeholder="https://roblox.com/games/...">
-</div>
-<div class="input-group">
-<label>Description</label>
-<textarea id="gameAbout" placeholder="Tell the community what your game is about..."></textarea>
-</div>
+<div class="input-group"><label>Project Title</label><input type="text" id="gameTitle" placeholder="My awesome game..."></div>
+<div class="input-group"><label>Roblox Link</label><input type="text" id="gameLink" placeholder="https://roblox.com/games/..."></div>
+<div class="input-group"><label>Description</label><textarea id="gameAbout" placeholder="Tell the community what your game is about..."></textarea></div>
 </div>
 <div class="modal-footer">
 <button onclick="closeModal()" class="btn-secondary">Cancel</button>
@@ -277,6 +261,10 @@ Settings
 <button class="token-notif-copy" id="tokenNotifCopy">Copy Token</button>
 </div>
 </div>
+</div>
+<div id="checkpointToast" class="checkpoint-toast" style="display:none">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+<span id="checkpointToastText">Checkpoint saved</span>
 </div>
 <div id="settingsModal" class="settings-overlay" style="display:none">
 <div class="settings-panel">
@@ -334,14 +322,10 @@ Settings
 </div>
 <div id="editMsgModal" class="modal" style="display:none">
 <div class="modal-card" style="max-width:480px">
-<div class="modal-header">
-<h2>Edit Message</h2>
-</div>
+<div class="modal-header"><h2>Edit Message</h2></div>
 <div class="modal-divider"></div>
 <div class="modal-body">
-<div class="input-group">
-<textarea id="editMsgText" style="min-height:80px;resize:vertical;"></textarea>
-</div>
+<div class="input-group"><textarea id="editMsgText" style="min-height:80px;resize:vertical;"></textarea></div>
 </div>
 <div class="modal-footer">
 <button onclick="closeEditModal()" class="btn-secondary">Cancel</button>
@@ -349,7 +333,6 @@ Settings
 </div>
 </div>
 </div>
-<script src="https://js.puter.com/v2/"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>
