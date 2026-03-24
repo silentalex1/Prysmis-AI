@@ -901,6 +901,21 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 401, { error: 'Invalid plugin token' });
   }
 
+  if (req.method === 'GET' && pt === '/plugin/ack-status') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const changeId = url.searchParams.get('changeId') || '';
+    if (!changeId) return sendJson(res, 400, { error: 'changeId required' });
+    const ackLog = user.ackLog || [];
+    const entry = ackLog.find(a => a.changeId === changeId);
+    if (entry) {
+      return sendJson(res, 200, { found: true, ok: entry.ok, results: entry.results || [] });
+    }
+    return sendJson(res, 200, { found: false });
+  }
+
   if (req.method === 'POST' && pt === '/plugin/ack') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const ackToken = body.pluginToken || url.searchParams.get('pluginToken') || '';
