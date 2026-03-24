@@ -795,6 +795,32 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, username: newUname });
   }
 
+  if (req.method === 'GET' && pt === '/account/personal-instructions') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    return sendJson(res, 200, { instructions: user.personalInstructions || {} });
+  }
+
+  if (req.method === 'POST' && pt === '/account/personal-instructions') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const { model, instructions } = body;
+    if (!model || typeof model !== 'string') return sendJson(res, 400, { error: 'model required' });
+    if (!user.personalInstructions) user.personalInstructions = {};
+    if (instructions && instructions.trim()) {
+      user.personalInstructions[model] = instructions.trim();
+    } else {
+      delete user.personalInstructions[model];
+    }
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
   if (req.method === 'GET' && pt === '/adminpanel') {
     fs.readFile('./adminpanel/index.html', (err, data) => {
       if (err) { res.writeHead(404); res.end(); return; }
