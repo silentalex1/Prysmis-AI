@@ -568,16 +568,30 @@ function doSend(overrideText, isContinue) {
     });
     return;
   }
-  fetch('/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    var choice = data.choices && data.choices[0];
-    var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
-    var finishReason = choice ? choice.finish_reason : null;
+  var puterModelMap = {
+    'gpt-5.2': 'gpt-4o',
+    'gpt-5.2-mini': 'gpt-4o-mini',
+    'gpt-4o': 'gpt-4o',
+    'gpt-4o-mini': 'gpt-4o-mini',
+    'o3-mini': 'o3-mini',
+    'claude-sonnet-4-5': 'claude-sonnet-4-5',
+    'claude-haiku-3-5': 'claude-haiku-3-5',
+    'claude-opus-4-5': 'claude-opus-4-5',
+    'gemini-3.2-flash': 'gemini-2.0-flash',
+    'gemini-3.2-pro': 'gemini-2.5-pro',
+    'gemini-3.1-pro-preview': 'gemini-2.5-pro',
+    'grok-4': 'grok-beta',
+    'llama-4-maverick': 'meta-llama/llama-4-maverick',
+    'deepseek-r1': 'deepseek-r1',
+    'deepseek-v3': 'deepseek-chat',
+    'mistral-large-2': 'mistral-large-latest'
+  };
+  var puterModel = puterModelMap[model] || 'gpt-4o';
+  puter.ai.chat(allMsgs, { model: puterModel, max_tokens: 4096 }).then(function(response) {
+    var reply = response && response.message && response.message.content ? response.message.content : 'No response received.';
+    var finishReason = response && response.finish_reason ? response.finish_reason : null;
     handleReply(reply, finishReason);
-  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false); });
+  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + (e.message || String(e)), false); });
 }
 
 function saveChat(firstMsg) {
