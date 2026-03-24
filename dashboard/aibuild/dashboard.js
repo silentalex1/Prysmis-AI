@@ -1,6 +1,7 @@
 var storedUser = localStorage.getItem('user');
 var storedToken = localStorage.getItem('token');
 var storedIsAdmin = localStorage.getItem('isAdmin') === 'true';
+var personalInstructions = JSON.parse(localStorage.getItem('personalInstructions') || '{}');
 
 if (!storedUser || !storedToken) {
   location.href = '/accountauth/index.html';
@@ -278,6 +279,10 @@ modelSelect.addEventListener('change', function() {
   if (val === 'psm-4.0') {
     setTimeout(function() { loadPSM().catch(function(){}); }, 100);
   }
+  var modelNameEl = document.getElementById('personalInstructModelName');
+  var personalInstructInput = document.getElementById('personalInstructInput');
+  if (modelNameEl) modelNameEl.textContent = modelSelect.options[modelSelect.selectedIndex] ? modelSelect.options[modelSelect.selectedIndex].text : val;
+  if (personalInstructInput) personalInstructInput.value = personalInstructions[val] || '';
 });
 
 function isTruncated(text) {
@@ -604,7 +609,9 @@ function doSend(overrideText, isContinue) {
   }
   showThinking();
   var model = getModel();
-  var allMsgs = [{ role: 'system', content: SYSTEM_PROMPT }];
+  var modelInstruction = personalInstructions[model] ? personalInstructions[model].trim() : '';
+  var finalSystemPrompt = modelInstruction ? SYSTEM_PROMPT + '\n\nUser Personal Instructions:\n' + modelInstruction : SYSTEM_PROMPT;
+  var allMsgs = [{ role: 'system', content: finalSystemPrompt }];
   currentMessages.forEach(function(m) { allMsgs.push(m); });
   if (isContinue) {
     allMsgs.push({ role: 'user', content: 'Continue from exactly where you left off. Do not repeat anything. Just continue the code or response seamlessly.' });
@@ -656,16 +663,20 @@ function doSend(overrideText, isContinue) {
     });
     return;
   }
-  fetch('/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384 })
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    var choice = data.choices && data.choices[0];
-    var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
-    var finishReason = choice ? choice.finish_reason : null;
-    handleReply(reply, finishReason);
-  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false, null); });
+  var puterModel = model;
+  puter.ai.chat(allMsgs, { model: puterModel })
+    .then(function(response) {
+      var reply = '';
+      if (response && response.message && response.message.content) {
+        reply = response.message.content;
+      } else if (typeof response === 'string') {
+        reply = response;
+      } else {
+        reply = 'No response received.';
+      }
+      handleReply(reply, null);
+    })
+    .catch(function(e) { removeThinking(); addMessage('Error: ' + (e.message || String(e)), false, null); });
 }
 
 function saveChat(firstMsg) {
@@ -683,8 +694,22 @@ var settingsSaveBtn = document.getElementById('settingsSaveBtn');
 settingsSaveBtn.addEventListener('click', function() {
   var usernameInput = document.getElementById('settingsUsernameInput');
   var errEl = document.getElementById('settingsUsernameErr');
+  var personalInstructInput = document.getElementById('personalInstructInput');
+  var currentModel = modelSelect ? modelSelect.value : 'psm-4.0';
   errEl.textContent = '';
   errEl.classList.remove('show');
+
+  if (personalInstructInput) {
+    var instrVal = personalInstructInput.value;
+    personalInstructions[currentModel] = instrVal;
+    localStorage.setItem('personalInstructions', JSON.stringify(personalInstructions));
+    fetch('/account/personal-instructions?token=' + encodeURIComponent(storedToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: currentModel, instructions: instrVal })
+    }).catch(function() {});
+  }
+
   var newUsername = usernameInput.value.trim().toLowerCase();
   if (!newUsername) {
     errEl.textContent = 'Please enter a username';
@@ -707,8 +732,8 @@ settingsSaveBtn.addEventListener('click', function() {
     return;
   }
   if (newUsername === (storedUser || '').toLowerCase()) {
-    errEl.textContent = 'That is already your username';
-    errEl.classList.add('show');
+    settingsSaveBtn.textContent = 'Saved';
+    setTimeout(function() { settingsSaveBtn.textContent = 'Save Settings'; }, 2000);
     return;
   }
   settingsSaveBtn.disabled = true;
@@ -1357,6 +1382,20 @@ settingsBtn.addEventListener('click', function() {
   switchSettingsTab('account');
   var usernameInput = document.getElementById('settingsUsernameInput');
   if (usernameInput) usernameInput.value = storedUser || '';
+  var currentModel = modelSelect ? modelSelect.value : 'psm-4.0';
+  var modelNameEl = document.getElementById('personalInstructModelName');
+  var personalInstructInput = document.getElementById('personalInstructInput');
+  if (modelNameEl) modelNameEl.textContent = modelSelect ? (modelSelect.options[modelSelect.selectedIndex] ? modelSelect.options[modelSelect.selectedIndex].text : currentModel) : currentModel;
+  if (personalInstructInput) personalInstructInput.value = personalInstructions[currentModel] || '';
+  fetch('/account/personal-instructions?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.instructions) {
+        Object.assign(personalInstructions, data.instructions);
+        localStorage.setItem('personalInstructions', JSON.stringify(personalInstructions));
+        if (personalInstructInput) personalInstructInput.value = personalInstructions[currentModel] || '';
+      }
+    }).catch(function() {});
   settingsModal.style.display = 'flex';
 });
 settingsClose.addEventListener('click', function() { settingsModal.style.display = 'none'; });
