@@ -311,6 +311,8 @@ header { height: 60px; background: rgba(2,2,5,0.92); backdrop-filter: blur(24px)
 .settings-token-row { display: flex; align-items: center; gap: 0.6rem; }
 .settings-token-input { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 9px; padding: 0.7rem 1rem; color: #fff; font-family: 'Fira Code', monospace; font-size: 0.8rem; outline: none; cursor: default; }
 .settings-token-input::placeholder { color: var(--dim2); font-family: inherit; }
+#personalInstructInput { cursor: text; font-family: inherit; font-size: 0.85rem; resize: vertical; min-height: 110px; line-height: 1.6; }
+#personalInstructInput:focus { border-color: rgba(255,255,255,0.18); }
 .settings-token-btn { padding: 0.6rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 9px; color: var(--dim); font-size: 0.75rem; font-family: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
 .settings-token-btn:hover { color: var(--text); border-color: var(--dim); }
 .settings-token-btn-copy { background: #fff; border-color: #fff; color: #09090f; }
