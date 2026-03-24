@@ -1428,12 +1428,14 @@ var studioFilesVisible = false;
 
 function getModelValue() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
 
-function setExplorerStatus(connected, model) {
+function setExplorerStatus(connected, model, username) {
   pluginConnected = connected;
   if (statusDot) statusDot.className = 'dot ' + (connected ? 'green' : 'red');
   if (statusText) { statusText.textContent = connected ? 'Connected' : 'Disconnected'; statusText.style.color = connected ? '#10b981' : '#f43f5e'; }
   if (connectBtn) { connectBtn.textContent = connected ? 'Plugin Connected' : 'Connect Plugin'; connectBtn.style.background = connected ? 'linear-gradient(135deg,#10b981,#059669)' : ''; }
   if (viewStudioBtn) viewStudioBtn.style.display = connected ? 'flex' : 'none';
+  var userNameTag = document.getElementById('pluginUserTag');
+  if (userNameTag) userNameTag.textContent = (connected && username) ? username : '';
   if (!connected) {
     studioFilesVisible = false;
     if (studioFilesPanel) studioFilesPanel.style.display = 'none';
@@ -1580,6 +1582,29 @@ function addChangeButtons(code, description, msgEl) {
   msgEl.appendChild(bar);
 }
 
+var sendFilesToWebBtn = document.getElementById('sendFilesToWebBtn');
+if (sendFilesToWebBtn) {
+  sendFilesToWebBtn.addEventListener('click', function() {
+    if (!pluginConnected) return;
+    sendFilesToWebBtn.textContent = 'Requesting...';
+    sendFilesToWebBtn.disabled = true;
+    fetch('/plugin/execute?token=' + encodeURIComponent(storedToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: '', description: 'scan', _command: { type: 'scan' } })
+    }).then(function() {
+      setTimeout(function() {
+        loadStudioFiles();
+        sendFilesToWebBtn.textContent = 'Send Files to Website';
+        sendFilesToWebBtn.disabled = false;
+      }, 1800);
+    }).catch(function() {
+      sendFilesToWebBtn.textContent = 'Send Files to Website';
+      sendFilesToWebBtn.disabled = false;
+    });
+  });
+}
+
 var checkpointRevertBtn = document.getElementById('checkpointRevertBtn');
 if (checkpointRevertBtn) {
   checkpointRevertBtn.addEventListener('click', function() { revertToCheckpoint(); });
@@ -1588,7 +1613,7 @@ if (checkpointRevertBtn) {
 connectBtn.addEventListener('click', function() {
   if (pluginConnected) {
     fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' })
-      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); }).catch(function() {});
+      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, '', ''); }).catch(function() {});
     return;
   }
   fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
@@ -1596,7 +1621,7 @@ connectBtn.addEventListener('click', function() {
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.success && data.pluginToken) {
       pluginTokenStored = data.pluginToken; localStorage.setItem('pluginToken', data.pluginToken);
-      setExplorerStatus(true, data.model);
+      setExplorerStatus(true, data.model, data.username || '');
     }
   }).catch(function() {});
 });
@@ -1613,7 +1638,7 @@ if (pluginTokenStored) {
   fetch('/plugin/ping', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pluginToken: pluginTokenStored })
   }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.ok) { setExplorerStatus(true, data.model); }
+    if (data.ok) { setExplorerStatus(true, data.model, data.user || ''); }
     else { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; }
   }).catch(function() { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; });
 }
