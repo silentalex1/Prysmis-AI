@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="dashboard.css">
+<script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
 <div class="animated-bg"></div>
@@ -218,10 +219,14 @@ Settings
 <div class="explorer-status-bar">
 <span class="dot red" id="statusDot"></span>
 <span id="statusText">Disconnected</span>
+<span id="pluginUserTag" class="plugin-user-tag"></span>
 </div>
 <div id="studioFilesPanel" class="studio-files-panel" style="display:none">
-<div class="studio-files-header">Studio Files</div>
-<div id="studioFilesList" class="studio-files-list"></div>
+<div class="studio-files-header">
+STUDIO FILES
+<button id="sendFilesToWebBtn" class="send-files-btn" title="Send all Studio files to website">Send Files to Website</button>
+</div>
+<div id="studioFilesList" class="studio-files-list studio-files-scroll"></div>
 </div>
 <div id="explorerDisconnected" class="explorer-disconnected">
 <div class="explorer-block"></div>
@@ -295,6 +300,11 @@ Settings
 <button class="settings-token-btn settings-token-btn-copy" id="settingsCopyToken">Copy Token</button>
 </div>
 <p class="settings-token-hint">You can generate a new auth token after 24 hours. Do NOT share your account auth token to anyone.</p>
+</div>
+<div class="settings-field-group">
+<label class="settings-label" id="personalInstructLabel">Personal Instruction List for <span id="personalInstructModelName">PSM-4.0 (PrysmisAI)</span></label>
+<textarea id="personalInstructInput" class="settings-token-input" style="min-height:110px;resize:vertical;font-family:inherit;line-height:1.5;" placeholder="Type in personal instructions for this AI model..."></textarea>
+<p class="settings-token-hint">These instructions will be applied to all your chats with the selected model. Available for all users.</p>
 </div>
 <div class="settings-save-row">
 <button class="settings-save-btn" id="settingsSaveBtn">Save Settings</button>
