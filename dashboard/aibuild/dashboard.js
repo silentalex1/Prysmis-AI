@@ -39,23 +39,23 @@ var imagePasteImg = null;
 var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.2-pro': true, 'grok-4': true };
 
 var MODEL_API_MAP = {
-  'psm-4.0': 'psm-4.0',
-  'gpt-5.2': 'gpt-5.2',
-  'gpt-5.2-mini': 'gpt-5.2-mini',
+  'psm-4.0': 'claude-3-7-sonnet',
+  'gpt-5.2': 'gpt-4o',
+  'gpt-5.2-mini': 'gpt-4o-mini',
   'gpt-4o': 'gpt-4o',
   'gpt-4o-mini': 'gpt-4o-mini',
   'o3-mini': 'o3-mini',
-  'claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'claude-haiku-3-5': 'claude-haiku-3-5',
+  'claude-sonnet-4-5': 'claude-3-7-sonnet',
+  'claude-haiku-3-5': 'claude-3-haiku',
   'claude-opus-4-5': 'claude-opus-4-5',
-  'gemini-3.2-flash': 'gemini-3.2-flash',
-  'gemini-3.2-pro': 'gemini-3.2-pro',
-  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
-  'grok-4': 'grok-4',
-  'llama-4-maverick': 'llama-4-maverick',
+  'gemini-3.2-flash': 'gemini-2.0-flash',
+  'gemini-3.2-pro': 'gemini-2.0-pro',
+  'gemini-3.1-pro-preview': 'gemini-2.0-pro',
+  'grok-4': 'grok-beta',
+  'llama-4-maverick': 'meta-llama/llama-3.1-70b-instruct',
   'deepseek-r1': 'deepseek-r1',
-  'deepseek-v3': 'deepseek-v3',
-  'mistral-large-2': 'mistral-large-2'
+  'deepseek-v3': 'deepseek-chat',
+  'mistral-large-2': 'mistral-large-latest'
 };
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
@@ -78,7 +78,7 @@ function unlockPremiumOptions() {
   });
 }
 
-var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI built to handle any request — from simple scripts to the most complex, professional-grade game systems ever built. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\n\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\n- StarterGui: LocalScripts and ScreenGuis for UI\n- ServerStorage: Server-only assets and ModuleScripts\n- Workspace: Parts, Models, terrain manipulation scripts\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\n\nYour specialties:\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments, fuselages, aerodynamics\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\n- Networking: rate limiting, anti-exploit validation, server authority patterns\n- Any other Roblox system the user can imagine\n\nWhen building anything ALWAYS:\n1. Start with [TASKS] checklist listing every script/component\n2. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\n3. Use ```lua code blocks for every script\n4. Split logic properly across the correct services — never dump everything in one place\n5. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\n6. Build the most feature-rich, polished, professional version possible\n7. Handle errors, edge cases, and player disconnects gracefully\n\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
+var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\\n\\nGAME UNDERSTANDING INTELLIGENCE:\\nWhen a user describes their Roblox game you must deeply analyze every aspect of what they are describing and extract a full mental model of the game before writing any code. The more descriptive the user is, the more precisely you must match their vision.\\n\\nWhen reading a game description you automatically identify and understand:\\n- GENRE & CORE LOOP: What type of game is it? (obby, RPG, tycoon, simulator, FPS, horror, battle royale, racing, tower defense, roleplay, fighting, survival, etc.) What does the player do every session?\\n- THEME & ATMOSPHERE: The visual world, art style, time period, environment type, tone (dark, cartoony, realistic, sci-fi, fantasy, etc.)\\n- PLAYER PROGRESSION: How does the player get stronger or advance? (XP, levels, upgrades, currencies, unlocks, seasons, prestige)\\n- CORE SYSTEMS: Every mechanic implied or stated — combat, crafting, building, trading, pets, mounts, clans, leaderboards, daily rewards, VIP, gamepasses\\n- MONETIZATION INTENT: What features would logically be premium/gamepass vs free\\n- SOCIAL FEATURES: Parties, guilds, trading, PvP, co-op, community boards\\n- TECHNICAL ARCHITECTURE: Which services handle each system, how data flows between server and client\\n\\nWhen the user gives a detailed description, you recreate that exact game as faithfully as possible — matching the genre, mechanics, theme, progression systems, UI style, and all described features. You never simplify, never skip systems, never ignore described details.\\n\\nIf the description is brief, you intelligently expand it into the most feature-rich, polished version that fits the described genre and theme.\\n\\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\\n- StarterGui: LocalScripts and ScreenGuis for UI\\n- ServerStorage: Server-only assets and ModuleScripts\\n- Workspace: Parts, Models, terrain manipulation scripts\\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\\n\\nYour specialties:\\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments\\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\\n- Networking: rate limiting, anti-exploit validation, server authority patterns\\n\\nWhen building anything ALWAYS:\\n1. Start with [GAME ANALYSIS] — break down what the user described: genre, theme, core loop, systems detected, progression model\\n2. Then [TASKS] checklist listing every script/component that will be built\\n3. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\\n4. Use ```lua code blocks for every script\\n5. Split logic properly across the correct services — never dump everything in one place\\n6. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\\n7. Build the most feature-rich, polished, professional version possible\\n8. Handle errors, edge cases, and player disconnects gracefully\\n\\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
 
 var SYSTEM_PROMPT = SYSTEM_PROMPT_BASE;
 var studioFileContext = '';
@@ -277,7 +277,6 @@ modelSelect.addEventListener('change', function() {
     return;
   }
   if (val === 'psm-4.0') {
-    setTimeout(function() { loadPSM().catch(function(){}); }, 100);
   }
   var modelNameEl = document.getElementById('personalInstructModelName');
   var personalInstructInput = document.getElementById('personalInstructInput');
@@ -610,7 +609,8 @@ function doSend(overrideText, isContinue) {
   showThinking();
   var model = getModel();
   var modelInstruction = personalInstructions[model] ? personalInstructions[model].trim() : '';
-  var finalSystemPrompt = modelInstruction ? SYSTEM_PROMPT + '\n\nUser Personal Instructions:\n' + modelInstruction : SYSTEM_PROMPT;
+  var premiumExtra = userHasPremium ? '\n\nPREMIUM USER: This user has premium access. Deliver the absolute maximum quality — include advanced optimization, edge case handling, performance profiling notes, anti-exploit layers, full error recovery, and enterprise-grade architecture patterns. Never hold back complexity or depth.' : '';
+  var finalSystemPrompt = SYSTEM_PROMPT + premiumExtra + (modelInstruction ? '\n\nUser Personal Instructions:\n' + modelInstruction : '');
   var allMsgs = [{ role: 'system', content: finalSystemPrompt }];
   currentMessages.forEach(function(m) { allMsgs.push(m); });
   if (isContinue) {
@@ -651,24 +651,19 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  if (model === 'psm-4.0') {
-    var imgForPSM = (userHasPremium && pastedImages.length > 0) ? pastedImages[0] : null;
-    var thinkMsg = document.getElementById('thinking');
-    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-4.0 is thinking...'; }
-    runPSM(allMsgs, imgForPSM).then(function(reply) {
-      handleReply(reply, null);
-    }).catch(function(e) {
-      removeThinking();
-      addMessage('PSM-4.0 error: ' + (e.message || String(e)), false, null);
-    });
-    return;
-  }
-  var puterModel = model;
+  var puterModel = model === 'psm-4.0' ? 'claude-3-7-sonnet' : model;
   puter.ai.chat(allMsgs, { model: puterModel })
     .then(function(response) {
       var reply = '';
       if (response && response.message && response.message.content) {
-        reply = response.message.content;
+        var content = response.message.content;
+        if (typeof content === 'string') {
+          reply = content;
+        } else if (Array.isArray(content)) {
+          reply = content.map(function(c) { return c && c.text ? c.text : ''; }).join('');
+        } else {
+          reply = String(content);
+        }
       } else if (typeof response === 'string') {
         reply = response;
       } else {
@@ -676,7 +671,7 @@ function doSend(overrideText, isContinue) {
       }
       handleReply(reply, null);
     })
-    .catch(function(e) { removeThinking(); addMessage('Error: ' + (e.message || String(e)), false, null); });
+    .catch(function(e) { removeThinking(); addMessage('Error: ' + (e && e.message ? e.message : 'AI request failed'), false, null); });
 }
 
 function saveChat(firstMsg) {
@@ -1562,6 +1557,23 @@ function sendChangeToPlugin(code, description) {
   }).then(function(r) { return r.json(); });
 }
 
+function pollForAck(changeId, onDone, onError, deadline) {
+  if (Date.now() > deadline) { onError('Timed out waiting for Studio'); return; }
+  fetch('/plugin/ack-status?token=' + encodeURIComponent(storedToken) + '&changeId=' + encodeURIComponent(changeId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.found) {
+        if (data.ok) { onDone(data.results || []); }
+        else { onError('Studio reported errors applying scripts'); }
+      } else {
+        setTimeout(function() { pollForAck(changeId, onDone, onError, deadline); }, 600);
+      }
+    })
+    .catch(function() {
+      setTimeout(function() { pollForAck(changeId, onDone, onError, deadline); }, 800);
+    });
+}
+
 function addChangeButtons(code, description, msgEl) {
   var existing = msgEl.querySelector('.change-btns');
   if (existing) existing.remove();
@@ -1587,22 +1599,36 @@ function addChangeButtons(code, description, msgEl) {
     rejectBtn.disabled = true;
     statusMsg.textContent = '';
     sendChangeToPlugin(code, description).then(function(data) {
-      if (data.ok) {
+      if (data.ok && data.changeId) {
         acceptBtn.textContent = 'Applied to Studio';
         acceptBtn.className = 'change-btn change-btn-applied';
         rejectBtn.style.display = 'none';
         statusMsg.textContent = 'Running in Studio...';
         statusMsg.style.color = '#10b981';
-        setTimeout(function() { statusMsg.textContent = 'Done'; }, 1200);
+        var deadline = Date.now() + 18000;
+        pollForAck(data.changeId, function(results) {
+          var okCount = 0; var failCount = 0;
+          results.forEach(function(r) { if (r.ok) okCount++; else failCount++; });
+          if (failCount === 0) {
+            statusMsg.textContent = 'Done — ' + okCount + ' script' + (okCount !== 1 ? 's' : '') + ' applied';
+            statusMsg.style.color = '#10b981';
+          } else {
+            statusMsg.textContent = okCount + ' applied, ' + failCount + ' failed';
+            statusMsg.style.color = '#f59e0b';
+          }
+        }, function(errMsg) {
+          statusMsg.textContent = errMsg || 'Studio error';
+          statusMsg.style.color = '#f43f5e';
+        }, deadline);
       } else {
-        acceptBtn.textContent = 'Accept Change';
+        acceptBtn.textContent = 'Apply All Changes';
         acceptBtn.disabled = false;
         rejectBtn.disabled = false;
         statusMsg.textContent = data.error || 'Failed to send';
         statusMsg.style.color = '#f43f5e';
       }
     }).catch(function() {
-      acceptBtn.textContent = 'Accept Change';
+      acceptBtn.textContent = 'Apply All Changes';
       acceptBtn.disabled = false;
       rejectBtn.disabled = false;
       statusMsg.textContent = 'Network error - check connection';
