@@ -810,44 +810,7 @@ align-self: center;
 transition: color 0.2s;
 }
 
-.continue-bar {
-display: flex;
-align-items: center;
-margin-top: 0.75rem;
-padding-top: 0.6rem;
-border-top: 1px solid rgba(255,255,255,0.05);
-animation: msgIn 0.25s ease;
-}
 
-.continue-btn {
-display: inline-flex;
-align-items: center;
-gap: 0.45rem;
-padding: 0.45rem 1rem;
-background: rgba(79,142,247,0.1);
-border: 1px solid rgba(79,142,247,0.25);
-border-radius: 8px;
-color: #4f8ef7;
-font-size: 0.78rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: all 0.2s;
-}
-
-.continue-btn:hover {
-background: rgba(79,142,247,0.18);
-border-color: rgba(79,142,247,0.4);
-transform: translateY(-1px);
-}
-
-.chat-img-preview {
-max-width: 260px;
-max-height: 180px;
-border-radius: 10px;
-border: 1px solid rgba(255,255,255,0.08);
-display: block;
-margin-bottom: 0.5rem;
 }
 
 .ann-header {
@@ -1077,3 +1040,232 @@ transition: all 0.2s;
 
 .clear-chat-btn:hover { background: rgba(244,63,94,0.16); }
 .clear-chat-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.multi-image-preview {
+display: flex;
+flex-wrap: wrap;
+gap: 0.5rem;
+padding: 0 0.75rem;
+padding-top: 0.5rem;
+}
+.multi-image-preview:empty { display: none; }
+.multi-image-thumb {
+position: relative;
+width: 64px;
+height: 64px;
+border-radius: 8px;
+overflow: hidden;
+border: 1px solid rgba(255,255,255,0.1);
+flex-shrink: 0;
+}
+.multi-image-thumb img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+display: block;
+}
+.multi-image-thumb-remove {
+position: absolute;
+top: 2px;
+right: 2px;
+width: 18px;
+height: 18px;
+background: rgba(0,0,0,0.75);
+border: none;
+border-radius: 50%;
+color: #fff;
+font-size: 11px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+line-height: 1;
+}
+.file-attach-preview {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+padding: 0.4rem 0.85rem;
+background: rgba(79,142,247,0.08);
+border-top: 1px solid rgba(79,142,247,0.15);
+font-size: 0.78rem;
+color: #93c5fd;
+}
+.file-attach-preview svg { flex-shrink: 0; opacity: 0.7; }
+.file-attach-preview span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#fileAttachRemove {
+background: none;
+border: none;
+color: #64748b;
+cursor: pointer;
+font-size: 15px;
+padding: 0 2px;
+line-height: 1;
+transition: color 0.15s;
+}
+#fileAttachRemove:hover { color: #f43f5e; }
+.attach-btn {
+background: none;
+border: none;
+color: #64748b;
+cursor: pointer;
+padding: 0 0.3rem;
+display: flex;
+align-items: center;
+transition: color 0.2s;
+flex-shrink: 0;
+}
+.attach-btn:hover { color: #4f8ef7; }
+.drop-overlay {
+display: none;
+position: absolute;
+inset: 0;
+background: rgba(79,142,247,0.12);
+border: 2px dashed rgba(79,142,247,0.45);
+border-radius: 14px;
+z-index: 10;
+align-items: center;
+justify-content: center;
+font-size: 0.9rem;
+color: #4f8ef7;
+font-weight: 600;
+pointer-events: none;
+}
+.checkpoint-revert-btn {
+display: flex;
+align-items: center;
+gap: 0.45rem;
+width: 100%;
+padding: 0.55rem 0.85rem;
+background: linear-gradient(135deg, rgba(251,113,133,0.12), rgba(244,63,94,0.08));
+border: 1px solid rgba(244,63,94,0.3);
+border-radius: 10px;
+color: #fb7185;
+font-size: 0.78rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s;
+margin-bottom: 0.5rem;
+animation: pulseGlow 2s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+0%, 100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); }
+50% { box-shadow: 0 0 0 4px rgba(244,63,94,0.12); }
+}
+.checkpoint-revert-btn:hover {
+background: linear-gradient(135deg, rgba(251,113,133,0.2), rgba(244,63,94,0.15));
+border-color: rgba(244,63,94,0.5);
+transform: translateY(-1px);
+}
+.checkpoint-toast {
+position: fixed;
+bottom: 2rem;
+left: 50%;
+transform: translateX(-50%) translateY(20px);
+background: rgba(16,185,129,0.15);
+border: 1px solid rgba(16,185,129,0.35);
+color: #10b981;
+padding: 0.55rem 1.1rem;
+border-radius: 50px;
+font-size: 0.82rem;
+font-weight: 600;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+z-index: 9999;
+opacity: 0;
+transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+pointer-events: none;
+}
+.checkpoint-toast.show {
+opacity: 1;
+transform: translateX(-50%) translateY(0);
+}
+.ai-msg {
+position: relative;
+}
+.ai-msg:hover .checkpoint-hover-btn {
+opacity: 1;
+pointer-events: all;
+}
+.checkpoint-hover-btn {
+position: absolute;
+top: 0.5rem;
+right: 0.5rem;
+display: flex;
+align-items: center;
+gap: 0.35rem;
+padding: 0.3rem 0.65rem;
+background: rgba(16,185,129,0.1);
+border: 1px solid rgba(16,185,129,0.25);
+border-radius: 7px;
+color: #10b981;
+font-size: 0.72rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+opacity: 0;
+pointer-events: none;
+transition: all 0.18s;
+z-index: 2;
+white-space: nowrap;
+}
+.checkpoint-hover-btn:hover {
+background: rgba(16,185,129,0.2);
+border-color: rgba(16,185,129,0.4);
+}
+.checkpoint-hover-btn.is-checkpoint {
+opacity: 1;
+pointer-events: all;
+background: rgba(16,185,129,0.18);
+border-color: rgba(16,185,129,0.45);
+color: #34d399;
+}
+.continue-bar {
+display: flex;
+align-items: center;
+gap: 0.6rem;
+margin-top: 0.85rem;
+padding-top: 0.7rem;
+border-top: 1px solid rgba(255,255,255,0.06);
+animation: msgIn 0.25s ease;
+}
+.continue-btn {
+display: inline-flex;
+align-items: center;
+gap: 0.5rem;
+padding: 0.5rem 1.15rem;
+background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(139,92,246,0.1));
+border: 1px solid rgba(79,142,247,0.35);
+border-radius: 10px;
+color: #93c5fd;
+font-size: 0.8rem;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+box-shadow: 0 2px 8px rgba(79,142,247,0.1);
+}
+.continue-btn:hover {
+background: linear-gradient(135deg, rgba(79,142,247,0.25), rgba(139,92,246,0.18));
+border-color: rgba(79,142,247,0.55);
+transform: translateY(-2px);
+box-shadow: 0 4px 16px rgba(79,142,247,0.2);
+color: #bfdbfe;
+}
+.continue-btn svg {
+animation: continuePlay 1.5s ease-in-out infinite;
+}
+@keyframes continuePlay {
+0%, 100% { transform: translateX(0); }
+50% { transform: translateX(2px); }
+}
+.chat-img-preview {
+max-width: 260px;
+max-height: 180px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.08);
+display: block;
+margin-bottom: 0.5rem;
+}
