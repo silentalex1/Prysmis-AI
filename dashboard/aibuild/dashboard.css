@@ -211,7 +211,7 @@ header { height: 60px; background: rgba(2,2,5,0.92); backdrop-filter: blur(24px)
 .game-card:hover::before { opacity: 1; }
 .game-card-author { font-size: 0.7rem; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 .game-card h3 { font-size: 1rem; font-weight: 800; color: #fff; }
-.game-card p { font-size: 0.82rem; color: var(--dim); line-height: 1.5; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.game-card p { font-size: 0.82rem; color: var(--dim); line-height: 1.5; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .game-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.4rem; }
 .game-card a { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
 .game-card a:hover { text-decoration: underline; }
@@ -842,9 +842,6 @@ color: #10b981;
 margin-left: 0.5rem;
 align-self: center;
 transition: color 0.2s;
-}
-
-
 }
 
 .ann-header {
