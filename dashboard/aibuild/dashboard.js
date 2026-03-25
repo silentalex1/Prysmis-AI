@@ -537,7 +537,13 @@ function doSend(overrideText, isContinue) {
     var imgForPSM = (userHasPremium && pastedImages.length > 0) ? pastedImages[0] : null;
     var thinkMsg = document.getElementById('thinking');
     if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-v1.0 is thinking...'; }
-    runPSM(allMsgs, imgForPSM).then(function(reply) {
+    fetch('/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384 })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var choice = data.choices && data.choices[0];
+      var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
       handleReply(reply, null);
     }).catch(function(e) {
       removeThinking();
