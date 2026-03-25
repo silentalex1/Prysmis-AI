@@ -882,7 +882,7 @@ const server = http.createServer(async (req, res) => {
         const lastUser = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
         let userText = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : (Array.isArray(lastUser.content) ? lastUser.content.filter(c => c.type === 'text').map(c => c.text).join(' ') : '')) : '';
         
-        const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+        const ollamaResponse = await fetch('http://127.0.0.1:11434/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -921,7 +921,7 @@ const server = http.createServer(async (req, res) => {
           content: typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')
         }));
 
-        const ollamaResponse = await fetch('http://localhost:11434/api/chat', {
+        const ollamaResponse = await fetch('http://127.0.0.1:11434/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
