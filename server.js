@@ -153,15 +153,15 @@ function validatePassword(p) {
 }
 
 const YOU_MODELS = [
-  'sm-b1.0'
+  'psm-v1.0'
 ];
 
 const MODEL_MAP = {
-  'sm-b1.0': 'sm-b1.0'
+  'psm-v1.0': 'psm-v1.0'
 };
 
 function resolveModel(m) {
-  if (!m || typeof m !== 'string') return 'sm-b1.0';
+  if (!m || typeof m !== 'string') return 'psm-v1.0';
   const trimmed = m.trim();
   if (YOU_MODELS.includes(trimmed)) return trimmed;
   const lower = trimmed.toLowerCase();
@@ -171,7 +171,7 @@ function resolveModel(m) {
     const short = trimmed.split('/').pop();
     if (short && YOU_MODELS.includes(short)) return short;
   }
-  return 'sm-b1.0';
+  return 'psm-v1.0';
 }
 
 function broadcastSSE(data) {
@@ -225,7 +225,7 @@ const server = http.createServer(async (req, res) => {
     if (db.users[uname]) return sendJson(res, 409, { error: 'Account is already created' });
     const token = randToken();
     const now = Date.now();
-    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'sm-b1.0', authToken: null, authTokenCreated: null };
+    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'psm-v1.0', authToken: null, authTokenCreated: null };
     db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
@@ -500,10 +500,10 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && pt === '/status') {
     const pluginToken = url.searchParams.get('pluginToken') || '';
-    let status = 'disconnected', model = 'sm-b1.0', username = 'unknown';
+    let status = 'disconnected', model = 'psm-v1.0', username = 'unknown';
     if (pluginToken) {
       for (const u in db.users) {
-        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'sm-b1.0'; username = u; break; }
+        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'psm-v1.0'; username = u; break; }
       }
     }
     return sendJson(res, 200, { status, model, user: username });
@@ -538,7 +538,7 @@ const server = http.createServer(async (req, res) => {
     for (const u in db.users) {
       if (db.users[u].pluginToken === body.pluginToken) {
         db.users[u].pluginConnected = true; db.users[u].pluginLastPing = Date.now(); saveDb();
-        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'sm-b1.0', connected: true });
+        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'psm-v1.0', connected: true });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -550,7 +550,7 @@ const server = http.createServer(async (req, res) => {
     for (const u in db.users) {
       if (db.users[u].pluginToken === body.pluginToken) {
         db.users[u].pluginLastPing = Date.now(); db.users[u].pluginConnected = true; saveDb();
-        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'sm-b1.0', user: u });
+        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'psm-v1.0', user: u });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -885,9 +885,277 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  if (req.method === 'GET' && pt === '/api/health') {
+    try {
+      const ollamaHealth = await new Promise((resolve) => {
+        const options = {
+          hostname: '127.0.0.1',
+          port: 11434,
+          path: '/api/tags',
+          method: 'GET',
+          timeout: 5000
+        };
+        const req = http.request(options, (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              const models = parsed.models || [];
+              const hasModel = models.some(m => m.name === 'llama3.2-vision:latest');
+              resolve({ ok: hasModel, reachable: true, model_available: hasModel, installed_models: models.map(m => m.name) });
+            } catch (e) {
+              resolve({ ok: false, reachable: true, model_available: false, error: 'Invalid Ollama response' });
+            }
+          });
+        });
+        req.on('error', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama not reachable' }));
+        req.on('timeout', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama timeout' }));
+        req.end();
+      });
+      
+      return sendJson(res, 200, {
+        ok: ollamaHealth.ok,
+        service: 'prysmisai-web',
+        model: {
+          display_name: 'PSM-v1.0(PrysmisAI)',
+          runtime_model: 'llama3.2-vision:latest'
+        },
+        ollama: ollamaHealth
+      });
+    } catch (error) {
+      return sendJson(res, 503, {
+        ok: false,
+        service: 'prysmisai-web',
+        error: 'Health check failed: ' + error.message
+      });
+    }
+  }
+
+  if (req.method === 'GET' && pt === '/api/meta') {
+    const baseUrl = 'https://' + (req.headers['host'] || 'api.prysmisai.wtf');
+    return sendJson(res, 200, {
+      brand: 'PrysmisAI',
+      model: {
+        display_name: 'PSM-v1.0(PrysmisAI)',
+        runtime_model: 'llama3.2-vision:latest'
+      },
+      api: {
+        base_url: baseUrl,
+        endpoint: '/api/v1/chat/completions',
+        key_prefix: 'ps-prysmisai-',
+        key_limit: 3,
+        window_hours: 24,
+        key_notice: 'After 3 generation of PrysmisAI API key you must wait 24 hours.'
+      }
+    });
+  }
+
+  if (req.method === 'GET' && pt === '/api/settings/api-keys') {
+    const clientId = req.headers['x-prysmisai-client'] || 'local-user';
+    const td = getTokenData(getReqToken(req, url));
+    const effectiveClientId = td ? td.username : clientId;
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    const user = db.users[effectiveClientId] || {};
+    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
+    const remaining = Math.max(0, 3 - recentGenerations.length);
+    const nextGenerationAt = remaining === 0 && recentGenerations.length > 0 
+      ? new Date(Math.min(...recentGenerations) + oneDay).toISOString()
+      : null;
+    
+    return sendJson(res, 200, {
+      label: 'PrysmisAI API Key',
+      description: 'After 3 generation of PrysmisAI API key you must wait 24 hours.',
+      status: {
+        limit: 3,
+        window_hours: 24,
+        generated_in_window: recentGenerations.length,
+        remaining: remaining,
+        next_generation_at: nextGenerationAt
+      },
+      keys: (user.prysmisApiKeys || []).map(k => ({
+        id: k.created,
+        api_key: k.key,
+        masked_key: k.key.substring(0, 18) + '****' + k.key.slice(-4),
+        created_at: new Date(k.created).toISOString()
+      }))
+    });
+  }
+
+  if (req.method === 'POST' && pt === '/api/settings/api-keys/generate') {
+    const clientId = req.headers['x-prysmisai-client'] || 'local-user';
+    const td = getTokenData(getReqToken(req, url));
+    const effectiveClientId = td ? td.username : clientId;
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    const user = db.users[effectiveClientId] || {};
+    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
+    
+    if (recentGenerations.length >= 3) {
+      const oldestGeneration = Math.min(...recentGenerations);
+      const retryAt = new Date(oldestGeneration + oneDay).toISOString();
+      return sendJson(res, 429, {
+        message: `API key generation limit reached. Try again after ${retryAt}.`,
+        retry_at: retryAt
+      });
+    }
+    
+    const apiKey = 'ps-prysmisai-' + crypto.randomBytes(24).toString('hex');
+    if (!user.prysmisApiKeys) user.prysmisApiKeys = [];
+    if (!user.apiKeyGenerationHistory) user.apiKeyGenerationHistory = [];
+    
+    user.prysmisApiKeys.push({ key: apiKey, created: now });
+    user.apiKeyGenerationHistory.push(now);
+    db.users[effectiveClientId] = user;
+    saveDb();
+    
+    const newRecentGenerations = user.apiKeyGenerationHistory.filter(time => now - time < oneDay);
+    const newRemaining = Math.max(0, 3 - newRecentGenerations.length);
+    const nextGenerationAt = newRemaining === 0 
+      ? new Date(now + oneDay).toISOString()
+      : null;
+    
+    return sendJson(res, 200, {
+      key: {
+        id: now,
+        api_key: apiKey,
+        masked_key: apiKey.substring(0, 18) + '****' + apiKey.slice(-4),
+        created_at: new Date(now).toISOString()
+      },
+      status: {
+        limit: 3,
+        window_hours: 24,
+        generated_in_window: newRecentGenerations.length,
+        remaining: newRemaining,
+        next_generation_at: nextGenerationAt
+      }
+    });
+  }
+
+  function authenticateApiKey(apiKey) {
+    if (!apiKey || !apiKey.startsWith('ps-prysmisai-')) return false;
+    for (const u in db.users) {
+      const user = db.users[u];
+      if (user.prysmisApiKeys && user.prysmisApiKeys.some(k => k.key === apiKey)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function validateRequestedModel(requestedModel) {
+    const allowedModels = ['PSM-v1.0(PrysmisAI)', 'psm-v1.0', 'llama3.2-vision:latest'];
+    if (!requestedModel) return 'psm-v1.0';
+    if (allowedModels.includes(requestedModel)) return 'psm-v1.0';
+    throw new Error(`Unsupported model '${requestedModel}'. Use PSM-v1.0(PrysmisAI).`);
+  }
+
+  if (req.method === 'POST' && pt === '/api/v1/chat/completions') {
+    let body;
+    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    
+    const authHeader = req.headers['authorization'] || '';
+    const apiKey = authHeader.replace(/^Bearer\s+/i, '');
+    
+    if (!apiKey || !authenticateApiKey(apiKey)) {
+      return sendJson(res, 401, { error: 'Invalid PrysmisAI API key.' });
+    }
+    
+    if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+      return sendJson(res, 400, { error: 'At least one message is required.' });
+    }
+    
+    let modelToUse;
+    try {
+      modelToUse = validateRequestedModel(body.model);
+    } catch (error) {
+      return sendJson(res, 400, { error: error.message });
+    }
+    
+    const messages = body.messages.map(m => ({
+      role: m.role || 'user',
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
+    
+    const temperature = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.2;
+    const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : 512;
+    
+    try {
+      const ollamaData = await new Promise((resolve, reject) => {
+        const postData = JSON.stringify({
+          model: 'llama3.2-vision:latest',
+          messages: messages,
+          stream: false,
+          options: {
+            temperature: temperature,
+            num_predict: maxTokens
+          }
+        });
+        
+        const options = {
+          hostname: '127.0.0.1',
+          port: 11434,
+          path: '/api/chat',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+        
+        const ollamaReq = http.request(options, (ollamaRes) => {
+          let data = '';
+          ollamaRes.on('data', (chunk) => { data += chunk; });
+          ollamaRes.on('end', () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (e) {
+              reject(new Error('Invalid response from Ollama'));
+            }
+          });
+        });
+        
+        ollamaReq.on('error', (e) => { reject(e); });
+        ollamaReq.write(postData);
+        ollamaReq.end();
+      });
+      
+      const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : '';
+      const promptTokens = ollamaData.prompt_eval_count || messages.reduce((acc, m) => acc + (m.content || '').length / 4, 0);
+      const completionTokens = ollamaData.eval_count || reply.length / 4;
+      
+      return sendJson(res, 200, {
+        id: 'psmchat-' + crypto.randomBytes(16).toString('hex'),
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'PSM-v1.0(PrysmisAI)',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: reply
+          },
+          finish_reason: ollamaData.done_reason || 'stop'
+        }],
+        usage: {
+          prompt_tokens: Math.floor(promptTokens),
+          completion_tokens: Math.floor(completionTokens),
+          total_tokens: Math.floor(promptTokens + completionTokens)
+        }
+      });
+    } catch (error) {
+      return sendJson(res, 503, { 
+        error: `PrysmisAI could not reach local Ollama model llama3.2-vision:latest: ${error.message}` 
+      });
+    }
+  }
+
   if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions' || (isApiSubdomain && pt === '/'))) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const rawModel = body.model || url.searchParams.get('model') || 'sm-b1.0';
+    const rawModel = body.model || url.searchParams.get('model') || 'psm-v1.0';
     const modelToUse = resolveModel(rawModel);
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const cleanMessages = messages.filter(m => {
@@ -904,7 +1172,7 @@ const server = http.createServer(async (req, res) => {
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
     const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
 
-    if (modelToUse === 'sm-b1.0') {
+    if (modelToUse === 'psm-v1.0') {
       try {
         const ollamaData = await new Promise((resolve, reject) => {
           const postData = JSON.stringify({
@@ -945,12 +1213,12 @@ const server = http.createServer(async (req, res) => {
           req.end();
         });
         
-        const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'SM-b1.0(PrysmisAI) could not generate a response.';
+        const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'PSM-v1.0(PrysmisAI) could not generate a response.';
         
         return sendJson(res, 200, {
           id: 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
           object: 'chat.completion',
-          model: 'sm-b1.0',
+          model: 'psm-v1.0',
           choices: [{
             index: 0,
             message: { role: 'assistant', content: reply },
@@ -963,7 +1231,7 @@ const server = http.createServer(async (req, res) => {
           }
         });
       } catch (error) {
-        return sendJson(res, 500, { error: 'SM-b1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
+        return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
       }
     }
 
