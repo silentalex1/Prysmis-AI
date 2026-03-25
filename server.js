@@ -153,13 +153,11 @@ function validatePassword(p) {
 }
 
 const YOU_MODELS = [
-  'psm-v1.0',
-  'llama3.2-vision:latest'
+  'psm-v1.0'
 ];
 
 const MODEL_MAP = {
-  'psm-v1.0': 'psm-v1.0',
-  'llama3.2-vision:latest': 'llama3.2-vision:latest'
+  'psm-v1.0': 'psm-v1.0'
 };
 
 function resolveModel(m) {
@@ -839,22 +837,52 @@ const server = http.createServer(async (req, res) => {
   const host = (req.headers['host'] || '').split(':')[0];
   const isApiSubdomain = host === 'api.prysmisai.wtf';
 
-  if (req.method === 'POST' && pt === '/account/save-poe-key') {
+  if (req.method === 'POST' && pt === '/account/generate-prysmisai-key') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const { poeApiKey } = body;
-    if (typeof poeApiKey !== 'string') return sendJson(res, 400, { error: 'Invalid key' });
-    db.users[td.username].poeApiKey = poeApiKey.trim();
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    
+    if (!user.apiKeyGenerationHistory) user.apiKeyGenerationHistory = [];
+    
+    const recentGenerations = user.apiKeyGenerationHistory.filter(time => now - time < oneDay);
+    
+    if (recentGenerations.length >= 3) {
+      const oldestGeneration = Math.min(...recentGenerations);
+      const waitTime = Math.ceil((oldestGeneration + oneDay - now) / (60 * 60 * 1000));
+      return sendJson(res, 429, { error: `After 3 generation of PrysmisAI API key you must wait 24 hours. Please wait ${waitTime} more hours.` });
+    }
+    
+    const apiKey = 'ps-prysmisai-' + crypto.randomBytes(20).toString('hex');
+    
+    if (!user.prysmisApiKeys) user.prysmisApiKeys = [];
+    user.prysmisApiKeys.push({ key: apiKey, created: now });
+    user.apiKeyGenerationHistory.push(now);
+    
     saveDb();
-    return sendJson(res, 200, { success: true });
+    return sendJson(res, 200, { success: true, apiKey });
   }
 
-  if (req.method === 'GET' && pt === '/account/poe-key') {
+  if (req.method === 'GET' && pt === '/account/prysmisai-keys') {
     const td = getTokenData(getReqToken(req, url));
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const user = db.users[td.username];
-    return sendJson(res, 200, { poeApiKey: (user && user.poeApiKey) ? user.poeApiKey : '' });
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
+    const canGenerate = recentGenerations.length < 3;
+    
+    return sendJson(res, 200, { 
+      keys: user.prysmisApiKeys || [], 
+      canGenerate,
+      generationsLeft: Math.max(0, 3 - recentGenerations.length)
+    });
   }
 
   if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions' || (isApiSubdomain && pt === '/'))) {
@@ -901,57 +929,28 @@ const server = http.createServer(async (req, res) => {
         }
         
         const ollamaData = await ollamaResponse.json();
-        const reply = ollamaData.response || 'PSM-v1.0 could not generate a response.';
+        const reply = ollamaData.response || 'PSM-v1.0(PrysmisAI) could not generate a response.';
         
         return sendJson(res, 200, {
+          id: 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
+          object: 'chat.completion',
+          model: 'psm-v1.0',
           choices: [{
+            index: 0,
             message: { role: 'assistant', content: reply },
             finish_reason: 'stop'
-          }]
+          }],
+          usage: {
+            prompt_tokens: cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length / 4,
+            completion_tokens: reply.length / 4,
+            total_tokens: (cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length + reply.length) / 4
+          }
         });
       } catch (error) {
-        return sendJson(res, 500, { error: 'PSM-v1.0 error: ' + (error.message || 'Unknown error') });
+        return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
       }
     }
 
-    if (modelToUse === 'llama3.2-vision:latest') {
-      try {
-        let ollamaMessages = cleanMessages.map(m => ({
-          role: m.role,
-          content: typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')
-        }));
-
-        const ollamaResponse = await fetch('http://127.0.0.1:11434/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3.2-vision:latest',
-            messages: ollamaMessages,
-            stream: false,
-            options: {
-              temperature: temp,
-              num_predict: maxTok
-            }
-          })
-        });
-        
-        if (!ollamaResponse.ok) {
-          throw new Error('Ollama request failed');
-        }
-        
-        const ollamaData = await ollamaResponse.json();
-        const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'No response received.';
-        
-        return sendJson(res, 200, {
-          choices: [{
-            message: { role: 'assistant', content: reply },
-            finish_reason: 'stop'
-          }]
-        });
-      } catch (error) {
-        return sendJson(res, 500, { error: 'Ollama error: ' + (error.message || 'Unknown error') });
-      }
-    }
 
     return sendJson(res, 400, { error: 'Model not supported' });
   }
