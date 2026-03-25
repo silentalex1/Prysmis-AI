@@ -38,11 +38,8 @@ var imagePasteImg = null;
 var PREMIUM_MODELS = {};
 
 var MODEL_API_MAP = {
-  'psm-v1.0': 'psm-v1.0',
-  'llama3.2-vision:latest': 'llama3.2-vision:latest'
+  'psm-v1.0': 'psm-v1.0'
 };
-
-var storedPoeApiKey = localStorage.getItem('poeApiKey') || '';
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
   .then(function(r) { return r.json(); })
@@ -1371,7 +1368,7 @@ function switchSettingsTab(tab) {
   } else if (tab === 'ai') {
     settingsPageAI.style.display = 'block';
     if (settingsNavAI) settingsNavAI.classList.add('active');
-    loadPoeKey();
+    loadApiKeys();
   }
 }
 
@@ -1430,7 +1427,7 @@ if (settingsShowApiKey) {
   settingsShowApiKey.addEventListener('click', function() {
     if (apiKeyVisible) {
       settingsApiKeyDisplay.type = 'password';
-      settingsShowApiKey.textContent = 'Show';
+      settingsShowApiKey.textContent = 'Unhide';
     } else {
       settingsApiKeyDisplay.type = 'text';
       settingsShowApiKey.textContent = 'Hide';
@@ -1439,40 +1436,60 @@ if (settingsShowApiKey) {
   });
 }
 
-function generateRandomApiKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'PR-prysmisai-JS_';
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+function loadApiKeys() {
+  fetch('/account/prysmisai-keys?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.keys && data.keys.length > 0) {
+        settingsApiResult.style.display = 'block';
+        settingsApiKeyDisplay.value = data.keys[data.keys.length - 1].key;
+        settingsApiKeyDisplay.type = 'password';
+        apiKeyVisible = false;
+        settingsShowApiKey.textContent = 'Unhide';
+      }
+      settingsApiCount.textContent = data.generationsLeft.toString();
+    })
+    .catch(function() {});
 }
 
 if (settingsGenerateApiBtn) {
   settingsGenerateApiBtn.addEventListener('click', function() {
-    if (apiKeysGeneratedToday >= maxApiKeysPerDay) {
-      settingsApiResult.style.display = 'block';
-      settingsApiCount.textContent = '0';
-      settingsApiKeyDisplay.value = 'Daily limit reached (3 keys per day)';
-      return;
-    }
-    
     settingsGenerateApiBtn.textContent = 'Generating...';
     settingsGenerateApiBtn.disabled = true;
     
-    setTimeout(function() {
-      const newApiKey = generateRandomApiKey();
-      apiKeysGeneratedToday++;
-      
-      settingsApiResult.style.display = 'block';
-      settingsApiKeyDisplay.value = newApiKey;
-      settingsApiKeyDisplay.type = 'password';
-      settingsApiCount.textContent = (maxApiKeysPerDay - apiKeysGeneratedToday).toString();
-      settingsGenerateApiBtn.textContent = 'Generate';
+    fetch('/account/generate-prysmisai-key', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + storedToken
+      }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      settingsGenerateApiBtn.textContent = 'Generate API key';
       settingsGenerateApiBtn.disabled = false;
-      apiKeyVisible = false;
-      settingsShowApiKey.textContent = 'Show';
-    }, 1000);
+      
+      if (data.success) {
+        settingsApiResult.style.display = 'block';
+        settingsApiKeyDisplay.value = data.apiKey;
+        settingsApiKeyDisplay.type = 'password';
+        apiKeyVisible = false;
+        settingsShowApiKey.textContent = 'Unhide';
+        loadApiKeys();
+      } else {
+        alert(data.error || 'Failed to generate API key');
+        if (data.error && data.error.includes('wait')) {
+          settingsApiResult.style.display = 'block';
+          settingsApiKeyDisplay.value = data.error;
+          settingsApiCount.textContent = '0';
+        }
+      }
+    })
+    .catch(function() {
+      settingsGenerateApiBtn.textContent = 'Generate API key';
+      settingsGenerateApiBtn.disabled = false;
+      alert('Network error. Please try again.');
+    });
   });
 }
 
