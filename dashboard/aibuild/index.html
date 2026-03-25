@@ -310,14 +310,18 @@ Settings
 </button>
 </div>
 <div class="settings-field-group">
-<label class="settings-label">POE API KEY</label>
+<label class="settings-label">Generate PrysmisAI API Key</label>
 <div class="settings-token-row">
-<input type="password" id="settingsPoeKeyInput" class="settings-token-input" placeholder="Enter your Poe API key...">
-<button class="settings-token-btn" id="settingsShowPoeKey">Show</button>
-<button class="settings-token-btn settings-token-btn-copy" id="settingsSavePoeKey">Save</button>
+<button class="settings-token-btn" id="settingsGenerateApiBtn">Generate</button>
 </div>
-<p class="settings-token-hint">Enter your Poe API key through <a href="https://poe.com/api/keys" target="_blank" rel="noopener" class="settings-hint-link">here</a>.</p>
-<div id="settingsPoeKeyStatus" class="settings-poe-status"></div>
+<div id="settingsApiResult" class="settings-api-result" style="display:none">
+<div class="settings-api-key-container">
+<input type="password" id="settingsApiKeyDisplay" class="settings-token-input" readonly>
+<button class="settings-token-btn" id="settingsShowApiKey">Show</button>
+<button class="settings-token-btn settings-token-btn-copy" id="settingsCopyApiKey">Copy</button>
+</div>
+<p class="settings-token-hint">Your API key: <span id="settingsApiCount">3</span> generations remaining today</p>
+</div>
 </div>
 </div>
 </div>
