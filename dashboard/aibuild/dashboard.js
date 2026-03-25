@@ -1,7 +1,6 @@
 var storedUser = localStorage.getItem('user');
 var storedToken = localStorage.getItem('token');
 var storedIsAdmin = localStorage.getItem('isAdmin') === 'true';
-var personalInstructions = JSON.parse(localStorage.getItem('personalInstructions') || '{}');
 
 if (!storedUser || !storedToken) {
   location.href = '/accountauth/index.html';
@@ -39,24 +38,26 @@ var imagePasteImg = null;
 var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.2-pro': true, 'grok-4': true };
 
 var MODEL_API_MAP = {
-  'psm-4.0': 'claude-3-7-sonnet',
-  'gpt-5.2': 'gpt-4o',
-  'gpt-5.2-mini': 'gpt-4o-mini',
+  'psm-4.0': 'psm-4.0',
+  'gpt-5.2': 'gpt-5.2',
+  'gpt-5.2-mini': 'gpt-5.2-mini',
   'gpt-4o': 'gpt-4o',
   'gpt-4o-mini': 'gpt-4o-mini',
   'o3-mini': 'o3-mini',
-  'claude-sonnet-4-5': 'claude-3-7-sonnet',
-  'claude-haiku-3-5': 'claude-3-haiku',
+  'claude-sonnet-4-5': 'claude-sonnet-4-5',
+  'claude-haiku-3-5': 'claude-haiku-3-5',
   'claude-opus-4-5': 'claude-opus-4-5',
-  'gemini-3.2-flash': 'gemini-2.0-flash',
-  'gemini-3.2-pro': 'gemini-2.0-pro',
-  'gemini-3.1-pro-preview': 'gemini-2.0-pro',
-  'grok-4': 'grok-beta',
-  'llama-4-maverick': 'meta-llama/llama-3.1-70b-instruct',
+  'gemini-3.2-flash': 'gemini-3.2-flash',
+  'gemini-3.2-pro': 'gemini-3.2-pro',
+  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
+  'grok-4': 'grok-4',
+  'llama-4-maverick': 'llama-4-maverick',
   'deepseek-r1': 'deepseek-r1',
-  'deepseek-v3': 'deepseek-chat',
-  'mistral-large-2': 'mistral-large-latest'
+  'deepseek-v3': 'deepseek-v3',
+  'mistral-large-2': 'mistral-large-2'
 };
+
+var storedPoeApiKey = localStorage.getItem('poeApiKey') || '';
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
   .then(function(r) { return r.json(); })
@@ -69,6 +70,15 @@ fetch('/me?token=' + encodeURIComponent(storedToken))
     if (d.username) userNameEl.textContent = d.username;
   }).catch(function() {});
 
+fetch('/account/poe-key?token=' + encodeURIComponent(storedToken))
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.poeApiKey) {
+      storedPoeApiKey = d.poeApiKey;
+      localStorage.setItem('poeApiKey', d.poeApiKey);
+    }
+  }).catch(function() {});
+
 function unlockPremiumOptions() {
   var opts = document.querySelectorAll('#modelSelect option');
   opts.forEach(function(opt) {
@@ -78,7 +88,7 @@ function unlockPremiumOptions() {
   });
 }
 
-var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\\n\\nGAME UNDERSTANDING INTELLIGENCE:\\nWhen a user describes their Roblox game you must deeply analyze every aspect of what they are describing and extract a full mental model of the game before writing any code. The more descriptive the user is, the more precisely you must match their vision.\\n\\nWhen reading a game description you automatically identify and understand:\\n- GENRE & CORE LOOP: What type of game is it? (obby, RPG, tycoon, simulator, FPS, horror, battle royale, racing, tower defense, roleplay, fighting, survival, etc.) What does the player do every session?\\n- THEME & ATMOSPHERE: The visual world, art style, time period, environment type, tone (dark, cartoony, realistic, sci-fi, fantasy, etc.)\\n- PLAYER PROGRESSION: How does the player get stronger or advance? (XP, levels, upgrades, currencies, unlocks, seasons, prestige)\\n- CORE SYSTEMS: Every mechanic implied or stated — combat, crafting, building, trading, pets, mounts, clans, leaderboards, daily rewards, VIP, gamepasses\\n- MONETIZATION INTENT: What features would logically be premium/gamepass vs free\\n- SOCIAL FEATURES: Parties, guilds, trading, PvP, co-op, community boards\\n- TECHNICAL ARCHITECTURE: Which services handle each system, how data flows between server and client\\n\\nWhen the user gives a detailed description, you recreate that exact game as faithfully as possible — matching the genre, mechanics, theme, progression systems, UI style, and all described features. You never simplify, never skip systems, never ignore described details.\\n\\nIf the description is brief, you intelligently expand it into the most feature-rich, polished version that fits the described genre and theme.\\n\\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\\n- StarterGui: LocalScripts and ScreenGuis for UI\\n- ServerStorage: Server-only assets and ModuleScripts\\n- Workspace: Parts, Models, terrain manipulation scripts\\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\\n\\nYour specialties:\\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments\\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\\n- Networking: rate limiting, anti-exploit validation, server authority patterns\\n\\nWhen building anything ALWAYS:\\n1. Start with [GAME ANALYSIS] — break down what the user described: genre, theme, core loop, systems detected, progression model\\n2. Then [TASKS] checklist listing every script/component that will be built\\n3. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\\n4. Use ```lua code blocks for every script\\n5. Split logic properly across the correct services — never dump everything in one place\\n6. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\\n7. Build the most feature-rich, polished, professional version possible\\n8. Handle errors, edge cases, and player disconnects gracefully\\n\\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
+var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI built to handle any request — from simple scripts to the most complex, professional-grade game systems ever built. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\n\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\n- StarterGui: LocalScripts and ScreenGuis for UI\n- ServerStorage: Server-only assets and ModuleScripts\n- Workspace: Parts, Models, terrain manipulation scripts\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\n\nYour specialties:\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments, fuselages, aerodynamics\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\n- Networking: rate limiting, anti-exploit validation, server authority patterns\n- Any other Roblox system the user can imagine\n\nWhen building anything ALWAYS:\n1. Start with [TASKS] checklist listing every script/component\n2. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\n3. Use ```lua code blocks for every script\n4. Split logic properly across the correct services — never dump everything in one place\n5. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\n6. Build the most feature-rich, polished, professional version possible\n7. Handle errors, edge cases, and player disconnects gracefully\n\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
 
 var SYSTEM_PROMPT = SYSTEM_PROMPT_BASE;
 var studioFileContext = '';
@@ -277,11 +287,8 @@ modelSelect.addEventListener('change', function() {
     return;
   }
   if (val === 'psm-4.0') {
+    setTimeout(function() { loadPSM().catch(function(){}); }, 100);
   }
-  var modelNameEl = document.getElementById('personalInstructModelName');
-  var personalInstructInput = document.getElementById('personalInstructInput');
-  if (modelNameEl) modelNameEl.textContent = modelSelect.options[modelSelect.selectedIndex] ? modelSelect.options[modelSelect.selectedIndex].text : val;
-  if (personalInstructInput) personalInstructInput.value = personalInstructions[val] || '';
 });
 
 function isTruncated(text) {
@@ -608,10 +615,7 @@ function doSend(overrideText, isContinue) {
   }
   showThinking();
   var model = getModel();
-  var modelInstruction = personalInstructions[model] ? personalInstructions[model].trim() : '';
-  var premiumExtra = userHasPremium ? '\n\nPREMIUM USER: This user has premium access. Deliver the absolute maximum quality — include advanced optimization, edge case handling, performance profiling notes, anti-exploit layers, full error recovery, and enterprise-grade architecture patterns. Never hold back complexity or depth.' : '';
-  var finalSystemPrompt = SYSTEM_PROMPT + premiumExtra + (modelInstruction ? '\n\nUser Personal Instructions:\n' + modelInstruction : '');
-  var allMsgs = [{ role: 'system', content: finalSystemPrompt }];
+  var allMsgs = [{ role: 'system', content: SYSTEM_PROMPT }];
   currentMessages.forEach(function(m) { allMsgs.push(m); });
   if (isContinue) {
     allMsgs.push({ role: 'user', content: 'Continue from exactly where you left off. Do not repeat anything. Just continue the code or response seamlessly.' });
@@ -651,27 +655,29 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  var puterModel = model === 'psm-4.0' ? 'claude-3-7-sonnet' : model;
-  puter.ai.chat(allMsgs, { model: puterModel })
-    .then(function(response) {
-      var reply = '';
-      if (response && response.message && response.message.content) {
-        var content = response.message.content;
-        if (typeof content === 'string') {
-          reply = content;
-        } else if (Array.isArray(content)) {
-          reply = content.map(function(c) { return c && c.text ? c.text : ''; }).join('');
-        } else {
-          reply = String(content);
-        }
-      } else if (typeof response === 'string') {
-        reply = response;
-      } else {
-        reply = 'No response received.';
-      }
+  if (model === 'psm-4.0') {
+    var imgForPSM = (userHasPremium && pastedImages.length > 0) ? pastedImages[0] : null;
+    var thinkMsg = document.getElementById('thinking');
+    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-4.0 is thinking...'; }
+    runPSM(allMsgs, imgForPSM).then(function(reply) {
       handleReply(reply, null);
-    })
-    .catch(function(e) { removeThinking(); addMessage('Error: ' + (e && e.message ? e.message : 'AI request failed'), false, null); });
+    }).catch(function(e) {
+      removeThinking();
+      addMessage('PSM-4.0 error: ' + (e.message || String(e)), false, null);
+    });
+    return;
+  }
+  var poeKey = storedPoeApiKey || localStorage.getItem('poeApiKey') || '';
+  fetch('/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384, poeApiKey: poeKey })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var choice = data.choices && data.choices[0];
+    var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
+    var finishReason = choice ? choice.finish_reason : null;
+    handleReply(reply, finishReason);
+  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false, null); });
 }
 
 function saveChat(firstMsg) {
@@ -689,22 +695,8 @@ var settingsSaveBtn = document.getElementById('settingsSaveBtn');
 settingsSaveBtn.addEventListener('click', function() {
   var usernameInput = document.getElementById('settingsUsernameInput');
   var errEl = document.getElementById('settingsUsernameErr');
-  var personalInstructInput = document.getElementById('personalInstructInput');
-  var currentModel = modelSelect ? modelSelect.value : 'psm-4.0';
   errEl.textContent = '';
   errEl.classList.remove('show');
-
-  if (personalInstructInput) {
-    var instrVal = personalInstructInput.value;
-    personalInstructions[currentModel] = instrVal;
-    localStorage.setItem('personalInstructions', JSON.stringify(personalInstructions));
-    fetch('/account/personal-instructions?token=' + encodeURIComponent(storedToken), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: currentModel, instructions: instrVal })
-    }).catch(function() {});
-  }
-
   var newUsername = usernameInput.value.trim().toLowerCase();
   if (!newUsername) {
     errEl.textContent = 'Please enter a username';
@@ -727,8 +719,8 @@ settingsSaveBtn.addEventListener('click', function() {
     return;
   }
   if (newUsername === (storedUser || '').toLowerCase()) {
-    settingsSaveBtn.textContent = 'Saved';
-    setTimeout(function() { settingsSaveBtn.textContent = 'Save Settings'; }, 2000);
+    errEl.textContent = 'That is already your username';
+    errEl.classList.add('show');
     return;
   }
   settingsSaveBtn.disabled = true;
@@ -1377,20 +1369,6 @@ settingsBtn.addEventListener('click', function() {
   switchSettingsTab('account');
   var usernameInput = document.getElementById('settingsUsernameInput');
   if (usernameInput) usernameInput.value = storedUser || '';
-  var currentModel = modelSelect ? modelSelect.value : 'psm-4.0';
-  var modelNameEl = document.getElementById('personalInstructModelName');
-  var personalInstructInput = document.getElementById('personalInstructInput');
-  if (modelNameEl) modelNameEl.textContent = modelSelect ? (modelSelect.options[modelSelect.selectedIndex] ? modelSelect.options[modelSelect.selectedIndex].text : currentModel) : currentModel;
-  if (personalInstructInput) personalInstructInput.value = personalInstructions[currentModel] || '';
-  fetch('/account/personal-instructions?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data && data.instructions) {
-        Object.assign(personalInstructions, data.instructions);
-        localStorage.setItem('personalInstructions', JSON.stringify(personalInstructions));
-        if (personalInstructInput) personalInstructInput.value = personalInstructions[currentModel] || '';
-      }
-    }).catch(function() {});
   settingsModal.style.display = 'flex';
 });
 settingsClose.addEventListener('click', function() { settingsModal.style.display = 'none'; });
@@ -1407,17 +1385,29 @@ settingsCopyToken.addEventListener('click', function() { if (currentAuthToken) c
 
 var settingsNavAccount = document.getElementById('settingsNavAccount');
 var settingsNavStudio = document.getElementById('settingsNavStudio');
+var settingsNavAI = document.getElementById('settingsNavAI');
 var settingsPageAccount = document.getElementById('settingsPageAccount');
 var settingsPageStudio = document.getElementById('settingsPageStudio');
+var settingsPageAI = document.getElementById('settingsPageAI');
 
 function switchSettingsTab(tab) {
+  settingsPageAccount.style.display = 'none';
+  settingsPageStudio.style.display = 'none';
+  settingsPageAI.style.display = 'none';
+  settingsNavAccount.classList.remove('active');
+  settingsNavStudio.classList.remove('active');
+  if (settingsNavAI) settingsNavAI.classList.remove('active');
   if (tab === 'account') {
-    settingsPageAccount.style.display = 'block'; settingsPageStudio.style.display = 'none';
-    settingsNavAccount.classList.add('active'); settingsNavStudio.classList.remove('active');
-  } else {
-    settingsPageAccount.style.display = 'none'; settingsPageStudio.style.display = 'block';
-    settingsNavStudio.classList.add('active'); settingsNavAccount.classList.remove('active');
+    settingsPageAccount.style.display = 'block';
+    settingsNavAccount.classList.add('active');
+  } else if (tab === 'studio') {
+    settingsPageStudio.style.display = 'block';
+    settingsNavStudio.classList.add('active');
     loadStudioToken();
+  } else if (tab === 'ai') {
+    settingsPageAI.style.display = 'block';
+    if (settingsNavAI) settingsNavAI.classList.add('active');
+    loadPoeKey();
   }
 }
 
@@ -1441,6 +1431,85 @@ settingsShowStudio.addEventListener('click', function() {
 
 settingsCopyStudio.addEventListener('click', function() { if (currentStudioToken) copyToClipboard(currentStudioToken, settingsCopyStudio, 'Copy Token'); });
 
+var settingsPoeKeyInput = document.getElementById('settingsPoeKeyInput');
+var settingsShowPoeKey = document.getElementById('settingsShowPoeKey');
+var settingsSavePoeKey = document.getElementById('settingsSavePoeKey');
+var settingsPoeKeyStatus = document.getElementById('settingsPoeKeyStatus');
+var poeKeyVisible = false;
+var settingsCloseAI = document.getElementById('settingsCloseAI');
+
+if (settingsCloseAI) {
+  settingsCloseAI.addEventListener('click', function() { settingsModal.style.display = 'none'; });
+}
+
+function loadPoeKey() {
+  fetch('/account/poe-key?token=' + encodeURIComponent(storedToken))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.poeApiKey) {
+        storedPoeApiKey = data.poeApiKey;
+        localStorage.setItem('poeApiKey', data.poeApiKey);
+        settingsPoeKeyInput.value = data.poeApiKey;
+        settingsPoeKeyInput.type = 'password';
+        poeKeyVisible = false;
+        settingsShowPoeKey.textContent = 'Show';
+      }
+    }).catch(function() {});
+}
+
+if (settingsShowPoeKey) {
+  settingsShowPoeKey.addEventListener('click', function() {
+    if (!settingsPoeKeyInput.value) return;
+    if (poeKeyVisible) {
+      settingsPoeKeyInput.type = 'password';
+      settingsShowPoeKey.textContent = 'Show';
+      poeKeyVisible = false;
+    } else {
+      settingsPoeKeyInput.type = 'text';
+      settingsShowPoeKey.textContent = 'Hide';
+      poeKeyVisible = true;
+    }
+  });
+}
+
+if (settingsSavePoeKey) {
+  settingsSavePoeKey.addEventListener('click', function() {
+    var key = settingsPoeKeyInput.value.trim();
+    settingsSavePoeKey.textContent = 'Saving...';
+    settingsSavePoeKey.disabled = true;
+    fetch('/account/save-poe-key?token=' + encodeURIComponent(storedToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ poeApiKey: key })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      settingsSavePoeKey.disabled = false;
+      if (data.success) {
+        storedPoeApiKey = key;
+        localStorage.setItem('poeApiKey', key);
+        settingsSavePoeKey.textContent = 'Saved';
+        if (settingsPoeKeyStatus) {
+          settingsPoeKeyStatus.textContent = key ? 'POE API key saved. AI requests will use your key.' : 'API key cleared.';
+          settingsPoeKeyStatus.className = 'settings-poe-status settings-poe-status-ok';
+        }
+        setTimeout(function() { settingsSavePoeKey.textContent = 'Save'; }, 2000);
+      } else {
+        settingsSavePoeKey.textContent = 'Save';
+        if (settingsPoeKeyStatus) {
+          settingsPoeKeyStatus.textContent = data.error || 'Failed to save.';
+          settingsPoeKeyStatus.className = 'settings-poe-status settings-poe-status-err';
+        }
+      }
+    }).catch(function() {
+      settingsSavePoeKey.disabled = false;
+      settingsSavePoeKey.textContent = 'Save';
+      if (settingsPoeKeyStatus) {
+        settingsPoeKeyStatus.textContent = 'Network error.';
+        settingsPoeKeyStatus.className = 'settings-poe-status settings-poe-status-err';
+      }
+    });
+  });
+}
+
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     if (settingsModal.style.display !== 'none') { settingsModal.style.display = 'none'; return; }
@@ -1462,14 +1531,12 @@ var studioFilesVisible = false;
 
 function getModelValue() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
 
-function setExplorerStatus(connected, model, username) {
+function setExplorerStatus(connected, model) {
   pluginConnected = connected;
   if (statusDot) statusDot.className = 'dot ' + (connected ? 'green' : 'red');
   if (statusText) { statusText.textContent = connected ? 'Connected' : 'Disconnected'; statusText.style.color = connected ? '#10b981' : '#f43f5e'; }
   if (connectBtn) { connectBtn.textContent = connected ? 'Plugin Connected' : 'Connect Plugin'; connectBtn.style.background = connected ? 'linear-gradient(135deg,#10b981,#059669)' : ''; }
   if (viewStudioBtn) viewStudioBtn.style.display = connected ? 'flex' : 'none';
-  var userNameTag = document.getElementById('pluginUserTag');
-  if (userNameTag) userNameTag.textContent = (connected && username) ? username : '';
   if (!connected) {
     studioFilesVisible = false;
     if (studioFilesPanel) studioFilesPanel.style.display = 'none';
@@ -1557,23 +1624,6 @@ function sendChangeToPlugin(code, description) {
   }).then(function(r) { return r.json(); });
 }
 
-function pollForAck(changeId, onDone, onError, deadline) {
-  if (Date.now() > deadline) { onError('Timed out waiting for Studio'); return; }
-  fetch('/plugin/ack-status?token=' + encodeURIComponent(storedToken) + '&changeId=' + encodeURIComponent(changeId))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.found) {
-        if (data.ok) { onDone(data.results || []); }
-        else { onError('Studio reported errors applying scripts'); }
-      } else {
-        setTimeout(function() { pollForAck(changeId, onDone, onError, deadline); }, 600);
-      }
-    })
-    .catch(function() {
-      setTimeout(function() { pollForAck(changeId, onDone, onError, deadline); }, 800);
-    });
-}
-
 function addChangeButtons(code, description, msgEl) {
   var existing = msgEl.querySelector('.change-btns');
   if (existing) existing.remove();
@@ -1599,36 +1649,22 @@ function addChangeButtons(code, description, msgEl) {
     rejectBtn.disabled = true;
     statusMsg.textContent = '';
     sendChangeToPlugin(code, description).then(function(data) {
-      if (data.ok && data.changeId) {
+      if (data.ok) {
         acceptBtn.textContent = 'Applied to Studio';
         acceptBtn.className = 'change-btn change-btn-applied';
         rejectBtn.style.display = 'none';
         statusMsg.textContent = 'Running in Studio...';
         statusMsg.style.color = '#10b981';
-        var deadline = Date.now() + 18000;
-        pollForAck(data.changeId, function(results) {
-          var okCount = 0; var failCount = 0;
-          results.forEach(function(r) { if (r.ok) okCount++; else failCount++; });
-          if (failCount === 0) {
-            statusMsg.textContent = 'Done — ' + okCount + ' script' + (okCount !== 1 ? 's' : '') + ' applied';
-            statusMsg.style.color = '#10b981';
-          } else {
-            statusMsg.textContent = okCount + ' applied, ' + failCount + ' failed';
-            statusMsg.style.color = '#f59e0b';
-          }
-        }, function(errMsg) {
-          statusMsg.textContent = errMsg || 'Studio error';
-          statusMsg.style.color = '#f43f5e';
-        }, deadline);
+        setTimeout(function() { statusMsg.textContent = 'Done'; }, 1200);
       } else {
-        acceptBtn.textContent = 'Apply All Changes';
+        acceptBtn.textContent = 'Accept Change';
         acceptBtn.disabled = false;
         rejectBtn.disabled = false;
         statusMsg.textContent = data.error || 'Failed to send';
         statusMsg.style.color = '#f43f5e';
       }
     }).catch(function() {
-      acceptBtn.textContent = 'Apply All Changes';
+      acceptBtn.textContent = 'Accept Change';
       acceptBtn.disabled = false;
       rejectBtn.disabled = false;
       statusMsg.textContent = 'Network error - check connection';
@@ -1647,29 +1683,6 @@ function addChangeButtons(code, description, msgEl) {
   msgEl.appendChild(bar);
 }
 
-var sendFilesToWebBtn = document.getElementById('sendFilesToWebBtn');
-if (sendFilesToWebBtn) {
-  sendFilesToWebBtn.addEventListener('click', function() {
-    if (!pluginConnected) return;
-    sendFilesToWebBtn.textContent = 'Requesting...';
-    sendFilesToWebBtn.disabled = true;
-    fetch('/plugin/execute?token=' + encodeURIComponent(storedToken), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: '', description: 'scan', _command: { type: 'scan' } })
-    }).then(function() {
-      setTimeout(function() {
-        loadStudioFiles();
-        sendFilesToWebBtn.textContent = 'Send Files to Website';
-        sendFilesToWebBtn.disabled = false;
-      }, 1800);
-    }).catch(function() {
-      sendFilesToWebBtn.textContent = 'Send Files to Website';
-      sendFilesToWebBtn.disabled = false;
-    });
-  });
-}
-
 var checkpointRevertBtn = document.getElementById('checkpointRevertBtn');
 if (checkpointRevertBtn) {
   checkpointRevertBtn.addEventListener('click', function() { revertToCheckpoint(); });
@@ -1678,7 +1691,7 @@ if (checkpointRevertBtn) {
 connectBtn.addEventListener('click', function() {
   if (pluginConnected) {
     fetch('/plugin/disconnect?token=' + encodeURIComponent(storedToken), { method: 'POST' })
-      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, '', ''); }).catch(function() {});
+      .then(function() { pluginTokenStored = ''; localStorage.removeItem('pluginToken'); setExplorerStatus(false, ''); }).catch(function() {});
     return;
   }
   fetch('/plugin/connect?token=' + encodeURIComponent(storedToken), {
@@ -1686,7 +1699,7 @@ connectBtn.addEventListener('click', function() {
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.success && data.pluginToken) {
       pluginTokenStored = data.pluginToken; localStorage.setItem('pluginToken', data.pluginToken);
-      setExplorerStatus(true, data.model, data.username || '');
+      setExplorerStatus(true, data.model);
     }
   }).catch(function() {});
 });
@@ -1703,7 +1716,7 @@ if (pluginTokenStored) {
   fetch('/plugin/ping', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pluginToken: pluginTokenStored })
   }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.ok) { setExplorerStatus(true, data.model, data.user || ''); }
+    if (data.ok) { setExplorerStatus(true, data.model); }
     else { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; }
   }).catch(function() { localStorage.removeItem('pluginToken'); pluginTokenStored = ''; });
 }
