@@ -38,7 +38,7 @@ var imagePasteImg = null;
 var PREMIUM_MODELS = {};
 
 var MODEL_API_MAP = {
-  'sm-b1.0': 'sm-b1.0'
+  'psm-v1.0': 'psm-v1.0'
 };
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
@@ -235,7 +235,7 @@ function showThinking() {
 
 function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
-function getModel() { return MODEL_API_MAP[modelSelect.value] || 'sm-b1.0'; }
+function getModel() { return MODEL_API_MAP[modelSelect.value] || 'psm-v1.0'; }
 
 var premiumModal = document.getElementById('premiumModal');
 var premiumModalClose = document.getElementById('premiumModalClose');
@@ -528,7 +528,7 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  if (model === 'sm-b1.0') {
+  if (model === 'psm-v1.0') {
     var imgForPSM = (userHasPremium && pastedImages.length > 0) ? pastedImages[0] : null;
     var thinkMsg = document.getElementById('thinking');
     if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PrysmisAI is thinking...'; }
