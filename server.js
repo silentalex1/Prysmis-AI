@@ -399,6 +399,98 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'POST' && pt === '/discord/set-ollama-service') {
+    const { spawn, exec } = require('child_process');
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+      const isWin = process.platform === 'win32';
+      if (!isWin) {
+        return sendJson(res, 400, { success: false, error: 'Windows service setup only works on Windows' });
+      }
+      
+      const serviceName = 'OllamaPSM';
+      const ollamaPath = 'ollama';
+      
+      const nssmPath = path.join(process.cwd(), 'nssm.exe');
+      let useNssm = fs.existsSync(nssmPath);
+      
+      if (useNssm) {
+        const nssmInstall = spawn(nssmPath, ['install', serviceName, ollamaPath, 'serve'], {
+          windowsHide: true,
+          stdio: 'pipe'
+        });
+        
+        let output = '';
+        nssmInstall.stdout.on('data', (d) => { output += d; });
+        nssmInstall.stderr.on('data', (d) => { output += d; });
+        
+        nssmInstall.on('close', (code) => {
+          if (code === 0) {
+            spawn(nssmPath, ['set', serviceName, 'Description', 'Ollama AI Service for PrysmisAI'], { windowsHide: true });
+            spawn(nssmPath, ['set', serviceName, 'Start', 'SERVICE_AUTO_START'], { windowsHide: true });
+            spawn(nssmPath, ['start', serviceName], { windowsHide: true });
+            return sendJson(res, 200, { 
+              success: true, 
+              message: 'Ollama service installed and started. It will auto-start on Windows boot.',
+              service_name: serviceName,
+              method: 'nssm'
+            });
+          } else {
+            return sendJson(res, 500, { success: false, error: 'NSSM install failed: ' + output });
+          }
+        });
+      } else {
+        const psScript = `
+          $serviceName = "${serviceName}"
+          $binaryPath = "ollama serve"
+          
+          if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+            Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+            sc.exe delete $serviceName | Out-Null
+            Start-Sleep -Seconds 2
+          }
+          
+          sc.exe create $serviceName binPath= "cmd.exe /c start /min ollama serve" start= auto displayname= "Ollama PSM Service"
+          sc.exe description $serviceName "Ollama AI Service for PrysmisAI - Auto-starts on boot"
+          Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+          
+          Write-Host "Service created successfully"
+        `;
+        
+        const psPath = path.join(process.env.TEMP || '/tmp', 'ollama-service.ps1');
+        fs.writeFileSync(psPath, psScript);
+        
+        const ps = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath], {
+          windowsHide: true,
+          stdio: 'pipe'
+        });
+        
+        let output = '';
+        ps.stdout.on('data', (d) => { output += d; });
+        ps.stderr.on('data', (d) => { output += d; });
+        
+        ps.on('close', (code) => {
+          try { fs.unlinkSync(psPath); } catch (e) {}
+          
+          if (code === 0) {
+            return sendJson(res, 200, { 
+              success: true, 
+              message: 'Ollama Windows service created and started. It will auto-start on every Windows boot.',
+              service_name: serviceName,
+              method: 'sc.exe'
+            });
+          } else {
+            return sendJson(res, 500, { success: false, error: 'Service creation failed: ' + output });
+          }
+        });
+      }
+    } catch (error) {
+      return sendJson(res, 500, { success: false, error: 'Failed to setup service: ' + error.message });
+    }
+  }
+
   if (req.method === 'GET' && pt === '/discord/check-user') {
     const username = url.searchParams.get('username');
     if (!username) return sendJson(res, 400, { error: 'username required' });
