@@ -61,7 +61,7 @@ Go Back
 <p class="section-text mt">Model can also be passed as a query parameter:</p>
 <div class="endpoint-card">
 <span class="method-badge">POST</span>
-<code class="endpoint-url">https://api.prysmisai.wtf/v1/chat/completions?model=psm-v1.0</code>
+<code class="endpoint-url">https://api.prysmisai.wtf/v1/chat/completions?model=sm-b1.0</code>
 </div>
 </section>
 
@@ -73,7 +73,7 @@ Go Back
 <table class="tbl">
 <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td><code>model</code></td><td>string</td><td><span class="opt">optional</span></td><td><code>psm-v1.0</code></td><td>Model ID to use</td></tr>
+<tr><td><code>model</code></td><td>string</td><td><span class="opt">optional</span></td><td><code>sm-b1.0</code></td><td>Model ID to use</td></tr>
 <tr><td><code>messages</code></td><td>array</td><td><span class="req">required</span></td><td>-</td><td>Conversation history</td></tr>
 <tr><td><code>temperature</code></td><td>number</td><td><span class="opt">optional</span></td><td><code>0.7</code></td><td>Randomness 0-2</td></tr>
 <tr><td><code>max_tokens</code></td><td>number</td><td><span class="opt">optional</span></td><td><code>4096</code></td><td>Max output tokens</td></tr>
@@ -103,8 +103,8 @@ Available Models
 </div>
 <div class="model-rows">
 <div class="model-row">
-<code class="model-id">psm-v1.0</code>
-<span class="model-label">PSM-v1.0(PrysmisAI)</span>
+<code class="model-id">sm-b1.0</code>
+<span class="model-label">SM-b1.0</span>
 <span class="model-note">PrysmisAI model hosted locally via Ollama</span>
 </div>
 </div>
@@ -113,7 +113,7 @@ Available Models
 
 <div class="note note-green mt">
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-<p>PSM-v1.0(PrysmisAI) is hosted locally via Ollama. Make sure Ollama is running with llama3.2-vision:latest installed.</p>
+<p>SM-b1.0 is hosted locally via Ollama. Make sure Ollama is running with llama3.2-vision:latest installed.</p>
 </div>
 </section>
 
@@ -132,7 +132,7 @@ Available Models
   method: <span class="cs">'POST'</span>,
   headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'application/json'</span> },
   body: JSON.stringify({
-    model: <span class="cs">'psm-v1.0'</span>,
+    model: <span class="cs">'sm-b1.0'</span>,
     messages: [
       { role: <span class="cs">'system'</span>, content: <span class="cs">'You are a helpful assistant.'</span> },
       { role: <span class="cs">'user'</span>, content: <span class="cs">'Write me a Roblox health bar script.'</span> }
@@ -154,7 +154,7 @@ console.log(data.choices[<span class="cn">0</span>].message.content);</code></pr
 <pre id="ex2"><code><span class="ck">import</span> requests
 
 res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completions'</span>, json={
-    <span class="cs">'model'</span>: <span class="cs">'psm-v1.0'</span>,
+    <span class="cs">'model'</span>: <span class="cs">'sm-b1.0'</span>,
     <span class="cs">'messages'</span>: [
         {<span class="cs">'role'</span>: <span class="cs">'user'</span>, <span class="cs">'content'</span>: <span class="cs">'Create a Roblox shop system.'</span>}
     ],
@@ -173,7 +173,7 @@ res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completi
 <pre id="ex3"><code>curl -X POST https://api.prysmisai.wtf/v1/chat/completions \
   -H <span class="cs">"Content-Type: application/json"</span> \
   -d <span class="cs">'{
-    "model": "psm-v1.0",
+    "model": "sm-b1.0",
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 2048
   }'</span></code></pre>
@@ -258,7 +258,7 @@ res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completi
   method: <span class="cs">'POST'</span>,
   headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'application/json'</span> },
   body: JSON.stringify({
-    model: <span class="cs">'psm-v1.0'</span>,
+    model: <span class="cs">'sm-b1.0'</span>,
     messages: [{ role: <span class="cs">'user'</span>, content: <span class="cs">'Hello!'</span> }]
   })
 });
@@ -272,7 +272,7 @@ console.log(data.choices[<span class="cn">0</span>].message.content);</code></pr
 <div class="step-num">3</div>
 <div class="step-body">
 <div class="step-title">Choose your model</div>
-<p class="step-desc">Use <code>psm-v1.0</code> as the model. The PSM-v1.0(PrysmisAI) model is hosted locally via Ollama.</p>
+<p class="step-desc">Use <code>sm-b1.0</code> as the model. The SM-b1.0 model is hosted locally via Ollama.</p>
 </div>
 </div>
 
