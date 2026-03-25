@@ -906,10 +906,8 @@ const server = http.createServer(async (req, res) => {
 
     if (modelToUse === 'psm-v1.0') {
       try {
-        const ollamaResponse = await fetch('http://127.0.0.1:11434/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const ollamaData = await new Promise((resolve, reject) => {
+          const postData = JSON.stringify({
             model: 'llama3.2-vision:latest',
             messages: cleanMessages,
             stream: false,
@@ -917,14 +915,36 @@ const server = http.createServer(async (req, res) => {
               temperature: temp,
               num_predict: maxTok
             }
-          })
+          });
+          
+          const options = {
+            hostname: '127.0.0.1',
+            port: 11434,
+            path: '/api/chat',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(postData)
+            }
+          };
+          
+          const req = http.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                resolve(JSON.parse(data));
+              } catch (e) {
+                reject(new Error('Invalid response from Ollama'));
+              }
+            });
+          });
+          
+          req.on('error', (e) => { reject(e); });
+          req.write(postData);
+          req.end();
         });
         
-        if (!ollamaResponse.ok) {
-          throw new Error('Ollama request failed');
-        }
-        
-        const ollamaData = await ollamaResponse.json();
         const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'PSM-v1.0(PrysmisAI) could not generate a response.';
         
         return sendJson(res, 200, {
