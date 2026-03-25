@@ -104,13 +104,8 @@ Available Models
 <div class="model-rows">
 <div class="model-row">
 <code class="model-id">psm-v1.0</code>
-<span class="model-label">PSM-v1.0 (PrysmisAI)</span>
-<span class="model-note">PrysmisAI model</span>
-</div>
-<div class="model-row">
-<code class="model-id">llama3.2-vision:latest</code>
-<span class="model-label">Llama 3.2 Vision</span>
-<span class="model-note">PrysmisAI model</span>
+<span class="model-label">PSM-v1.0(PrysmisAI)</span>
+<span class="model-note">PrysmisAI model hosted locally via Ollama</span>
 </div>
 </div>
 </div>
@@ -118,7 +113,7 @@ Available Models
 
 <div class="note note-green mt">
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-<p>Both models are hosted locally via Ollama. Make sure Ollama is running with llama3.2-vision:latest installed.</p>
+<p>PSM-v1.0(PrysmisAI) is hosted locally via Ollama. Make sure Ollama is running with llama3.2-vision:latest installed.</p>
 </div>
 </section>
 
@@ -159,7 +154,7 @@ console.log(data.choices[<span class="cn">0</span>].message.content);</code></pr
 <pre id="ex2"><code><span class="ck">import</span> requests
 
 res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completions'</span>, json={
-    <span class="cs">'model'</span>: <span class="cs">'llama3.2-vision:latest'</span>,
+    <span class="cs">'model'</span>: <span class="cs">'psm-v1.0'</span>,
     <span class="cs">'messages'</span>: [
         {<span class="cs">'role'</span>: <span class="cs">'user'</span>, <span class="cs">'content'</span>: <span class="cs">'Create a Roblox shop system.'</span>}
     ],
@@ -263,7 +258,7 @@ res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completi
   method: <span class="cs">'POST'</span>,
   headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'application/json'</span> },
   body: JSON.stringify({
-    model: <span class="cs">'gpt-5.2'</span>,
+    model: <span class="cs">'psm-v1.0'</span>,
     messages: [{ role: <span class="cs">'user'</span>, content: <span class="cs">'Hello!'</span> }]
   })
 });
@@ -277,7 +272,7 @@ console.log(data.choices[<span class="cn">0</span>].message.content);</code></pr
 <div class="step-num">3</div>
 <div class="step-body">
 <div class="step-title">Choose your model</div>
-<p class="step-desc">Change <code>gpt-5.2</code> to any model from the <a href="#models" class="doc-link">Available Models</a> list. Free models work right away. Premium models require a premium account.</p>
+<p class="step-desc">Use <code>psm-v1.0</code> as the model. The PSM-v1.0(PrysmisAI) model is hosted locally via Ollama.</p>
 </div>
 </div>
 
