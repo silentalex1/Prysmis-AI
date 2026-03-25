@@ -906,16 +906,12 @@ const server = http.createServer(async (req, res) => {
 
     if (modelToUse === 'psm-v1.0') {
       try {
-        const userMsgs = cleanMessages.filter(m => m.role !== 'system');
-        const lastUser = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
-        let userText = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : (Array.isArray(lastUser.content) ? lastUser.content.filter(c => c.type === 'text').map(c => c.text).join(' ') : '')) : '';
-        
-        const ollamaResponse = await fetch('http://127.0.0.1:11434/api/generate', {
+        const ollamaResponse = await fetch('http://127.0.0.1:11434/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'llama3.2-vision:latest',
-            prompt: cleanMessages.map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')}`).join('\n') + '\nassistant:',
+            messages: cleanMessages,
             stream: false,
             options: {
               temperature: temp,
@@ -929,7 +925,7 @@ const server = http.createServer(async (req, res) => {
         }
         
         const ollamaData = await ollamaResponse.json();
-        const reply = ollamaData.response || 'PSM-v1.0(PrysmisAI) could not generate a response.';
+        const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'PSM-v1.0(PrysmisAI) could not generate a response.';
         
         return sendJson(res, 200, {
           id: 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
