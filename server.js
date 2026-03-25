@@ -391,6 +391,24 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
   }
 
+  if (req.method === 'POST' && pt === '/discord/run-ollama') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    const { spawn } = require('child_process');
+    try {
+      const isWin = process.platform === 'win32';
+      const ollamaProcess = spawn('ollama', ['serve'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: isWin
+      });
+      ollamaProcess.unref();
+      return sendJson(res, 200, { success: true, message: 'Ollama serve started', pid: ollamaProcess.pid });
+    } catch (error) {
+      return sendJson(res, 500, { success: false, error: 'Failed to start Ollama: ' + error.message });
+    }
+  }
+
   if (req.method === 'GET' && pt === '/discord/check-user') {
     const secret = req.headers['x-discord-secret'] || '';
     if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
