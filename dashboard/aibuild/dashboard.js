@@ -35,26 +35,11 @@ var pastedImageData = null;
 var imagePastePreview = null;
 var imagePasteImg = null;
 
-var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.2-pro': true, 'grok-4': true };
+var PREMIUM_MODELS = {};
 
 var MODEL_API_MAP = {
-  'psm-4.0': 'psm-4.0',
-  'gpt-5.2': 'gpt-5.2',
-  'gpt-5.2-mini': 'gpt-5.2-mini',
-  'gpt-4o': 'gpt-4o',
-  'gpt-4o-mini': 'gpt-4o-mini',
-  'o3-mini': 'o3-mini',
-  'claude-sonnet-4-5': 'claude-sonnet-4-5',
-  'claude-haiku-3-5': 'claude-haiku-3-5',
-  'claude-opus-4-5': 'claude-opus-4-5',
-  'gemini-3.2-flash': 'gemini-3.2-flash',
-  'gemini-3.2-pro': 'gemini-3.2-pro',
-  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
-  'grok-4': 'grok-4',
-  'llama-4-maverick': 'llama-4-maverick',
-  'deepseek-r1': 'deepseek-r1',
-  'deepseek-v3': 'deepseek-v3',
-  'mistral-large-2': 'mistral-large-2'
+  'psm-v1.0': 'psm-v1.0',
+  'llama3.2-vision:latest': 'llama3.2-vision:latest'
 };
 
 var storedPoeApiKey = localStorage.getItem('poeApiKey') || '';
@@ -80,12 +65,6 @@ fetch('/account/poe-key?token=' + encodeURIComponent(storedToken))
   }).catch(function() {});
 
 function unlockPremiumOptions() {
-  var opts = document.querySelectorAll('#modelSelect option');
-  opts.forEach(function(opt) {
-    if (opt.value === 'claude-opus-4-5') opt.textContent = 'Claude Opus 4.5';
-    if (opt.value === 'gemini-3.2-pro') opt.textContent = 'Gemini 3.2 Pro';
-    if (opt.value === 'grok-4') opt.textContent = 'Grok 4';
-  });
 }
 
 var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI built to handle any request — from simple scripts to the most complex, professional-grade game systems ever built. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\n\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\n- StarterGui: LocalScripts and ScreenGuis for UI\n- ServerStorage: Server-only assets and ModuleScripts\n- Workspace: Parts, Models, terrain manipulation scripts\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\n\nYour specialties:\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments, fuselages, aerodynamics\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\n- Networking: rate limiting, anti-exploit validation, server authority patterns\n- Any other Roblox system the user can imagine\n\nWhen building anything ALWAYS:\n1. Start with [TASKS] checklist listing every script/component\n2. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\n3. Use ```lua code blocks for every script\n4. Split logic properly across the correct services — never dump everything in one place\n5. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\n6. Build the most feature-rich, polished, professional version possible\n7. Handle errors, edge cases, and player disconnects gracefully\n\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
@@ -268,7 +247,7 @@ function showThinking() {
 
 function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
-function getModel() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
+function getModel() { return MODEL_API_MAP[modelSelect.value] || 'psm-v1.0'; }
 
 var premiumModal = document.getElementById('premiumModal');
 var premiumModalClose = document.getElementById('premiumModalClose');
@@ -281,12 +260,7 @@ if (premiumModal) {
 
 modelSelect.addEventListener('change', function() {
   var val = modelSelect.value;
-  if (PREMIUM_MODELS[val] && !userHasPremium) {
-    premiumModal.style.display = 'flex';
-    modelSelect.value = 'gpt-5.2';
-    return;
-  }
-  if (val === 'psm-4.0') {
+  if (val === 'psm-v1.0') {
     setTimeout(function() { loadPSM().catch(function(){}); }, 100);
   }
 });
@@ -400,7 +374,7 @@ async function runPSM(messages, imageDataUrl) {
       ? result[0].generated_text
       : '';
   }
-  return text.trim() || 'PSM-4.0 could not generate a response.';
+  return text.trim() || 'PSM-v1.0 could not generate a response.';
 }
 
 
@@ -655,23 +629,22 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  if (model === 'psm-4.0') {
+  if (model === 'psm-v1.0') {
     var imgForPSM = (userHasPremium && pastedImages.length > 0) ? pastedImages[0] : null;
     var thinkMsg = document.getElementById('thinking');
-    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-4.0 is thinking...'; }
+    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-v1.0 is thinking...'; }
     runPSM(allMsgs, imgForPSM).then(function(reply) {
       handleReply(reply, null);
     }).catch(function(e) {
       removeThinking();
-      addMessage('PSM-4.0 error: ' + (e.message || String(e)), false, null);
+      addMessage('PSM-v1.0 error: ' + (e.message || String(e)), false, null);
     });
     return;
   }
-  var poeKey = storedPoeApiKey || localStorage.getItem('poeApiKey') || '';
   fetch('/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384, poeApiKey: poeKey })
+    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384 })
   }).then(function(r) { return r.json(); }).then(function(data) {
     var choice = data.choices && data.choices[0];
     var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
