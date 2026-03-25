@@ -61,7 +61,7 @@ Go Back
 <p class="section-text mt">Model can also be passed as a query parameter:</p>
 <div class="endpoint-card">
 <span class="method-badge">POST</span>
-<code class="endpoint-url">https://api.prysmisai.wtf/v1/chat/completions?model=gpt-5.2</code>
+<code class="endpoint-url">https://api.prysmisai.wtf/v1/chat/completions?model=psm-v1.0</code>
 </div>
 </section>
 
@@ -73,7 +73,7 @@ Go Back
 <table class="tbl">
 <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td><code>model</code></td><td>string</td><td><span class="opt">optional</span></td><td><code>gpt-5.2</code></td><td>Model ID to use</td></tr>
+<tr><td><code>model</code></td><td>string</td><td><span class="opt">optional</span></td><td><code>psm-v1.0</code></td><td>Model ID to use</td></tr>
 <tr><td><code>messages</code></td><td>array</td><td><span class="req">required</span></td><td>-</td><td>Conversation history</td></tr>
 <tr><td><code>temperature</code></td><td>number</td><td><span class="opt">optional</span></td><td><code>0.7</code></td><td>Randomness 0-2</td></tr>
 <tr><td><code>max_tokens</code></td><td>number</td><td><span class="opt">optional</span></td><td><code>4096</code></td><td>Max output tokens</td></tr>
@@ -93,98 +93,24 @@ Go Back
 
 <section class="section" id="models">
 <h2 class="section-title">Available Models</h2>
-<p class="section-text">Pass the model ID in the <code>model</code> field. If the chosen model is unavailable, the API auto-falls back through the chain.</p>
+<p class="section-text">Pass model ID in the <code>model</code> field. All models are hosted locally via Ollama.</p>
 
 <div class="model-tiers">
 <div class="model-tier-block">
 <div class="tier-header tier-free">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-Free Models
+Available Models
 </div>
 <div class="model-rows">
 <div class="model-row">
-<code class="model-id">gpt-5.2</code>
-<span class="model-label">ChatGPT 5.2</span>
-<span class="model-note">Latest OpenAI</span>
+<code class="model-id">psm-v1.0</code>
+<span class="model-label">PSM-v1.0 (PrysmisAI)</span>
+<span class="model-note">PrysmisAI model</span>
 </div>
 <div class="model-row">
-<code class="model-id">gpt-5.2-mini</code>
-<span class="model-label">ChatGPT 5.2 Mini</span>
-<span class="model-note">Fast OpenAI</span>
-</div>
-<div class="model-row">
-<code class="model-id">gpt-4o</code>
-<span class="model-label">GPT-4o</span>
-<span class="model-note">Multimodal</span>
-</div>
-<div class="model-row">
-<code class="model-id">gpt-4o-mini</code>
-<span class="model-label">GPT-4o Mini</span>
-<span class="model-note">Lightweight</span>
-</div>
-<div class="model-row">
-<code class="model-id">o3-mini</code>
-<span class="model-label">o3 Mini</span>
-<span class="model-note">Reasoning</span>
-</div>
-<div class="model-row">
-<code class="model-id">claude-sonnet-4-5</code>
-<span class="model-label">Claude Sonnet 4.5</span>
-<span class="model-note">Anthropic balanced</span>
-</div>
-<div class="model-row">
-<code class="model-id">claude-haiku-3-5</code>
-<span class="model-label">Claude Haiku 3.5</span>
-<span class="model-note">Fast Anthropic</span>
-</div>
-<div class="model-row">
-<code class="model-id">gemini-3.2-flash</code>
-<span class="model-label">Gemini 3.2 Flash</span>
-<span class="model-note">Fast Google</span>
-</div>
-<div class="model-row">
-<code class="model-id">llama-4-maverick</code>
-<span class="model-label">Llama 4 Maverick</span>
-<span class="model-note">Meta open-source</span>
-</div>
-<div class="model-row">
-<code class="model-id">deepseek-r1</code>
-<span class="model-label">DeepSeek R1</span>
-<span class="model-note">Reasoning model</span>
-</div>
-<div class="model-row">
-<code class="model-id">deepseek-v3</code>
-<span class="model-label">DeepSeek V3</span>
-<span class="model-note">General purpose</span>
-</div>
-<div class="model-row">
-<code class="model-id">mistral-large-2</code>
-<span class="model-label">Mistral Large 2</span>
-<span class="model-note">European frontier</span>
-</div>
-</div>
-</div>
-
-<div class="model-tier-block">
-<div class="tier-header tier-premium">
-<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-Premium Models
-</div>
-<div class="model-rows">
-<div class="model-row model-row-premium">
-<code class="model-id">claude-opus-4-5</code>
-<span class="model-label">Claude Opus 4.5</span>
-<span class="model-note">Most powerful Anthropic</span>
-</div>
-<div class="model-row model-row-premium">
-<code class="model-id">gemini-3.2-pro</code>
-<span class="model-label">Gemini 3.2 Pro</span>
-<span class="model-note">Google flagship</span>
-</div>
-<div class="model-row model-row-premium">
-<code class="model-id">grok-4</code>
-<span class="model-label">Grok 4</span>
-<span class="model-note">xAI latest</span>
+<code class="model-id">llama3.2-vision:latest</code>
+<span class="model-label">Llama 3.2 Vision</span>
+<span class="model-note">PrysmisAI model</span>
 </div>
 </div>
 </div>
@@ -192,7 +118,7 @@ Premium Models
 
 <div class="note note-green mt">
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-<p>Fallback chain: <code>gpt-5.2</code> then <code>gpt-4o</code> then <code>claude-sonnet-4-5</code> then <code>gpt-4o-mini</code></p>
+<p>Both models are hosted locally via Ollama. Make sure Ollama is running with llama3.2-vision:latest installed.</p>
 </div>
 </section>
 
@@ -211,7 +137,7 @@ Premium Models
   method: <span class="cs">'POST'</span>,
   headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'application/json'</span> },
   body: JSON.stringify({
-    model: <span class="cs">'gpt-5.2'</span>,
+    model: <span class="cs">'psm-v1.0'</span>,
     messages: [
       { role: <span class="cs">'system'</span>, content: <span class="cs">'You are a helpful assistant.'</span> },
       { role: <span class="cs">'user'</span>, content: <span class="cs">'Write me a Roblox health bar script.'</span> }
@@ -233,7 +159,7 @@ console.log(data.choices[<span class="cn">0</span>].message.content);</code></pr
 <pre id="ex2"><code><span class="ck">import</span> requests
 
 res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completions'</span>, json={
-    <span class="cs">'model'</span>: <span class="cs">'claude-sonnet-4-5'</span>,
+    <span class="cs">'model'</span>: <span class="cs">'llama3.2-vision:latest'</span>,
     <span class="cs">'messages'</span>: [
         {<span class="cs">'role'</span>: <span class="cs">'user'</span>, <span class="cs">'content'</span>: <span class="cs">'Create a Roblox shop system.'</span>}
     ],
@@ -252,7 +178,7 @@ res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completi
 <pre id="ex3"><code>curl -X POST https://api.prysmisai.wtf/v1/chat/completions \
   -H <span class="cs">"Content-Type: application/json"</span> \
   -d <span class="cs">'{
-    "model": "gpt-4o",
+    "model": "psm-v1.0",
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 2048
   }'</span></code></pre>
