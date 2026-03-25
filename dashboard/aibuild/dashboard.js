@@ -55,15 +55,6 @@ fetch('/me?token=' + encodeURIComponent(storedToken))
     if (d.username) userNameEl.textContent = d.username;
   }).catch(function() {});
 
-fetch('/account/poe-key?token=' + encodeURIComponent(storedToken))
-  .then(function(r) { return r.json(); })
-  .then(function(d) {
-    if (d.poeApiKey) {
-      storedPoeApiKey = d.poeApiKey;
-      localStorage.setItem('poeApiKey', d.poeApiKey);
-    }
-  }).catch(function() {});
-
 function unlockPremiumOptions() {
 }
 
@@ -298,7 +289,7 @@ var psmPipeline = null;
 var psmVisionPipeline = null;
 var psmLoading = false;
 var psmVisionLoading = false;
-var XENOVA_CDN = 'https://vaultstatic.cfd/p/0fe3ce333701';
+var XENOVA_CDN = '';
 
 async function getXenovaPipeline() {
   if (window.__xenovaMod) return window.__xenovaMod;
@@ -1404,82 +1395,84 @@ settingsShowStudio.addEventListener('click', function() {
 
 settingsCopyStudio.addEventListener('click', function() { if (currentStudioToken) copyToClipboard(currentStudioToken, settingsCopyStudio, 'Copy Token'); });
 
-var settingsPoeKeyInput = document.getElementById('settingsPoeKeyInput');
-var settingsShowPoeKey = document.getElementById('settingsShowPoeKey');
-var settingsSavePoeKey = document.getElementById('settingsSavePoeKey');
-var settingsPoeKeyStatus = document.getElementById('settingsPoeKeyStatus');
-var poeKeyVisible = false;
+var settingsGenerateApiBtn = document.getElementById('settingsGenerateApiBtn');
+var settingsApiResult = document.getElementById('settingsApiResult');
+var settingsApiKeyDisplay = document.getElementById('settingsApiKeyDisplay');
+var settingsShowApiKey = document.getElementById('settingsShowApiKey');
+var settingsCopyApiKey = document.getElementById('settingsCopyApiKey');
+var settingsApiCount = document.getElementById('settingsApiCount');
+var apiKeyVisible = false;
+var apiKeysGeneratedToday = 0;
+var maxApiKeysPerDay = 3;
 var settingsCloseAI = document.getElementById('settingsCloseAI');
 
 if (settingsCloseAI) {
   settingsCloseAI.addEventListener('click', function() { settingsModal.style.display = 'none'; });
 }
 
-function loadPoeKey() {
-  fetch('/account/poe-key?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.poeApiKey) {
-        storedPoeApiKey = data.poeApiKey;
-        localStorage.setItem('poeApiKey', data.poeApiKey);
-        settingsPoeKeyInput.value = data.poeApiKey;
-        settingsPoeKeyInput.type = 'password';
-        poeKeyVisible = false;
-        settingsShowPoeKey.textContent = 'Show';
-      }
-    }).catch(function() {});
-}
-
-if (settingsShowPoeKey) {
-  settingsShowPoeKey.addEventListener('click', function() {
-    if (!settingsPoeKeyInput.value) return;
-    if (poeKeyVisible) {
-      settingsPoeKeyInput.type = 'password';
-      settingsShowPoeKey.textContent = 'Show';
-      poeKeyVisible = false;
-    } else {
-      settingsPoeKeyInput.type = 'text';
-      settingsShowPoeKey.textContent = 'Hide';
-      poeKeyVisible = true;
+if (settingsCopyApiKey) {
+  settingsCopyApiKey.addEventListener('click', function() {
+    if (settingsApiKeyDisplay.value) {
+      navigator.clipboard.writeText(settingsApiKeyDisplay.value).then(function() {
+        var originalText = settingsCopyApiKey.textContent;
+        settingsCopyApiKey.textContent = 'Copied!';
+        setTimeout(function() {
+          settingsCopyApiKey.textContent = originalText;
+        }, 2000);
+      }).catch(function() {
+        alert('Failed to copy API key');
+      });
     }
   });
 }
 
-if (settingsSavePoeKey) {
-  settingsSavePoeKey.addEventListener('click', function() {
-    var key = settingsPoeKeyInput.value.trim();
-    settingsSavePoeKey.textContent = 'Saving...';
-    settingsSavePoeKey.disabled = true;
-    fetch('/account/save-poe-key?token=' + encodeURIComponent(storedToken), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ poeApiKey: key })
-    }).then(function(r) { return r.json(); }).then(function(data) {
-      settingsSavePoeKey.disabled = false;
-      if (data.success) {
-        storedPoeApiKey = key;
-        localStorage.setItem('poeApiKey', key);
-        settingsSavePoeKey.textContent = 'Saved';
-        if (settingsPoeKeyStatus) {
-          settingsPoeKeyStatus.textContent = key ? 'POE API key saved. AI requests will use your key.' : 'API key cleared.';
-          settingsPoeKeyStatus.className = 'settings-poe-status settings-poe-status-ok';
-        }
-        setTimeout(function() { settingsSavePoeKey.textContent = 'Save'; }, 2000);
-      } else {
-        settingsSavePoeKey.textContent = 'Save';
-        if (settingsPoeKeyStatus) {
-          settingsPoeKeyStatus.textContent = data.error || 'Failed to save.';
-          settingsPoeKeyStatus.className = 'settings-poe-status settings-poe-status-err';
-        }
-      }
-    }).catch(function() {
-      settingsSavePoeKey.disabled = false;
-      settingsSavePoeKey.textContent = 'Save';
-      if (settingsPoeKeyStatus) {
-        settingsPoeKeyStatus.textContent = 'Network error.';
-        settingsPoeKeyStatus.className = 'settings-poe-status settings-poe-status-err';
-      }
-    });
+if (settingsShowApiKey) {
+  settingsShowApiKey.addEventListener('click', function() {
+    if (apiKeyVisible) {
+      settingsApiKeyDisplay.type = 'password';
+      settingsShowApiKey.textContent = 'Show';
+    } else {
+      settingsApiKeyDisplay.type = 'text';
+      settingsShowApiKey.textContent = 'Hide';
+    }
+    apiKeyVisible = !apiKeyVisible;
+  });
+}
+
+function generateRandomApiKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = 'PR-prysmisai-JS_';
+  for (let i = 0; i < 32; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+if (settingsGenerateApiBtn) {
+  settingsGenerateApiBtn.addEventListener('click', function() {
+    if (apiKeysGeneratedToday >= maxApiKeysPerDay) {
+      settingsApiResult.style.display = 'block';
+      settingsApiCount.textContent = '0';
+      settingsApiKeyDisplay.value = 'Daily limit reached (3 keys per day)';
+      return;
+    }
+    
+    settingsGenerateApiBtn.textContent = 'Generating...';
+    settingsGenerateApiBtn.disabled = true;
+    
+    setTimeout(function() {
+      const newApiKey = generateRandomApiKey();
+      apiKeysGeneratedToday++;
+      
+      settingsApiResult.style.display = 'block';
+      settingsApiKeyDisplay.value = newApiKey;
+      settingsApiKeyDisplay.type = 'password';
+      settingsApiCount.textContent = (maxApiKeysPerDay - apiKeysGeneratedToday).toString();
+      settingsGenerateApiBtn.textContent = 'Generate';
+      settingsGenerateApiBtn.disabled = false;
+      apiKeyVisible = false;
+      settingsShowApiKey.textContent = 'Show';
+    }, 1000);
   });
 }
 
