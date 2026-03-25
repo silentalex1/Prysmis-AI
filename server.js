@@ -343,14 +343,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pt === '/discord/ping') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     return sendJson(res, 200, { ok: true, status: 'connected', site: 'prysmisai.wtf', users: Object.keys(db.users).length, admins: Object.keys(db.admins).length });
   }
 
   if (req.method === 'POST' && pt === '/discord/connect') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, botTag } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -363,8 +359,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/setadmin') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, username, password } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -377,8 +371,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/blacklist') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, adminUsername } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -392,8 +384,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/run-ollama') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     const { spawn } = require('child_process');
     try {
       const isWin = process.platform === 'win32';
@@ -410,8 +400,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pt === '/discord/check-user') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     const username = url.searchParams.get('username');
     if (!username) return sendJson(res, 400, { error: 'username required' });
     const uname = username.trim().toLowerCase();
