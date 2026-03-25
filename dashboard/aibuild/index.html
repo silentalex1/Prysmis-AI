@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="dashboard.css">
-<script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
 <div class="animated-bg"></div>
@@ -21,7 +20,7 @@
 <nav class="nav-links">
 <a href="https://prysmisai.wtf/APIDoc/" class="nav-item" target="_blank" rel="noopener">API Doc</a>
 <a href="#" class="nav-item donate-link">Donate to me?</a>
-<a href="https://create.roblox.com/store/asset/73629099653384/PrysmisAI" target="_blank" rel="noopener" class="nav-item">Our Plugin</a>
+<a href="https://create.roblox.com/store/asset/135923299325928/PrysmisAI?viewFromStudio=true&keyword=&searchId=57302a6c-3c8a-4f14-8b62-2059d5d85f1e" target="_blank" rel="noopener" class="nav-item">Our Plugin</a>
 </nav>
 <button id="generateTokenBtn">Generate Token</button>
 <button id="connectBtn">Connect Plugin</button>
@@ -219,14 +218,10 @@ Settings
 <div class="explorer-status-bar">
 <span class="dot red" id="statusDot"></span>
 <span id="statusText">Disconnected</span>
-<span id="pluginUserTag" class="plugin-user-tag"></span>
 </div>
 <div id="studioFilesPanel" class="studio-files-panel" style="display:none">
-<div class="studio-files-header">
-STUDIO FILES
-<button id="sendFilesToWebBtn" class="send-files-btn" title="Send all Studio files to website">Send Files to Website</button>
-</div>
-<div id="studioFilesList" class="studio-files-list studio-files-scroll"></div>
+<div class="studio-files-header">Studio Files</div>
+<div id="studioFilesList" class="studio-files-list"></div>
 </div>
 <div id="explorerDisconnected" class="explorer-disconnected">
 <div class="explorer-block"></div>
@@ -276,6 +271,7 @@ STUDIO FILES
 <div class="settings-sidebar">
 <button class="settings-nav-btn active" id="settingsNavAccount" onclick="switchSettingsTab('account')">User Account</button>
 <button class="settings-nav-btn" id="settingsNavStudio" onclick="switchSettingsTab('studio')">Studio Token</button>
+<button class="settings-nav-btn" id="settingsNavAI" onclick="switchSettingsTab('ai')">AI Settings</button>
 </div>
 <div class="settings-content">
 <div class="settings-page" id="settingsPageAccount">
@@ -301,11 +297,6 @@ STUDIO FILES
 </div>
 <p class="settings-token-hint">You can generate a new auth token after 24 hours. Do NOT share your account auth token to anyone.</p>
 </div>
-<div class="settings-field-group">
-<label class="settings-label" id="personalInstructLabel">Personal Instruction List for <span id="personalInstructModelName">PSM-4.0 (PrysmisAI)</span></label>
-<textarea id="personalInstructInput" class="settings-token-input" style="min-height:110px;resize:vertical;font-family:inherit;line-height:1.5;" placeholder="Type in personal instructions for this AI model..."></textarea>
-<p class="settings-token-hint">These instructions will be applied to all your chats with the selected model. Available for all users.</p>
-</div>
 <div class="settings-save-row">
 <button class="settings-save-btn" id="settingsSaveBtn">Save Settings</button>
 </div>
@@ -325,6 +316,24 @@ STUDIO FILES
 <button class="settings-token-btn settings-token-btn-copy" id="settingsCopyStudio">Copy Token</button>
 </div>
 <p class="settings-token-hint">Use this token to connect Roblox Studio to your PrysmisAI account. Paste it into the plugin token field in Roblox Studio.</p>
+</div>
+</div>
+<div class="settings-page" id="settingsPageAI" style="display:none">
+<div class="settings-page-header">
+<h2>AI Settings</h2>
+<button class="settings-close" id="settingsCloseAI">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+</button>
+</div>
+<div class="settings-field-group">
+<label class="settings-label">POE API KEY</label>
+<div class="settings-token-row">
+<input type="password" id="settingsPoeKeyInput" class="settings-token-input" placeholder="Enter your Poe API key...">
+<button class="settings-token-btn" id="settingsShowPoeKey">Show</button>
+<button class="settings-token-btn settings-token-btn-copy" id="settingsSavePoeKey">Save</button>
+</div>
+<p class="settings-token-hint">Enter your Poe API key through <a href="https://poe.com/api/keys" target="_blank" rel="noopener" class="settings-hint-link">here</a>.</p>
+<div id="settingsPoeKeyStatus" class="settings-poe-status"></div>
 </div>
 </div>
 </div>
