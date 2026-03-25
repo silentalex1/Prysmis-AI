@@ -795,32 +795,6 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, username: newUname });
   }
 
-  if (req.method === 'GET' && pt === '/account/personal-instructions') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    return sendJson(res, 200, { instructions: user.personalInstructions || {} });
-  }
-
-  if (req.method === 'POST' && pt === '/account/personal-instructions') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    const { model, instructions } = body;
-    if (!model || typeof model !== 'string') return sendJson(res, 400, { error: 'model required' });
-    if (!user.personalInstructions) user.personalInstructions = {};
-    if (instructions && instructions.trim()) {
-      user.personalInstructions[model] = instructions.trim();
-    } else {
-      delete user.personalInstructions[model];
-    }
-    saveDb();
-    return sendJson(res, 200, { success: true });
-  }
-
   if (req.method === 'GET' && pt === '/adminpanel') {
     fs.readFile('./adminpanel/index.html', (err, data) => {
       if (err) { res.writeHead(404); res.end(); return; }
@@ -855,15 +829,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/plugin/files') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const fileToken = body.pluginToken || url.searchParams.get('token') || url.searchParams.get('pluginToken') || '';
-    if (!fileToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
     for (const u in db.users) {
-      if (db.users[u].pluginToken === fileToken) {
+      if (db.users[u].pluginToken === body.pluginToken) {
         db.users[u].studioFiles = Array.isArray(body.files) ? body.files : [];
         db.users[u].studioFilesUpdated = Date.now();
-        if (body.stats) db.users[u].studioStats = body.stats;
         saveDb();
-        return sendJson(res, 200, { ok: true, username: u });
+        return sendJson(res, 200, { ok: true });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -874,62 +846,7 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
-    return sendJson(res, 200, { files: user.studioFiles || [], updated: user.studioFilesUpdated || null, stats: user.studioStats || null });
-  }
-
-  if (req.method === 'GET' && pt === '/plugin/poll') {
-    const pluginToken = url.searchParams.get('pluginToken') || '';
-    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === pluginToken) {
-        db.users[u].pluginLastPing = Date.now();
-        db.users[u].pluginConnected = true;
-        const changes = db.users[u].pendingChanges || [];
-        const cmd = db.users[u].pendingCommand || null;
-        db.users[u].pendingChanges = [];
-        db.users[u].pendingCommand = null;
-        if (changes.length > 0 || cmd) saveDb();
-        return sendJson(res, 200, {
-          ok: true,
-          model: db.users[u].pluginModel || 'gpt-5.2',
-          username: u,
-          changes,
-          command: cmd
-        });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
-  }
-
-  if (req.method === 'GET' && pt === '/plugin/ack-status') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    const changeId = url.searchParams.get('changeId') || '';
-    if (!changeId) return sendJson(res, 400, { error: 'changeId required' });
-    const ackLog = user.ackLog || [];
-    const entry = ackLog.find(a => a.changeId === changeId);
-    if (entry) {
-      return sendJson(res, 200, { found: true, ok: entry.ok, results: entry.results || [] });
-    }
-    return sendJson(res, 200, { found: false });
-  }
-
-  if (req.method === 'POST' && pt === '/plugin/ack') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const ackToken = body.pluginToken || url.searchParams.get('pluginToken') || '';
-    if (!ackToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === ackToken) {
-        if (!Array.isArray(db.users[u].ackLog)) db.users[u].ackLog = [];
-        db.users[u].ackLog.push({ changeId: body.changeId, ok: body.ok, results: body.results, ts: Date.now() });
-        if (db.users[u].ackLog.length > 50) db.users[u].ackLog = db.users[u].ackLog.slice(-50);
-        saveDb();
-        return sendJson(res, 200, { ok: true });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
+    return sendJson(res, 200, { files: user.studioFiles || [], updated: user.studioFilesUpdated || null });
   }
 
   if (req.method === 'POST' && pt === '/plugin/execute') {
@@ -939,11 +856,6 @@ const server = http.createServer(async (req, res) => {
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
-    if (body._command) {
-      user.pendingCommand = body._command;
-      saveDb();
-      return sendJson(res, 200, { ok: true });
-    }
     if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
     if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
     const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
@@ -958,12 +870,10 @@ const server = http.createServer(async (req, res) => {
     if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
     for (const u in db.users) {
       if (db.users[u].pluginToken === pluginToken) {
-        db.users[u].pluginLastPing = Date.now();
-        db.users[u].pluginConnected = true;
         const changes = db.users[u].pendingChanges || [];
         db.users[u].pendingChanges = [];
         if (changes.length > 0) saveDb();
-        return sendJson(res, 200, { changes, model: db.users[u].pluginModel || 'gpt-5.2', username: u });
+        return sendJson(res, 200, { changes });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -971,6 +881,24 @@ const server = http.createServer(async (req, res) => {
 
   const host = (req.headers['host'] || '').split(':')[0];
   const isApiSubdomain = host === 'api.prysmisai.wtf';
+
+  if (req.method === 'POST' && pt === '/account/save-poe-key') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const { poeApiKey } = body;
+    if (typeof poeApiKey !== 'string') return sendJson(res, 400, { error: 'Invalid key' });
+    db.users[td.username].poeApiKey = poeApiKey.trim();
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'GET' && pt === '/account/poe-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    return sendJson(res, 200, { poeApiKey: (user && user.poeApiKey) ? user.poeApiKey : '' });
+  }
 
   if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions' || (isApiSubdomain && pt === '/'))) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
@@ -990,8 +918,27 @@ const server = http.createServer(async (req, res) => {
     if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
     const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
-    const fallbacks = ['gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
-    const modelMap = {
+
+    const poeApiKey = body.poeApiKey || '';
+
+    if (poeApiKey) {
+      const poeBody = JSON.stringify({ model: modelToUse, messages: cleanMessages, temperature: temp, max_tokens: maxTok });
+      try {
+        const r = await fetch('https://api.poe.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + poeApiKey }
+        , body: poeBody });
+        const txt = await r.text();
+        if (txt && !txt.trim().toLowerCase().startsWith('<!')) {
+          let data;
+          try { data = JSON.parse(txt); } catch (_) { data = null; }
+          if (data && data.choices && data.choices[0]) return sendJson(res, 200, data);
+          if (data && data.error) return sendJson(res, 200, { error: data.error.message || 'POE API error' });
+        }
+      } catch (_) {}
+    }
+
+    const poeModelMap = {
       'gpt-5.2': 'gpt-4o',
       'gpt-5.2-mini': 'gpt-4o-mini',
       'gemini-3.2-pro': 'claude-sonnet-4-5',
@@ -1009,8 +956,9 @@ const server = http.createServer(async (req, res) => {
       'gpt-4o': 'gpt-4o',
       'gpt-4o-mini': 'gpt-4o-mini'
     };
-    const puterModel = modelMap[modelToUse] || 'gpt-4o';
-    const tryList = [puterModel, ...fallbacks.filter(f => f !== puterModel)];
+    const fallbacks = ['gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
+    const resolvedModel = poeModelMap[modelToUse] || 'gpt-4o';
+    const tryList = [resolvedModel, ...fallbacks.filter(f => f !== resolvedModel)];
     const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
 
     const getDriver = (m) => {
