@@ -38,7 +38,31 @@ var imagePasteImg = null;
 var PREMIUM_MODELS = {};
 
 var MODEL_API_MAP = {
-  'psm-v1.0': 'psm-v1.0'
+  'psm-v1.0': 'psm-v1.0',
+  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
+  'llama3-70b-8192': 'llama3-70b-8192',
+  'llama3-8b-8192': 'llama3-8b-8192',
+  'mixtral-8x7b-32768': 'mixtral-8x7b-32768',
+  'gemma2-9b-it': 'gemma2-9b-it',
+  'llama-3.2-1b-preview': 'llama-3.2-1b-preview',
+  'llama-3.2-3b-preview': 'llama-3.2-3b-preview',
+  'llama-3.2-11b-vision-preview': 'llama-3.2-11b-vision-preview',
+  'llama-3.2-90b-vision-preview': 'llama-3.2-90b-vision-preview',
+  'llama-3.3-70b-specdec': 'llama-3.3-70b-specdec',
+  'llama-guard-3-8b': 'llama-guard-3-8b',
+  'llama3-groq-70b-8192-tool-use-preview': 'llama3-groq-70b-8192-tool-use-preview',
+  'llama3-groq-8b-8192-tool-use-preview': 'llama3-groq-8b-8192-tool-use-preview',
+  'deepseek-r1-distill-llama-70b': 'deepseek-r1-distill-llama-70b',
+  'qwen-qwq-32b': 'qwen-qwq-32b',
+  'mistral-saba-24b': 'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct': 'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct': 'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'playai-tts': 'playai-tts',
+  'playai-tts-arabic': 'playai-tts-arabic',
+  'whisper-large-v3': 'whisper-large-v3',
+  'whisper-large-v3-turbo': 'whisper-large-v3-turbo',
+  'distil-whisper-large-v3-en': 'distil-whisper-large-v3-en'
 };
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
@@ -534,7 +558,7 @@ function doSend(overrideText, isContinue) {
     if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PrysmisAI is thinking...'; }
     fetch('/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
       body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
     }).then(function(r) {
       if (!r.ok) {
@@ -549,20 +573,27 @@ function doSend(overrideText, isContinue) {
       handleReply(reply, null);
     }).catch(function(e) {
       removeThinking();
-      addMessage('PSM-v1.0(PrysmisAI) error: ' + (e.message || String(e)), false, null);
+      addMessage('PSM-v1.0(PrysmisAI): ' + (e.message || String(e)), false, null);
     });
     return;
   }
   fetch('/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
     body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
-  }).then(function(r) { return r.json(); }).then(function(data) {
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(errData) {
+        throw new Error(errData.error || 'API error (HTTP ' + r.status + ')');
+      });
+    }
+    return r.json();
+  }).then(function(data) {
     var choice = data.choices && data.choices[0];
     var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
     var finishReason = choice ? choice.finish_reason : null;
     handleReply(reply, finishReason);
-  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false, null); });
+  }).catch(function(e) { removeThinking(); addMessage(e.message || 'Connection error', false, null); });
 }
 
 function saveChat(firstMsg) {
