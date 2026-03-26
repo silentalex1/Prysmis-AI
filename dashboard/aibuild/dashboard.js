@@ -535,21 +535,28 @@ function doSend(overrideText, isContinue) {
     fetch('/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384 })
-    }).then(function(r) { return r.json(); }).then(function(data) {
+      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
+    }).then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(errData) {
+          throw new Error(errData.error || 'PSM-v1.0 error (HTTP ' + r.status + ')');
+        });
+      }
+      return r.json();
+    }).then(function(data) {
       var choice = data.choices && data.choices[0];
       var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
       handleReply(reply, null);
     }).catch(function(e) {
       removeThinking();
-      addMessage('PrysmisAI error: ' + (e.message || String(e)), false, null);
+      addMessage('PSM-v1.0(PrysmisAI) error: ' + (e.message || String(e)), false, null);
     });
     return;
   }
   fetch('/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384 })
+    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
   }).then(function(r) { return r.json(); }).then(function(data) {
     var choice = data.choices && data.choices[0];
     var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
