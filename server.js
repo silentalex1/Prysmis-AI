@@ -264,7 +264,12 @@ const GROQ_MODELS = new Set([
   'qwen-qwq-32b',
   'mistral-saba-24b',
   'meta-llama/llama-4-scout-17b-16e-instruct',
-  'meta-llama/llama-4-maverick-17b-128e-instruct'
+  'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'playai-tts',
+  'playai-tts-arabic',
+  'whisper-large-v3',
+  'whisper-large-v3-turbo',
+  'distil-whisper-large-v3-en'
 ]);
 
 const MODEL_MAP = {
@@ -1484,10 +1489,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (GROQ_MODELS.has(modelToUse)) {
-      const authHeader = req.headers['authorization'] || '';
-      const bearerKey = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const td = getTokenData(bearerKey) || getTokenData(getReqToken(req, url));
-      const groqKey = (td && getUserGroqKey(td.username)) || bearerKey;
+      const td = getTokenData(getReqToken(req, url));
+      const groqKey = td ? getUserGroqKey(td.username) : null;
       if (!groqKey || !groqKey.startsWith('gsk_')) {
         return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
       }
