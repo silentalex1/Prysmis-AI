@@ -2,6 +2,65 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { spawn, exec } = require('child_process');
+
+let ollamaStarting = false;
+let ollamaReady = false;
+
+function startOllamaIfNeeded() {
+  if (ollamaStarting || ollamaReady) return;
+  ollamaStarting = true;
+  const proc = spawn('ollama', ['serve'], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+    shell: process.platform === 'win32'
+  });
+  proc.unref();
+  setTimeout(() => { ollamaStarting = false; ollamaReady = true; }, 4000);
+}
+
+function callOllama(messages, temperature, maxTokens) {
+  return new Promise((resolve, reject) => {
+    startOllamaIfNeeded();
+    const postData = JSON.stringify({
+      model: 'llama3.2-vision:latest',
+      messages: messages,
+      stream: false,
+      options: { temperature: temperature, num_predict: maxTokens }
+    });
+    const opts = {
+      hostname: '127.0.0.1',
+      port: 11434,
+      path: '/api/chat',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+      timeout: 120000
+    };
+    const req = http.request(opts, (ollamaRes) => {
+      let data = '';
+      ollamaRes.on('data', (c) => { data += c; });
+      ollamaRes.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(new Error('Invalid response from model')); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Model response timed out')); });
+    req.on('error', (e) => {
+      ollamaReady = false;
+      if (e.code === 'ECONNREFUSED') {
+        startOllamaIfNeeded();
+        reject(new Error('PSM-v1.0 is starting up. Please wait a few seconds and try again.'));
+      } else {
+        reject(e);
+      }
+    });
+    req.write(postData);
+    req.end();
+  });
+}
+
+startOllamaIfNeeded();
 const DB_FILE = 'db.json';
 const DB_BACKUP = 'db.backup.json';
 const SALT = 'prysmis_v3_kx9salt2025';
@@ -384,7 +443,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/run-ollama') {
-    const { spawn } = require('child_process');
     try {
       const isWin = process.platform === 'win32';
       const ollamaProcess = spawn('ollama', ['serve'], {
@@ -400,10 +458,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/set-ollama-service') {
-    const { spawn, exec } = require('child_process');
-    const fs = require('fs');
-    const path = require('path');
-    
     try {
       const isWin = process.platform === 'win32';
       if (!isWin) {
@@ -984,50 +1038,33 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pt === '/api/health') {
-    try {
-      const ollamaHealth = await new Promise((resolve) => {
-        const options = {
-          hostname: '127.0.0.1',
-          port: 11434,
-          path: '/api/tags',
-          method: 'GET',
-          timeout: 5000
-        };
-        const req = http.request(options, (res) => {
-          let data = '';
-          res.on('data', (chunk) => { data += chunk; });
-          res.on('end', () => {
-            try {
-              const parsed = JSON.parse(data);
-              const models = parsed.models || [];
-              const hasModel = models.some(m => m.name === 'llama3.2-vision:latest');
-              resolve({ ok: hasModel, reachable: true, model_available: hasModel, installed_models: models.map(m => m.name) });
-            } catch (e) {
-              resolve({ ok: false, reachable: true, model_available: false, error: 'Invalid Ollama response' });
-            }
-          });
+    startOllamaIfNeeded();
+    const ollamaHealth = await new Promise((resolve) => {
+      const opts = { hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 5000 };
+      const hreq = http.request(opts, (hres) => {
+        let data = '';
+        hres.on('data', (c) => { data += c; });
+        hres.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            const models = parsed.models || [];
+            const hasModel = models.some(m => m.name === 'llama3.2-vision:latest');
+            resolve({ ok: hasModel, reachable: true, model_available: hasModel, installed_models: models.map(m => m.name) });
+          } catch (e) {
+            resolve({ ok: false, reachable: true, model_available: false, error: 'Invalid Ollama response' });
+          }
         });
-        req.on('error', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama not reachable' }));
-        req.on('timeout', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama timeout' }));
-        req.end();
       });
-      
-      return sendJson(res, 200, {
-        ok: ollamaHealth.ok,
-        service: 'prysmisai-web',
-        model: {
-          display_name: 'PSM-v1.0(PrysmisAI)',
-          runtime_model: 'llama3.2-vision:latest'
-        },
-        ollama: ollamaHealth
-      });
-    } catch (error) {
-      return sendJson(res, 503, {
-        ok: false,
-        service: 'prysmisai-web',
-        error: 'Health check failed: ' + error.message
-      });
-    }
+      hreq.on('error', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama starting up...' }));
+      hreq.on('timeout', () => { hreq.destroy(); resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama timeout' }); });
+      hreq.end();
+    });
+    return sendJson(res, 200, {
+      ok: ollamaHealth.ok,
+      service: 'prysmisai-web',
+      model: { display_name: 'PSM-v1.0(PrysmisAI)', runtime_model: 'llama3.2-vision:latest' },
+      ollama: ollamaHealth
+    });
   }
 
   if (req.method === 'GET' && pt === '/api/meta') {
@@ -1182,72 +1219,20 @@ const server = http.createServer(async (req, res) => {
     const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : 512;
     
     try {
-      const ollamaData = await new Promise((resolve, reject) => {
-        const postData = JSON.stringify({
-          model: 'llama3.2-vision:latest',
-          messages: messages,
-          stream: false,
-          options: {
-            temperature: temperature,
-            num_predict: maxTokens
-          }
-        });
-        
-        const options = {
-          hostname: '127.0.0.1',
-          port: 11434,
-          path: '/api/chat',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(postData)
-          }
-        };
-        
-        const ollamaReq = http.request(options, (ollamaRes) => {
-          let data = '';
-          ollamaRes.on('data', (chunk) => { data += chunk; });
-          ollamaRes.on('end', () => {
-            try {
-              resolve(JSON.parse(data));
-            } catch (e) {
-              reject(new Error('Invalid response from Ollama'));
-            }
-          });
-        });
-        
-        ollamaReq.on('error', (e) => { reject(e); });
-        ollamaReq.write(postData);
-        ollamaReq.end();
-      });
-      
+      const ollamaData = await callOllama(messages, temperature, maxTokens);
       const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : '';
       const promptTokens = ollamaData.prompt_eval_count || messages.reduce((acc, m) => acc + (m.content || '').length / 4, 0);
       const completionTokens = ollamaData.eval_count || reply.length / 4;
-      
       return sendJson(res, 200, {
         id: 'psmchat-' + crypto.randomBytes(16).toString('hex'),
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model: 'PSM-v1.0(PrysmisAI)',
-        choices: [{
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: reply
-          },
-          finish_reason: ollamaData.done_reason || 'stop'
-        }],
-        usage: {
-          prompt_tokens: Math.floor(promptTokens),
-          completion_tokens: Math.floor(completionTokens),
-          total_tokens: Math.floor(promptTokens + completionTokens)
-        }
+        choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: ollamaData.done_reason || 'stop' }],
+        usage: { prompt_tokens: Math.floor(promptTokens), completion_tokens: Math.floor(completionTokens), total_tokens: Math.floor(promptTokens + completionTokens) }
       });
     } catch (error) {
-      return sendJson(res, 503, { 
-        error: `PrysmisAI could not reach local Ollama model llama3.2-vision:latest: ${error.message}` 
-      });
+      return sendJson(res, 503, { error: 'PSM-v1.0(PrysmisAI): ' + error.message });
     }
   }
 
@@ -1272,67 +1257,20 @@ const server = http.createServer(async (req, res) => {
 
     if (modelToUse === 'psm-v1.0') {
       try {
-        const ollamaData = await new Promise((resolve, reject) => {
-          const postData = JSON.stringify({
-            model: 'llama3.2-vision:latest',
-            messages: cleanMessages,
-            stream: false,
-            options: {
-              temperature: temp,
-              num_predict: maxTok
-            }
-          });
-          
-          const options = {
-            hostname: '127.0.0.1',
-            port: 11434,
-            path: '/api/chat',
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(postData)
-            }
-          };
-          
-          const req = http.request(options, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-              try {
-                resolve(JSON.parse(data));
-              } catch (e) {
-                reject(new Error('Invalid response from Ollama'));
-              }
-            });
-          });
-          
-          req.on('error', (e) => { reject(e); });
-          req.write(postData);
-          req.end();
-        });
-        
+        const ollamaData = await callOllama(cleanMessages, temp, maxTok);
         const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'PSM-v1.0(PrysmisAI) could not generate a response.';
-        
+        const promptLen = cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length;
         return sendJson(res, 200, {
           id: 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
           object: 'chat.completion',
           model: 'psm-v1.0',
-          choices: [{
-            index: 0,
-            message: { role: 'assistant', content: reply },
-            finish_reason: 'stop'
-          }],
-          usage: {
-            prompt_tokens: cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length / 4,
-            completion_tokens: reply.length / 4,
-            total_tokens: (cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length + reply.length) / 4
-          }
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: Math.floor(promptLen / 4), completion_tokens: Math.floor(reply.length / 4), total_tokens: Math.floor((promptLen + reply.length) / 4) }
         });
       } catch (error) {
         return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
       }
     }
-
 
     return sendJson(res, 400, { error: 'Model not supported' });
   }
