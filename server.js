@@ -2,27 +2,28 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 
-let ollamaStarting = false;
-let ollamaReady = false;
-
-function startOllamaIfNeeded() {
-  if (ollamaStarting || ollamaReady) return;
-  ollamaStarting = true;
-  const proc = spawn('ollama', ['serve'], {
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: true,
-    shell: process.platform === 'win32'
+function tryStartOllama() {
+  try {
+    const proc = spawn('ollama', ['serve'], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      shell: process.platform === 'win32'
+    });
+    proc.on('error', function() {});
+    proc.on('close', function() {});
+    try { proc.unref(); } catch(e) {}
+  } catch (e) {}
+  process.on('uncaughtException', function(e) {
+    if (e && (e.code === 'ENOENT' || e.syscall === 'spawn ollama')) return;
+    throw e;
   });
-  proc.unref();
-  setTimeout(() => { ollamaStarting = false; ollamaReady = true; }, 4000);
 }
 
-function callOllama(messages, temperature, maxTokens) {
+function callOllamaLocal(messages, temperature, maxTokens) {
   return new Promise((resolve, reject) => {
-    startOllamaIfNeeded();
     const postData = JSON.stringify({
       model: 'llama3.2-vision:latest',
       messages: messages,
@@ -45,22 +46,25 @@ function callOllama(messages, temperature, maxTokens) {
         catch (e) { reject(new Error('Invalid response from model')); }
       });
     });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Model response timed out')); });
-    req.on('error', (e) => {
-      ollamaReady = false;
-      if (e.code === 'ECONNREFUSED') {
-        startOllamaIfNeeded();
-        reject(new Error('PSM-v1.0 is starting up. Please wait a few seconds and try again.'));
-      } else {
-        reject(e);
-      }
-    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    req.on('error', (e) => { reject(e); });
     req.write(postData);
     req.end();
   });
 }
 
-startOllamaIfNeeded();
+async function callOllama(messages, temperature, maxTokens) {
+  try {
+    const result = await callOllamaLocal(messages, temperature, maxTokens);
+    return result;
+  } catch (e) {
+    if (e.code === 'ECONNREFUSED' || e.code === 'ENOENT') {
+      throw new Error('PSM-v1.0 is starting up. Please wait a few seconds and try again.');
+    }
+    throw new Error(e.message || 'PSM-v1.0 could not respond. Please try again.');
+  }
+}
+
 const DB_FILE = 'db.json';
 const DB_BACKUP = 'db.backup.json';
 const SALT = 'prysmis_v3_kx9salt2025';
@@ -450,6 +454,7 @@ const server = http.createServer(async (req, res) => {
         stdio: 'ignore',
         shell: isWin
       });
+      ollamaProcess.on('error', function() {});
       ollamaProcess.unref();
       return sendJson(res, 200, { success: true, message: 'Ollama serve started', pid: ollamaProcess.pid });
     } catch (error) {
@@ -1038,7 +1043,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pt === '/api/health') {
-    startOllamaIfNeeded();
+    tryStartOllama();
     const ollamaHealth = await new Promise((resolve) => {
       const opts = { hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 5000 };
       const hreq = http.request(opts, (hres) => {
