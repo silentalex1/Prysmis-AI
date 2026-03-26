@@ -24,11 +24,18 @@ function tryStartOllama() {
 
 function callOllamaLocal(messages, temperature, maxTokens) {
   return new Promise((resolve, reject) => {
+    const safeMax = Math.min(maxTokens || 2048, 4096);
+    const cleanMsgs = messages.map(m => {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content };
+      if (Array.isArray(m.content)) return { role: m.role, content: m.content.filter(p => p.type === 'text').map(p => p.text).join('
+') };
+      return { role: m.role, content: String(m.content || '') };
+    });
     const postData = JSON.stringify({
       model: 'llama3.2-vision:latest',
-      messages: messages,
+      messages: cleanMsgs,
       stream: false,
-      options: { temperature: temperature, num_predict: maxTokens }
+      options: { temperature: temperature, num_predict: safeMax }
     });
     const opts = {
       hostname: '127.0.0.1',
@@ -444,6 +451,15 @@ const server = http.createServer(async (req, res) => {
     for (const t in db.tokens) { if (db.tokens[t].username === uname && db.tokens[t].isAdmin) delete db.tokens[t]; }
     saveDb();
     return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/notify-ready') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
+    db.meta.ollamaReady = true;
+    db.meta.ollamaReadyAt = Date.now();
+    saveDb();
+    return sendJson(res, 200, { ok: true });
   }
 
   if (req.method === 'POST' && pt === '/discord/run-ollama') {
@@ -1277,7 +1293,7 @@ const server = http.createServer(async (req, res) => {
     });
     if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
-    const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
+    const maxTok = typeof body.max_tokens === 'number' ? Math.min(body.max_tokens, 4096) : 2048;
 
     if (modelToUse === 'psm-v1.0') {
       try {
