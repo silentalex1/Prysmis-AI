@@ -27,8 +27,7 @@ function callOllamaLocal(messages, temperature, maxTokens) {
     const safeMax = Math.min(maxTokens || 2048, 4096);
     const cleanMsgs = messages.map(m => {
       if (typeof m.content === 'string') return { role: m.role, content: m.content };
-      if (Array.isArray(m.content)) return { role: m.role, content: m.content.filter(p => p.type === 'text').map(p => p.text).join('
-') };
+      if (Array.isArray(m.content)) return { role: m.role, content: m.content.filter(p => p.type === 'text').map(p => p.text).join(' ') };
       return { role: m.role, content: String(m.content || '') };
     });
     const postData = JSON.stringify({
