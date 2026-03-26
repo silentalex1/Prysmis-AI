@@ -314,13 +314,14 @@ Settings
 <button class="settings-token-btn" id="settingsGenerateApiBtn">Generate API key</button>
 </div>
 <p class="settings-token-hint">After 3 generation of PrysmisAI API key you must wait 24 hours.</p>
+<div id="settingsApiKeysStack"></div>
+<p class="settings-token-hint" id="settingsApiCountHint" style="display:none">Your API key: <span id="settingsApiCount">3</span> generations remaining today</p>
 <div id="settingsApiResult" class="settings-api-result" style="display:none">
 <div class="settings-api-key-container">
 <input type="password" id="settingsApiKeyDisplay" class="settings-token-input" readonly>
 <button class="settings-token-btn" id="settingsShowApiKey">Unhide</button>
 <button class="settings-token-btn settings-token-btn-copy" id="settingsCopyApiKey">Copy</button>
 </div>
-<p class="settings-token-hint">Your API key: <span id="settingsApiCount">3</span> generations remaining today</p>
 </div>
 </div>
 </div>
