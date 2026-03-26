@@ -481,10 +481,39 @@ const server = http.createServer(async (req, res) => {
       const ollamaProcess = spawn('ollama', ['serve'], { detached: true, stdio: 'ignore', shell: isWin });
       ollamaProcess.on('error', function() {});
       try { ollamaProcess.unref(); } catch(e) {}
-      return sendJson(res, 200, { success: true, message: 'Ollama started. PSM-v1.0 will be ready in a few seconds.', status: 'starting', pid: ollamaProcess.pid });
-    } catch (error) {
-      return sendJson(res, 500, { success: false, error: 'Ollama is not installed or not reachable on this server. Run the Node server on the same machine as Ollama.', status: 'not_found' });
+    } catch (spawnErr) {
+      return sendJson(res, 500, { success: false, error: 'Ollama is not installed or not reachable on this server.', status: 'not_found' });
     }
+    const waitReady = () => new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 30;
+      const interval = setInterval(() => {
+        attempts++;
+        const chk = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 2000 }, (r) => {
+          let d = '';
+          r.on('data', (c) => { d += c; });
+          r.on('end', () => {
+            try {
+              const parsed = JSON.parse(d);
+              const models = (parsed.models || []).map(m => m.name);
+              const hasModel = models.some(m => m === 'llama3.2-vision:latest');
+              if (hasModel) { clearInterval(interval); resolve({ ready: true }); }
+              else if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); }
+            } catch (e) {
+              if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); }
+            }
+          });
+        });
+        chk.on('error', () => { if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); } });
+        chk.on('timeout', () => { chk.destroy(); });
+        chk.end();
+      }, 2000);
+    });
+    const readyResult = await waitReady();
+    if (readyResult.ready) {
+      return sendJson(res, 200, { success: true, message: 'PSM-v1.0 is running and ready.', model: 'llama3.2-vision:latest', status: 'ready' });
+    }
+    return sendJson(res, 200, { success: false, message: 'Ollama started but model took too long to load. Try again in a moment.', status: 'starting' });
   }
 
   if (req.method === 'POST' && pt === '/discord/set-ollama-service') {
