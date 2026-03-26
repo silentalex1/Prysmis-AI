@@ -221,12 +221,115 @@ function validatePassword(p) {
 }
 
 const YOU_MODELS = [
-  'psm-v1.0'
+  'psm-v1.0',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'llama3-70b-8192',
+  'llama3-8b-8192',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
+  'gemma-7b-it',
+  'llama-3.2-1b-preview',
+  'llama-3.2-3b-preview',
+  'llama-3.2-11b-vision-preview',
+  'llama-3.2-90b-vision-preview',
+  'llama-3.3-70b-specdec',
+  'llama-guard-3-8b',
+  'llama3-groq-70b-8192-tool-use-preview',
+  'llama3-groq-8b-8192-tool-use-preview',
+  'deepseek-r1-distill-llama-70b',
+  'qwen-qwq-32b',
+  'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct'
 ];
 
+const GROQ_MODELS = new Set([
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'llama3-70b-8192',
+  'llama3-8b-8192',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
+  'gemma-7b-it',
+  'llama-3.2-1b-preview',
+  'llama-3.2-3b-preview',
+  'llama-3.2-11b-vision-preview',
+  'llama-3.2-90b-vision-preview',
+  'llama-3.3-70b-specdec',
+  'llama-guard-3-8b',
+  'llama3-groq-70b-8192-tool-use-preview',
+  'llama3-groq-8b-8192-tool-use-preview',
+  'deepseek-r1-distill-llama-70b',
+  'qwen-qwq-32b',
+  'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct'
+]);
+
 const MODEL_MAP = {
-  'psm-v1.0': 'psm-v1.0'
+  'psm-v1.0': 'psm-v1.0',
+  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
+  'llama3-70b-8192': 'llama3-70b-8192',
+  'llama3-8b-8192': 'llama3-8b-8192',
+  'mixtral-8x7b-32768': 'mixtral-8x7b-32768',
+  'gemma2-9b-it': 'gemma2-9b-it',
+  'gemma-7b-it': 'gemma-7b-it',
+  'llama-3.2-1b-preview': 'llama-3.2-1b-preview',
+  'llama-3.2-3b-preview': 'llama-3.2-3b-preview',
+  'llama-3.2-11b-vision-preview': 'llama-3.2-11b-vision-preview',
+  'llama-3.2-90b-vision-preview': 'llama-3.2-90b-vision-preview',
+  'llama-3.3-70b-specdec': 'llama-3.3-70b-specdec',
+  'llama-guard-3-8b': 'llama-guard-3-8b',
+  'llama3-groq-70b-8192-tool-use-preview': 'llama3-groq-70b-8192-tool-use-preview',
+  'llama3-groq-8b-8192-tool-use-preview': 'llama3-groq-8b-8192-tool-use-preview',
+  'deepseek-r1-distill-llama-70b': 'deepseek-r1-distill-llama-70b',
+  'qwen-qwq-32b': 'qwen-qwq-32b',
+  'mistral-saba-24b': 'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct': 'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct': 'meta-llama/llama-4-maverick-17b-128e-instruct'
 };
+
+const https = require('https');
+
+function callGroq(messages, temperature, maxTokens, groqApiKey, model) {
+  return new Promise((resolve, reject) => {
+    const safeMax = Math.min(maxTokens || 2048, 8192);
+    const cleanMsgs = messages.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join(' ') : String(m.content || ''))
+    }));
+    const postData = JSON.stringify({ model: model, messages: cleanMsgs, temperature: temperature, max_tokens: safeMax });
+    const opts = {
+      hostname: 'api.groq.com',
+      path: '/openai/v1/chat/completions',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqApiKey, 'Content-Length': Buffer.byteLength(postData) },
+      timeout: 60000
+    };
+    const req = https.request(opts, (groqRes) => {
+      let data = '';
+      groqRes.on('data', (c) => { data += c; });
+      groqRes.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) { reject(new Error(parsed.error.message || 'Groq API error')); return; }
+          resolve(parsed);
+        } catch (e) { reject(new Error('Invalid response from Groq')); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Groq request timeout')); });
+    req.on('error', (e) => { reject(e); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+function getUserGroqKey(username) {
+  const user = db.users[username] || {};
+  return user.groqApiKey || null;
+}
 
 function resolveModel(m) {
   if (!m || typeof m !== 'string') return 'psm-v1.0';
@@ -1143,6 +1246,33 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  if (req.method === 'GET' && pt === '/api/settings/groq-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    const user = db.users[td.username] || {};
+    const key = user.groqApiKey || '';
+    return sendJson(res, 200, { groqApiKey: key ? key.substring(0, 8) + '****' + key.slice(-4) : '', hasKey: !!key });
+  }
+
+  if (req.method === 'POST' && pt === '/api/settings/groq-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    let body;
+    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const key = typeof body.groqApiKey === 'string' ? body.groqApiKey.trim() : '';
+    if (!db.users[td.username]) db.users[td.username] = {};
+    db.users[td.username].groqApiKey = key;
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'DELETE' && pt === '/api/settings/groq-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    if (db.users[td.username]) { db.users[td.username].groqApiKey = ''; saveDb(); }
+    return sendJson(res, 200, { success: true });
+  }
+
   if (req.method === 'GET' && pt === '/api/settings/api-keys') {
     const clientId = req.headers['x-prysmisai-client'] || 'local-user';
     const td = getTokenData(getReqToken(req, url));
@@ -1242,7 +1372,8 @@ const server = http.createServer(async (req, res) => {
     const allowedModels = ['PSM-v1.0(PrysmisAI)', 'psm-v1.0', 'llama3.2-vision:latest'];
     if (!requestedModel) return 'psm-v1.0';
     if (allowedModels.includes(requestedModel)) return 'psm-v1.0';
-    throw new Error(`Unsupported model '${requestedModel}'. Use PSM-v1.0(PrysmisAI).`);
+    if (GROQ_MODELS.has(requestedModel)) return requestedModel;
+    throw new Error(`Unsupported model '${requestedModel}'. Use PSM-v1.0(PrysmisAI) or a supported Groq model.`);
   }
 
   if (req.method === 'POST' && pt === '/api/v1/chat/completions') {
@@ -1275,6 +1406,29 @@ const server = http.createServer(async (req, res) => {
     const temperature = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.2;
     const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : 512;
     
+    if (GROQ_MODELS.has(modelToUse)) {
+      const prysmisUser = Object.keys(db.users).find(u => (db.users[u].prysmisApiKeys || []).some(k => k.key === apiKey));
+      const groqKey = prysmisUser ? getUserGroqKey(prysmisUser) : null;
+      if (!groqKey || !groqKey.startsWith('gsk_')) {
+        return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
+      }
+      try {
+        const groqData = await callGroq(messages, temperature, maxTokens, groqKey, modelToUse);
+        const choice = groqData.choices && groqData.choices[0];
+        const reply = choice && choice.message && choice.message.content ? choice.message.content : '';
+        return sendJson(res, 200, {
+          id: groqData.id || 'psmchat-' + crypto.randomBytes(16).toString('hex'),
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: modelToUse,
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: (choice && choice.finish_reason) || 'stop' }],
+          usage: groqData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        });
+      } catch (error) {
+        return sendJson(res, 503, { error: 'Groq error: ' + error.message });
+      }
+    }
+
     try {
       const ollamaData = await callOllama(messages, temperature, maxTokens);
       const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : '';
@@ -1326,6 +1480,30 @@ const server = http.createServer(async (req, res) => {
         });
       } catch (error) {
         return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
+      }
+    }
+
+    if (GROQ_MODELS.has(modelToUse)) {
+      const authHeader = req.headers['authorization'] || '';
+      const bearerKey = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const td = getTokenData(bearerKey) || getTokenData(getReqToken(req, url));
+      const groqKey = (td && getUserGroqKey(td.username)) || bearerKey;
+      if (!groqKey || !groqKey.startsWith('gsk_')) {
+        return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
+      }
+      try {
+        const groqData = await callGroq(cleanMessages, temp, maxTok, groqKey, modelToUse);
+        const choice = groqData.choices && groqData.choices[0];
+        const reply = choice && choice.message && choice.message.content ? choice.message.content : '';
+        return sendJson(res, 200, {
+          id: groqData.id || 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
+          object: 'chat.completion',
+          model: modelToUse,
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: (choice && choice.finish_reason) || 'stop' }],
+          usage: groqData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        });
+      } catch (error) {
+        return sendJson(res, 500, { error: 'Groq error: ' + (error.message || 'Unknown error') });
       }
     }
 
