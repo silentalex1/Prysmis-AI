@@ -1293,6 +1293,7 @@ function switchSettingsTab(tab) {
     settingsPageAI.style.display = 'block';
     if (settingsNavAI) settingsNavAI.classList.add('active');
     loadApiKeys();
+    loadGroqKey();
   }
 }
 
@@ -1393,6 +1394,70 @@ function loadApiKeys() {
       renderKeyStack(data.keys || [], typeof data.generationsLeft === 'number' ? data.generationsLeft : 3);
     })
     .catch(function() {});
+}
+
+var settingsGroqKeyInput = document.getElementById('settingsGroqKeyInput');
+var settingsGroqShowBtn = document.getElementById('settingsGroqShowBtn');
+var settingsGroqSaveBtn = document.getElementById('settingsGroqSaveBtn');
+var settingsGroqStatus = document.getElementById('settingsGroqStatus');
+var groqKeyVisible = false;
+
+function loadGroqKey() {
+  if (!settingsGroqKeyInput) return;
+  fetch('/api/settings/groq-key', { headers: { 'Authorization': 'Bearer ' + storedToken } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.hasKey) {
+        settingsGroqKeyInput.placeholder = data.groqApiKey;
+        settingsGroqKeyInput.value = '';
+      } else {
+        settingsGroqKeyInput.placeholder = 'Enter in your Groq API key';
+      }
+    })
+    .catch(function() {});
+}
+
+if (settingsGroqShowBtn) {
+  settingsGroqShowBtn.addEventListener('click', function() {
+    groqKeyVisible = !groqKeyVisible;
+    settingsGroqKeyInput.type = groqKeyVisible ? 'text' : 'password';
+    settingsGroqShowBtn.textContent = groqKeyVisible ? 'Hide' : 'Show';
+  });
+}
+
+if (settingsGroqSaveBtn) {
+  settingsGroqSaveBtn.addEventListener('click', function() {
+    var key = settingsGroqKeyInput.value.trim();
+    if (!key) return;
+    settingsGroqSaveBtn.textContent = 'Saving...';
+    settingsGroqSaveBtn.disabled = true;
+    fetch('/api/settings/groq-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
+      body: JSON.stringify({ groqApiKey: key })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      settingsGroqSaveBtn.textContent = 'Save';
+      settingsGroqSaveBtn.disabled = false;
+      if (data.success) {
+        settingsGroqKeyInput.value = '';
+        settingsGroqStatus.textContent = 'Groq API key saved.';
+        settingsGroqStatus.style.display = 'block';
+        setTimeout(function() { settingsGroqStatus.style.display = 'none'; }, 3000);
+        loadGroqKey();
+      } else {
+        settingsGroqStatus.textContent = data.error || 'Failed to save key.';
+        settingsGroqStatus.style.color = '#f43f5e';
+        settingsGroqStatus.style.display = 'block';
+        setTimeout(function() { settingsGroqStatus.style.display = 'none'; settingsGroqStatus.style.color = '#10b981'; }, 3000);
+      }
+    })
+    .catch(function() {
+      settingsGroqSaveBtn.textContent = 'Save';
+      settingsGroqSaveBtn.disabled = false;
+    });
+  });
 }
 
 if (settingsGenerateApiBtn) {
