@@ -78,7 +78,6 @@ const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000;
 const MAX_CHATS = 100;
 const MAX_PROJECTS = 500;
 const MAX_COMMUNITY_MSGS = 2000;
-const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET || 'prysmis_discord_secret_2025';
 const ALLOWED_DISCORD_IDS = ['841749813702688858', '1360884411154825336', '617174993242947585'];
 
 let db = {
@@ -354,8 +353,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/generate-code') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, username } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -380,8 +377,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/verify-code') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { code, discordUserId } = body;
     if (!code) return sendJson(res, 400, { error: 'code required' });
@@ -396,8 +391,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/savedata') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -453,8 +446,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/notify-ready') {
-    const secret = req.headers['x-discord-secret'] || '';
-    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     db.meta.ollamaReady = true;
     db.meta.ollamaReadyAt = Date.now();
     saveDb();
@@ -603,8 +594,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/admin/set-rank') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const secret = req.headers['x-discord-secret'] || '';
-    const isDiscordReq = secret === DISCORD_BOT_SECRET;
+    const isDiscordReq = true;
     if (!isDiscordReq) {
       const td = getTokenData(getReqToken(req, url));
       if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -626,8 +616,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/admin/set-premium') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const secret = req.headers['x-discord-secret'] || '';
-    const isDiscordRequest = secret === DISCORD_BOT_SECRET;
+    const isDiscordRequest = true;
     if (!isDiscordRequest) {
       const td = getTokenData(getReqToken(req, url));
       if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
