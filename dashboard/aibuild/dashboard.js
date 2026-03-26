@@ -1315,56 +1315,75 @@ var settingsApiKeyDisplay = document.getElementById('settingsApiKeyDisplay');
 var settingsShowApiKey = document.getElementById('settingsShowApiKey');
 var settingsCopyApiKey = document.getElementById('settingsCopyApiKey');
 var settingsApiCount = document.getElementById('settingsApiCount');
-var apiKeyVisible = false;
-var apiKeysGeneratedToday = 0;
-var maxApiKeysPerDay = 3;
+var settingsApiCountHint = document.getElementById('settingsApiCountHint');
+var settingsApiKeysStack = document.getElementById('settingsApiKeysStack');
 var settingsCloseAI = document.getElementById('settingsCloseAI');
 
 if (settingsCloseAI) {
   settingsCloseAI.addEventListener('click', function() { settingsModal.style.display = 'none'; });
 }
 
-if (settingsCopyApiKey) {
-  settingsCopyApiKey.addEventListener('click', function() {
-    if (settingsApiKeyDisplay.value) {
-      navigator.clipboard.writeText(settingsApiKeyDisplay.value).then(function() {
-        var originalText = settingsCopyApiKey.textContent;
-        settingsCopyApiKey.textContent = 'Copied!';
-        setTimeout(function() {
-          settingsCopyApiKey.textContent = originalText;
-        }, 2000);
-      }).catch(function() {
-        alert('Failed to copy API key');
-      });
-    }
+function createKeyRow(keyValue, index) {
+  var row = document.createElement('div');
+  row.className = 'settings-api-result';
+  row.style.marginBottom = '8px';
+  var container = document.createElement('div');
+  container.className = 'settings-api-key-container';
+  var inp = document.createElement('input');
+  inp.type = 'password';
+  inp.className = 'settings-token-input';
+  inp.readOnly = true;
+  inp.value = keyValue;
+  var showBtn = document.createElement('button');
+  showBtn.className = 'settings-token-btn';
+  showBtn.textContent = 'Unhide';
+  var visible = false;
+  showBtn.addEventListener('click', function() {
+    visible = !visible;
+    inp.type = visible ? 'text' : 'password';
+    showBtn.textContent = visible ? 'Hide' : 'Unhide';
   });
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'settings-token-btn settings-token-btn-copy';
+  copyBtn.textContent = 'Copy';
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(keyValue).then(function() {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+    }).catch(function() { alert('Failed to copy API key'); });
+  });
+  container.appendChild(inp);
+  container.appendChild(showBtn);
+  container.appendChild(copyBtn);
+  row.appendChild(container);
+  return row;
 }
 
-if (settingsShowApiKey) {
-  settingsShowApiKey.addEventListener('click', function() {
-    if (apiKeyVisible) {
-      settingsApiKeyDisplay.type = 'password';
-      settingsShowApiKey.textContent = 'Unhide';
-    } else {
-      settingsApiKeyDisplay.type = 'text';
-      settingsShowApiKey.textContent = 'Hide';
-    }
-    apiKeyVisible = !apiKeyVisible;
-  });
+function renderKeyStack(keys, generationsLeft) {
+  settingsApiKeysStack.innerHTML = '';
+  if (keys && keys.length > 0) {
+    keys.forEach(function(k, i) {
+      settingsApiKeysStack.appendChild(createKeyRow(k.key, i));
+    });
+    settingsApiCountHint.style.display = 'block';
+    settingsApiCount.textContent = generationsLeft.toString();
+  } else {
+    settingsApiCountHint.style.display = 'none';
+  }
+  if (generationsLeft <= 0) {
+    settingsGenerateApiBtn.disabled = true;
+    settingsGenerateApiBtn.textContent = 'Limit reached (24h)';
+  } else {
+    settingsGenerateApiBtn.disabled = false;
+    settingsGenerateApiBtn.textContent = 'Generate API key';
+  }
 }
 
 function loadApiKeys() {
   fetch('/account/prysmisai-keys?token=' + encodeURIComponent(storedToken))
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.keys && data.keys.length > 0) {
-        settingsApiResult.style.display = 'block';
-        settingsApiKeyDisplay.value = data.keys[data.keys.length - 1].key;
-        settingsApiKeyDisplay.type = 'password';
-        apiKeyVisible = false;
-        settingsShowApiKey.textContent = 'Unhide';
-      }
-      settingsApiCount.textContent = data.generationsLeft.toString();
+      renderKeyStack(data.keys || [], typeof data.generationsLeft === 'number' ? data.generationsLeft : 3);
     })
     .catch(function() {});
 }
@@ -1373,32 +1392,24 @@ if (settingsGenerateApiBtn) {
   settingsGenerateApiBtn.addEventListener('click', function() {
     settingsGenerateApiBtn.textContent = 'Generating...';
     settingsGenerateApiBtn.disabled = true;
-    
     fetch('/account/generate-prysmisai-key', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + storedToken
-      }
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken }
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      settingsGenerateApiBtn.textContent = 'Generate API key';
-      settingsGenerateApiBtn.disabled = false;
-      
       if (data.success) {
-        settingsApiResult.style.display = 'block';
-        settingsApiKeyDisplay.value = data.apiKey;
-        settingsApiKeyDisplay.type = 'password';
-        apiKeyVisible = false;
-        settingsShowApiKey.textContent = 'Unhide';
         loadApiKeys();
       } else {
-        alert(data.error || 'Failed to generate API key');
-        if (data.error && data.error.includes('wait')) {
-          settingsApiResult.style.display = 'block';
-          settingsApiKeyDisplay.value = data.error;
+        settingsGenerateApiBtn.textContent = 'Generate API key';
+        settingsGenerateApiBtn.disabled = false;
+        if (data.error && data.error.toLowerCase().includes('wait')) {
+          settingsApiCountHint.style.display = 'block';
           settingsApiCount.textContent = '0';
+          settingsGenerateApiBtn.disabled = true;
+          settingsGenerateApiBtn.textContent = 'Limit reached (24h)';
+        } else {
+          alert(data.error || 'Failed to generate API key');
         }
       }
     })
