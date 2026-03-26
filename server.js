@@ -447,18 +447,37 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/run-ollama') {
+    const ollamaStatus = await new Promise((resolve) => {
+      const checkReq = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 4000 }, (r) => {
+        let d = '';
+        r.on('data', (c) => { d += c; });
+        r.on('end', () => {
+          try {
+            const parsed = JSON.parse(d);
+            const models = (parsed.models || []).map(m => m.name);
+            const hasModel = models.some(m => m === 'llama3.2-vision:latest');
+            resolve({ running: true, hasModel, models });
+          } catch (e) { resolve({ running: true, hasModel: false, models: [] }); }
+        });
+      });
+      checkReq.on('error', () => resolve({ running: false, hasModel: false, models: [] }));
+      checkReq.on('timeout', () => { checkReq.destroy(); resolve({ running: false, hasModel: false, models: [] }); });
+      checkReq.end();
+    });
+    if (ollamaStatus.running && ollamaStatus.hasModel) {
+      return sendJson(res, 200, { success: true, message: 'PSM-v1.0 is running and ready.', model: 'llama3.2-vision:latest', status: 'ready' });
+    }
+    if (ollamaStatus.running && !ollamaStatus.hasModel) {
+      return sendJson(res, 200, { success: false, message: 'Ollama is running but llama3.2-vision:latest is not installed. Run: ollama pull llama3.2-vision:latest', status: 'model_missing', installed: ollamaStatus.models });
+    }
     try {
       const isWin = process.platform === 'win32';
-      const ollamaProcess = spawn('ollama', ['serve'], {
-        detached: true,
-        stdio: 'ignore',
-        shell: isWin
-      });
+      const ollamaProcess = spawn('ollama', ['serve'], { detached: true, stdio: 'ignore', shell: isWin });
       ollamaProcess.on('error', function() {});
-      ollamaProcess.unref();
-      return sendJson(res, 200, { success: true, message: 'Ollama serve started', pid: ollamaProcess.pid });
+      try { ollamaProcess.unref(); } catch(e) {}
+      return sendJson(res, 200, { success: true, message: 'Ollama started. PSM-v1.0 will be ready in a few seconds.', status: 'starting', pid: ollamaProcess.pid });
     } catch (error) {
-      return sendJson(res, 500, { success: false, error: 'Failed to start Ollama: ' + error.message });
+      return sendJson(res, 500, { success: false, error: 'Ollama is not installed or not reachable on this server. Run the Node server on the same machine as Ollama.', status: 'not_found' });
     }
   }
 
