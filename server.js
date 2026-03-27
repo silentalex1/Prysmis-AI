@@ -309,38 +309,94 @@ function getUserGroqKey(username) {
   return user.groqApiKey || null;
 }
 
-function callManus(prompt, manusApiKey) {
+function manusHttpGet(path, manusApiKey) {
   return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({ prompt });
     const opts = {
-      hostname: 'api.manus.ai',
-      path: '/v1/tasks',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'API_KEY': manusApiKey, 'Content-Length': Buffer.byteLength(postData) },
-      timeout: 120000
+      hostname: 'api.manus.im',
+      path: path,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + manusApiKey },
+      timeout: 30000
     };
-    const req = https.request(opts, (manusRes) => {
+    const req = https.request(opts, (r) => {
       let data = '';
-      manusRes.on('data', (c) => { data += c; });
-      manusRes.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (manusRes.statusCode === 402 || manusRes.statusCode === 429) {
-            const err = new Error('quota_exceeded');
-            err.quotaExceeded = true;
-            reject(err);
-            return;
-          }
-          if (parsed.error) { reject(new Error(parsed.error.message || 'Manus API error')); return; }
-          resolve(parsed);
-        } catch (e) { reject(new Error('Invalid response from Manus')); }
+      r.on('data', (c) => { data += c; });
+      r.on('end', () => {
+        try { resolve({ status: r.statusCode, body: JSON.parse(data) }); }
+        catch (e) { reject(new Error('Invalid JSON from Manus')); }
       });
     });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Manus request timeout')); });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Manus timeout')); });
+    req.on('error', (e) => { reject(e); });
+    req.end();
+  });
+}
+
+function manusHttpPost(path, payload, manusApiKey) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(payload);
+    const opts = {
+      hostname: 'api.manus.im',
+      path: path,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + manusApiKey, 'Content-Length': Buffer.byteLength(postData) },
+      timeout: 30000
+    };
+    const req = https.request(opts, (r) => {
+      let data = '';
+      r.on('data', (c) => { data += c; });
+      r.on('end', () => {
+        try { resolve({ status: r.statusCode, body: JSON.parse(data) }); }
+        catch (e) { reject(new Error('Invalid JSON from Manus')); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Manus timeout')); });
     req.on('error', (e) => { reject(e); });
     req.write(postData);
     req.end();
   });
+}
+
+async function callManus(prompt, manusApiKey) {
+  const createRes = await manusHttpPost('/api/v1/tasks', { prompt }, manusApiKey);
+  if (createRes.status === 402 || createRes.status === 429) {
+    const err = new Error('quota_exceeded');
+    err.quotaExceeded = true;
+    throw err;
+  }
+  if (createRes.status !== 200 && createRes.status !== 201) {
+    throw new Error((createRes.body && createRes.body.error) ? createRes.body.error : 'Manus API error ' + createRes.status);
+  }
+  const taskId = createRes.body.task_id || createRes.body.id;
+  if (!taskId) {
+    throw new Error('Manus did not return a task_id');
+  }
+  const maxWait = 120;
+  const pollDelay = (ms) => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < maxWait; i++) {
+    await pollDelay(i < 10 ? 1500 : 2500);
+    const pollRes = await manusHttpGet('/api/v1/tasks/' + taskId, manusApiKey);
+    if (pollRes.status === 402 || pollRes.status === 429) {
+      const err = new Error('quota_exceeded');
+      err.quotaExceeded = true;
+      throw err;
+    }
+    const t = pollRes.body;
+    const status = (t.status || '').toLowerCase();
+    if (status === 'completed' || status === 'finished' || status === 'done' || status === 'success') {
+      const result = t.result || t.output || t.content || t.response || '';
+      if (result) return { result };
+      if (t.messages && Array.isArray(t.messages)) {
+        const last = t.messages.filter(m => m.role === 'assistant').pop();
+        if (last && last.content) return { result: last.content };
+      }
+      return { result: JSON.stringify(t) };
+    }
+    if (status === 'failed' || status === 'error' || status === 'cancelled') {
+      throw new Error('Manus task ' + status + ': ' + (t.error || t.message || ''));
+    }
+  }
+  throw new Error('Manus task timed out after waiting for completion');
 }
 
 function getUserManusKey(username) {
@@ -1140,9 +1196,16 @@ const server = http.createServer(async (req, res) => {
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
     if (!user.pluginToken) return sendJson(res, 400, { error: 'Plugin not connected. Open Roblox Studio and connect the plugin first.' });
-    if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
+    if (!body.code && !body.command) return sendJson(res, 400, { error: 'code or command required' });
     if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
-    const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
+    const change = { id: crypto.randomBytes(6).toString('hex'), description: body.description || '', created: Date.now() };
+    if (body.command && typeof body.command === 'object') {
+      change.command = body.command;
+    } else {
+      const codeStr = typeof body.code === 'string' ? body.code.trim() : '';
+      if (!codeStr) return sendJson(res, 400, { error: 'code required' });
+      change.code = codeStr;
+    }
     user.pendingChanges.push(change);
     if (user.pendingChanges.length > 50) user.pendingChanges = user.pendingChanges.slice(-50);
     user.pluginConnected = true;
