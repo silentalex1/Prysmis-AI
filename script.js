@@ -40,8 +40,4 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    document.getElementById('cta-button').addEventListener('click', () => {
-        window.location.href = '/accountauth';
-    });
 });
