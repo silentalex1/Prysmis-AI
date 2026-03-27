@@ -2,75 +2,6 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
-
-function tryStartOllama() {
-  try {
-    const proc = spawn('ollama', ['serve'], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-      shell: process.platform === 'win32'
-    });
-    proc.on('error', function() {});
-    proc.on('close', function() {});
-    try { proc.unref(); } catch(e) {}
-  } catch (e) {}
-  process.on('uncaughtException', function(e) {
-    if (e && (e.code === 'ENOENT' || e.syscall === 'spawn ollama')) return;
-    throw e;
-  });
-}
-
-function callOllamaLocal(messages, temperature, maxTokens) {
-  return new Promise((resolve, reject) => {
-    const safeMax = Math.min(maxTokens || 2048, 4096);
-    const cleanMsgs = messages.map(m => {
-      if (typeof m.content === 'string') return { role: m.role, content: m.content };
-      if (Array.isArray(m.content)) return { role: m.role, content: m.content.filter(p => p.type === 'text').map(p => p.text).join(' ') };
-      return { role: m.role, content: String(m.content || '') };
-    });
-    const postData = JSON.stringify({
-      model: 'llama3.2-vision:latest',
-      messages: cleanMsgs,
-      stream: false,
-      options: { temperature: temperature, num_predict: safeMax }
-    });
-    const opts = {
-      hostname: '127.0.0.1',
-      port: 11434,
-      path: '/api/chat',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
-      timeout: 120000
-    };
-    const req = http.request(opts, (ollamaRes) => {
-      let data = '';
-      ollamaRes.on('data', (c) => { data += c; });
-      ollamaRes.on('end', () => {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(new Error('Invalid response from model')); }
-      });
-    });
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.on('error', (e) => { reject(e); });
-    req.write(postData);
-    req.end();
-  });
-}
-
-async function callOllama(messages, temperature, maxTokens) {
-  try {
-    const result = await callOllamaLocal(messages, temperature, maxTokens);
-    return result;
-  } catch (e) {
-    if (e.code === 'ECONNREFUSED' || e.code === 'ENOENT') {
-      throw new Error('PSM-v1.0 is starting up. Please wait a few seconds and try again.');
-    }
-    throw new Error(e.message || 'PSM-v1.0 could not respond. Please try again.');
-  }
-}
-
 const DB_FILE = 'db.json';
 const DB_BACKUP = 'db.backup.json';
 const SALT = 'prysmis_v3_kx9salt2025';
@@ -78,6 +9,7 @@ const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000;
 const MAX_CHATS = 100;
 const MAX_PROJECTS = 500;
 const MAX_COMMUNITY_MSGS = 2000;
+const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET || 'prysmis_discord_secret_2025';
 const ALLOWED_DISCORD_IDS = ['841749813702688858', '1360884411154825336', '617174993242947585'];
 
 let db = {
@@ -221,198 +153,60 @@ function validatePassword(p) {
 }
 
 const YOU_MODELS = [
-  'psm-v1.0',
-  'manus-1.6-lite',
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mistral-saba-24b',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3-32b',
-  'whisper-large-v3',
-  'whisper-large-v3-turbo',
-  'distil-whisper-large-v3-en'
+  'gpt-4o',
+  'gpt-4o-mini',
+  'o3-mini',
+  'claude-opus-4-5-20251101',
+  'claude-sonnet-4-5',
+  'claude-haiku-3-5',
+  'gemini-3.2-pro',
+  'gemini-3.2-flash',
+  'grok-4',
+  'llama-4-maverick',
+  'deepseek-r1',
+  'deepseek-v3',
+  'mistral-large-2',
+  'gpt-5.2',
+  'gpt-5.2-mini'
 ];
 
-const PREMIUM_GROQ_MODELS = new Set([
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3-32b'
-]);
-
-const GROQ_MODELS = new Set([
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mistral-saba-24b',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3-32b',
-  'whisper-large-v3',
-  'whisper-large-v3-turbo',
-  'distil-whisper-large-v3-en'
-]);
-
 const MODEL_MAP = {
-  'psm-v1.0': 'psm-v1.0',
-  'manus-1.6-lite': 'manus-1.6-lite',
-  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
-  'mistral-saba-24b': 'mistral-saba-24b',
-  'meta-llama/llama-4-scout-17b-16e-instruct': 'meta-llama/llama-4-scout-17b-16e-instruct',
-  'openai/gpt-oss-120b': 'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b': 'openai/gpt-oss-20b',
-  'qwen/qwen3-32b': 'qwen/qwen3-32b',
-  'whisper-large-v3': 'whisper-large-v3',
-  'whisper-large-v3-turbo': 'whisper-large-v3-turbo',
-  'distil-whisper-large-v3-en': 'distil-whisper-large-v3-en'
+  'gpt-5.2': 'gpt-5.2',
+  'gpt-5.2-mini': 'gpt-5.2-mini',
+  'chatgpt 5.2': 'gpt-5.2',
+  'gpt-4o': 'gpt-4o',
+  'gpt-4o-mini': 'gpt-4o-mini',
+  'o3-mini': 'o3-mini',
+  'claude-opus-4-5': 'claude-opus-4-5-20251101',
+  'claude-opus-4-5-20251101': 'claude-opus-4-5-20251101',
+  'claude opus 4.5': 'claude-opus-4-5-20251101',
+  'claude-sonnet-4-5': 'claude-sonnet-4-5',
+  'claude-haiku-3-5': 'claude-haiku-3-5',
+  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
+  'gemini-3.2-pro': 'gemini-3.2-pro',
+  'gemini-3.2-flash': 'gemini-3.2-flash',
+  'gemini 3.1 pro': 'gemini-3.2-pro',
+  'grok-4': 'grok-4',
+  'x-ai/grok-4': 'grok-4',
+  'llama-4-maverick': 'llama-4-maverick',
+  'meta-llama/llama-4': 'llama-4-maverick',
+  'deepseek-r1': 'deepseek-r1',
+  'deepseek-v3': 'deepseek-v3',
+  'deepseek/deepseek-r1': 'deepseek-r1',
+  'deepseek/deepseek-v3': 'deepseek-v3',
+  'mistral-large-2': 'mistral-large-2',
+  'mistral/mistral-large': 'mistral-large-2',
+  'anthropic/claude-opus-4-5': 'claude-opus-4-5-20251101',
+  'anthropic/claude-sonnet-4-5': 'claude-sonnet-4-5',
+  'anthropic/claude-haiku-3-5': 'claude-haiku-3-5',
+  'openai/gpt-5.2': 'gpt-5.2',
+  'openai/gpt-4o': 'gpt-4o',
+  'openai/o3-mini': 'o3-mini',
+  'google/gemini-3.2-pro': 'gemini-3.2-pro'
 };
 
-const https = require('https');
-
-function callGroq(messages, temperature, maxTokens, groqApiKey, model) {
-  return new Promise((resolve, reject) => {
-    const safeMax = Math.min(maxTokens || 2048, 8192);
-    const cleanMsgs = messages.map(m => ({
-      role: m.role,
-      content: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join(' ') : String(m.content || ''))
-    }));
-    const postData = JSON.stringify({ model: model, messages: cleanMsgs, temperature: temperature, max_tokens: safeMax });
-    const opts = {
-      hostname: 'api.groq.com',
-      path: '/openai/v1/chat/completions',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqApiKey, 'Content-Length': Buffer.byteLength(postData) },
-      timeout: 60000
-    };
-    const req = https.request(opts, (groqRes) => {
-      let data = '';
-      groqRes.on('data', (c) => { data += c; });
-      groqRes.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) { reject(new Error(parsed.error.message || 'Groq API error')); return; }
-          resolve(parsed);
-        } catch (e) { reject(new Error('Invalid response from Groq')); }
-      });
-    });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Groq request timeout')); });
-    req.on('error', (e) => { reject(e); });
-    req.write(postData);
-    req.end();
-  });
-}
-
-function getUserGroqKey(username) {
-  const user = db.users[username] || {};
-  return user.groqApiKey || null;
-}
-
-function manusHttpGet(path, manusApiKey) {
-  return new Promise((resolve, reject) => {
-    const opts = {
-      hostname: 'api.manus.im',
-      path: path,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + manusApiKey },
-      timeout: 30000
-    };
-    const req = https.request(opts, (r) => {
-      let data = '';
-      r.on('data', (c) => { data += c; });
-      r.on('end', () => {
-        try { resolve({ status: r.statusCode, body: JSON.parse(data) }); }
-        catch (e) { reject(new Error('Invalid JSON from Manus')); }
-      });
-    });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Manus timeout')); });
-    req.on('error', (e) => { reject(e); });
-    req.end();
-  });
-}
-
-function manusHttpPost(path, payload, manusApiKey) {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify(payload);
-    const opts = {
-      hostname: 'api.manus.im',
-      path: path,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + manusApiKey, 'Content-Length': Buffer.byteLength(postData) },
-      timeout: 30000
-    };
-    const req = https.request(opts, (r) => {
-      let data = '';
-      r.on('data', (c) => { data += c; });
-      r.on('end', () => {
-        try { resolve({ status: r.statusCode, body: JSON.parse(data) }); }
-        catch (e) { reject(new Error('Invalid JSON from Manus')); }
-      });
-    });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Manus timeout')); });
-    req.on('error', (e) => { reject(e); });
-    req.write(postData);
-    req.end();
-  });
-}
-
-async function callManus(messages, manusApiKey) {
-  const userMsgs = messages.filter(m => m.role !== 'system');
-  const prompt = userMsgs.map(m => typeof m.content === 'string' ? m.content : '').join('\n').trim();
-  const systemMsg = messages.find(m => m.role === 'system');
-  const fullPrompt = systemMsg ? systemMsg.content + '\n\n' + prompt : prompt;
-
-  const createRes = await manusHttpPost('/api/v1/tasks', { prompt: fullPrompt }, manusApiKey);
-  if (createRes.status === 402 || createRes.status === 429) {
-    const err = new Error('quota_exceeded');
-    err.quotaExceeded = true;
-    throw err;
-  }
-  if (createRes.status !== 200 && createRes.status !== 201) {
-    const errMsg = (createRes.body && (createRes.body.message || createRes.body.error || createRes.body.detail)) || ('Manus API error ' + createRes.status);
-    throw new Error(errMsg);
-  }
-  const taskId = createRes.body.task_id || createRes.body.id;
-  if (!taskId) {
-    throw new Error('Manus did not return a task_id');
-  }
-  const pollDelay = (ms) => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 80; i++) {
-    await pollDelay(i < 8 ? 2000 : 3000);
-    let pollRes;
-    try { pollRes = await manusHttpGet('/api/v1/tasks/' + taskId, manusApiKey); }
-    catch (e) { continue; }
-    if (pollRes.status === 402 || pollRes.status === 429) {
-      const err = new Error('quota_exceeded');
-      err.quotaExceeded = true;
-      throw err;
-    }
-    const t = pollRes.body;
-    const status = (t.status || '').toLowerCase();
-    if (status === 'completed' || status === 'finished' || status === 'done' || status === 'success') {
-      const result = t.result || t.output || t.content || t.response || '';
-      if (result) return result;
-      if (t.messages && Array.isArray(t.messages)) {
-        const last = t.messages.filter(m => m.role === 'assistant').pop();
-        if (last && last.content) return last.content;
-      }
-      return JSON.stringify(t);
-    }
-    if (status === 'failed' || status === 'error' || status === 'cancelled') {
-      throw new Error('Manus task ' + status + ': ' + (t.error || t.message || ''));
-    }
-  }
-  throw new Error('Manus task timed out');
-}
-
-function getUserManusKey(username) {
-  const user = db.users[username] || {};
-  return user.manusApiKey || null;
-}
-
 function resolveModel(m) {
-  if (!m || typeof m !== 'string') return 'psm-v1.0';
+  if (!m || typeof m !== 'string') return 'gpt-5.2';
   const trimmed = m.trim();
   if (YOU_MODELS.includes(trimmed)) return trimmed;
   const lower = trimmed.toLowerCase();
@@ -422,7 +216,7 @@ function resolveModel(m) {
     const short = trimmed.split('/').pop();
     if (short && YOU_MODELS.includes(short)) return short;
   }
-  return 'psm-v1.0';
+  return 'gpt-5.2';
 }
 
 function broadcastSSE(data) {
@@ -476,7 +270,7 @@ const server = http.createServer(async (req, res) => {
     if (db.users[uname]) return sendJson(res, 409, { error: 'Account is already created' });
     const token = randToken();
     const now = Date.now();
-    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'psm-v1.0', authToken: null, authTokenCreated: null };
+    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'gpt-5.2', authToken: null, authTokenCreated: null };
     db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
     saveDb();
     return sendJson(res, 200, { success: true, token, username: uname });
@@ -536,6 +330,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/generate-code') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, username } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -560,6 +356,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/verify-code') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { code, discordUserId } = body;
     if (!code) return sendJson(res, 400, { error: 'code required' });
@@ -574,6 +372,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/savedata') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -588,10 +388,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pt === '/discord/ping') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     return sendJson(res, 200, { ok: true, status: 'connected', site: 'prysmisai.wtf', users: Object.keys(db.users).length, admins: Object.keys(db.admins).length });
   }
 
   if (req.method === 'POST' && pt === '/discord/connect') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, botTag } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -604,6 +408,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/setadmin') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, username, password } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -616,6 +422,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pt === '/discord/blacklist') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
     const { discordUserId, adminUsername } = body;
     if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
@@ -628,166 +436,9 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
   }
 
-  if (req.method === 'POST' && pt === '/discord/notify-ready') {
-    db.meta.ollamaReady = true;
-    db.meta.ollamaReadyAt = Date.now();
-    saveDb();
-    return sendJson(res, 200, { ok: true });
-  }
-
-  if (req.method === 'POST' && pt === '/discord/run-ollama') {
-    const ollamaStatus = await new Promise((resolve) => {
-      const checkReq = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 4000 }, (r) => {
-        let d = '';
-        r.on('data', (c) => { d += c; });
-        r.on('end', () => {
-          try {
-            const parsed = JSON.parse(d);
-            const models = (parsed.models || []).map(m => m.name);
-            const hasModel = models.some(m => m === 'llama3.2-vision:latest');
-            resolve({ running: true, hasModel, models });
-          } catch (e) { resolve({ running: true, hasModel: false, models: [] }); }
-        });
-      });
-      checkReq.on('error', () => resolve({ running: false, hasModel: false, models: [] }));
-      checkReq.on('timeout', () => { checkReq.destroy(); resolve({ running: false, hasModel: false, models: [] }); });
-      checkReq.end();
-    });
-    if (ollamaStatus.running && ollamaStatus.hasModel) {
-      return sendJson(res, 200, { success: true, message: 'PSM-v1.0 is running and ready.', model: 'llama3.2-vision:latest', status: 'ready' });
-    }
-    if (ollamaStatus.running && !ollamaStatus.hasModel) {
-      return sendJson(res, 200, { success: false, message: 'Ollama is running but llama3.2-vision:latest is not installed. Run: ollama pull llama3.2-vision:latest', status: 'model_missing', installed: ollamaStatus.models });
-    }
-    try {
-      const isWin = process.platform === 'win32';
-      const ollamaProcess = spawn('ollama', ['serve'], { detached: true, stdio: 'ignore', shell: isWin });
-      ollamaProcess.on('error', function() {});
-      try { ollamaProcess.unref(); } catch(e) {}
-    } catch (spawnErr) {
-      return sendJson(res, 500, { success: false, error: 'Ollama is not installed or not reachable on this server.', status: 'not_found' });
-    }
-    const waitReady = () => new Promise((resolve) => {
-      let attempts = 0;
-      const maxAttempts = 30;
-      const interval = setInterval(() => {
-        attempts++;
-        const chk = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 2000 }, (r) => {
-          let d = '';
-          r.on('data', (c) => { d += c; });
-          r.on('end', () => {
-            try {
-              const parsed = JSON.parse(d);
-              const models = (parsed.models || []).map(m => m.name);
-              const hasModel = models.some(m => m === 'llama3.2-vision:latest');
-              if (hasModel) { clearInterval(interval); resolve({ ready: true }); }
-              else if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); }
-            } catch (e) {
-              if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); }
-            }
-          });
-        });
-        chk.on('error', () => { if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); } });
-        chk.on('timeout', () => { chk.destroy(); });
-        chk.end();
-      }, 2000);
-    });
-    const readyResult = await waitReady();
-    if (readyResult.ready) {
-      return sendJson(res, 200, { success: true, message: 'PSM-v1.0 is running and ready.', model: 'llama3.2-vision:latest', status: 'ready' });
-    }
-    return sendJson(res, 200, { success: false, message: 'Ollama started but model took too long to load. Try again in a moment.', status: 'starting' });
-  }
-
-  if (req.method === 'POST' && pt === '/discord/set-ollama-service') {
-    try {
-      const isWin = process.platform === 'win32';
-      if (!isWin) {
-        return sendJson(res, 400, { success: false, error: 'Windows service setup only works on Windows' });
-      }
-      
-      const serviceName = 'OllamaPSM';
-      const ollamaPath = 'ollama';
-      
-      const nssmPath = path.join(process.cwd(), 'nssm.exe');
-      let useNssm = fs.existsSync(nssmPath);
-      
-      if (useNssm) {
-        const nssmInstall = spawn(nssmPath, ['install', serviceName, ollamaPath, 'serve'], {
-          windowsHide: true,
-          stdio: 'pipe'
-        });
-        
-        let output = '';
-        nssmInstall.stdout.on('data', (d) => { output += d; });
-        nssmInstall.stderr.on('data', (d) => { output += d; });
-        
-        nssmInstall.on('close', (code) => {
-          if (code === 0) {
-            spawn(nssmPath, ['set', serviceName, 'Description', 'Ollama AI Service for PrysmisAI'], { windowsHide: true });
-            spawn(nssmPath, ['set', serviceName, 'Start', 'SERVICE_AUTO_START'], { windowsHide: true });
-            spawn(nssmPath, ['start', serviceName], { windowsHide: true });
-            return sendJson(res, 200, { 
-              success: true, 
-              message: 'Ollama service installed and started. It will auto-start on Windows boot.',
-              service_name: serviceName,
-              method: 'nssm'
-            });
-          } else {
-            return sendJson(res, 500, { success: false, error: 'NSSM install failed: ' + output });
-          }
-        });
-      } else {
-        const psScript = `
-          $serviceName = "${serviceName}"
-          $binaryPath = "ollama serve"
-          
-          if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
-            Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-            sc.exe delete $serviceName | Out-Null
-            Start-Sleep -Seconds 2
-          }
-          
-          sc.exe create $serviceName binPath= "cmd.exe /c start /min ollama serve" start= auto displayname= "Ollama PSM Service"
-          sc.exe description $serviceName "Ollama AI Service for PrysmisAI - Auto-starts on boot"
-          Start-Service -Name $serviceName -ErrorAction SilentlyContinue
-          
-          Write-Host "Service created successfully"
-        `;
-        
-        const psPath = path.join(process.env.TEMP || '/tmp', 'ollama-service.ps1');
-        fs.writeFileSync(psPath, psScript);
-        
-        const ps = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath], {
-          windowsHide: true,
-          stdio: 'pipe'
-        });
-        
-        let output = '';
-        ps.stdout.on('data', (d) => { output += d; });
-        ps.stderr.on('data', (d) => { output += d; });
-        
-        ps.on('close', (code) => {
-          try { fs.unlinkSync(psPath); } catch (e) {}
-          
-          if (code === 0) {
-            return sendJson(res, 200, { 
-              success: true, 
-              message: 'Ollama Windows service created and started. It will auto-start on every Windows boot.',
-              service_name: serviceName,
-              method: 'sc.exe'
-            });
-          } else {
-            return sendJson(res, 500, { success: false, error: 'Service creation failed: ' + output });
-          }
-        });
-      }
-    } catch (error) {
-      return sendJson(res, 500, { success: false, error: 'Failed to setup service: ' + error.message });
-    }
-  }
-
   if (req.method === 'GET' && pt === '/discord/check-user') {
+    const secret = req.headers['x-discord-secret'] || '';
+    if (secret !== DISCORD_BOT_SECRET) return sendJson(res, 403, { error: 'Forbidden' });
     const username = url.searchParams.get('username');
     if (!username) return sendJson(res, 400, { error: 'username required' });
     const uname = username.trim().toLowerCase();
@@ -806,7 +457,8 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/admin/set-rank') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const isDiscordReq = true;
+    const secret = req.headers['x-discord-secret'] || '';
+    const isDiscordReq = secret === DISCORD_BOT_SECRET;
     if (!isDiscordReq) {
       const td = getTokenData(getReqToken(req, url));
       if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -828,7 +480,8 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pt === '/admin/set-premium') {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const isDiscordRequest = true;
+    const secret = req.headers['x-discord-secret'] || '';
+    const isDiscordRequest = secret === DISCORD_BOT_SECRET;
     if (!isDiscordRequest) {
       const td = getTokenData(getReqToken(req, url));
       if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
@@ -892,10 +545,10 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && pt === '/status') {
     const pluginToken = url.searchParams.get('pluginToken') || '';
-    let status = 'disconnected', model = 'psm-v1.0', username = 'unknown';
+    let status = 'disconnected', model = 'gpt-5.2', username = 'unknown';
     if (pluginToken) {
       for (const u in db.users) {
-        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'psm-v1.0'; username = u; break; }
+        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'gpt-5.2'; username = u; break; }
       }
     }
     return sendJson(res, 200, { status, model, user: username });
@@ -930,7 +583,7 @@ const server = http.createServer(async (req, res) => {
     for (const u in db.users) {
       if (db.users[u].pluginToken === body.pluginToken) {
         db.users[u].pluginConnected = true; db.users[u].pluginLastPing = Date.now(); saveDb();
-        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'psm-v1.0', connected: true });
+        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'gpt-5.2', connected: true });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -942,7 +595,7 @@ const server = http.createServer(async (req, res) => {
     for (const u in db.users) {
       if (db.users[u].pluginToken === body.pluginToken) {
         db.users[u].pluginLastPing = Date.now(); db.users[u].pluginConnected = true; saveDb();
-        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'psm-v1.0', user: u });
+        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'gpt-5.2', user: u });
       }
     }
     return sendJson(res, 401, { error: 'Invalid plugin token' });
@@ -1202,20 +855,12 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
-    if (!user.pluginToken) return sendJson(res, 400, { error: 'Plugin not connected. Open Roblox Studio and connect the plugin first.' });
-    if (!body.code && !body.command) return sendJson(res, 400, { error: 'code or command required' });
+    if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
+    if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
     if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
-    const change = { id: crypto.randomBytes(6).toString('hex'), description: body.description || '', created: Date.now() };
-    if (body.command && typeof body.command === 'object') {
-      change.command = body.command;
-    } else {
-      const codeStr = typeof body.code === 'string' ? body.code.trim() : '';
-      if (!codeStr) return sendJson(res, 400, { error: 'code required' });
-      change.code = codeStr;
-    }
+    const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
     user.pendingChanges.push(change);
-    if (user.pendingChanges.length > 50) user.pendingChanges = user.pendingChanges.slice(-50);
-    user.pluginConnected = true;
+    if (user.pendingChanges.length > 20) user.pendingChanges = user.pendingChanges.slice(-20);
     saveDb();
     return sendJson(res, 200, { ok: true, changeId: change.id });
   }
@@ -1234,422 +879,12 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 401, { error: 'Invalid plugin token' });
   }
 
-  if (req.method === 'GET' && pt === '/plugin/poll') {
-    const pluginToken = url.searchParams.get('pluginToken') || '';
-    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === pluginToken) {
-        const user = db.users[u];
-        user.pluginLastPing = Date.now();
-        user.pluginConnected = true;
-        const changes = user.pendingChanges || [];
-        user.pendingChanges = [];
-        const command = user.pendingCommand || null;
-        user.pendingCommand = null;
-        if (changes.length > 0 || command) saveDb();
-        return sendJson(res, 200, {
-          changes,
-          command,
-          model: user.pluginModel || 'psm-v1.0',
-          username: u,
-          gameInfo: user.pluginGameInfo || null,
-          serverTime: Date.now()
-        });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
-  }
-
-  if (req.method === 'POST' && pt === '/plugin/ack') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === body.pluginToken) {
-        const user = db.users[u];
-        if (!Array.isArray(user.changeHistory)) user.changeHistory = [];
-        user.changeHistory.push({
-          id: body.changeId,
-          ok: body.ok,
-          results: body.results || [],
-          appliedCount: body.appliedCount || 0,
-          errorCount: body.errorCount || 0,
-          ts: Date.now()
-        });
-        if (user.changeHistory.length > 50) user.changeHistory = user.changeHistory.slice(-50);
-        saveDb();
-        broadcastSSE({ type: 'ack', changeId: body.changeId, ok: body.ok, results: body.results, appliedCount: body.appliedCount, errorCount: body.errorCount });
-        return sendJson(res, 200, { ok: true });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
-  }
-
-  if (req.method === 'POST' && pt === '/plugin/command') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
-    user.pendingCommand = { type: body.type, ...body };
-    saveDb();
-    return sendJson(res, 200, { ok: true });
-  }
-
-  if (req.method === 'GET' && pt === '/plugin/history') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    return sendJson(res, 200, { history: user.changeHistory || [] });
-  }
-
-  if (req.method === 'POST' && pt === '/plugin/gameinfo') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
-    for (const u in db.users) {
-      if (db.users[u].pluginToken === body.pluginToken) {
-        db.users[u].pluginGameInfo = {
-          gameId: body.gameId,
-          placeId: body.placeId,
-          gameName: body.gameName,
-          scriptCount: body.scriptCount || 0,
-          partCount: body.partCount || 0,
-          modelCount: body.modelCount || 0,
-          totalObjects: body.totalObjects || 0,
-          ts: Date.now()
-        };
-        saveDb();
-        return sendJson(res, 200, { ok: true });
-      }
-    }
-    return sendJson(res, 401, { error: 'Invalid plugin token' });
-  }
-
   const host = (req.headers['host'] || '').split(':')[0];
   const isApiSubdomain = host === 'api.prysmisai.wtf';
 
-  if (req.method === 'POST' && pt === '/account/generate-prysmisai-key') {
-    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    
-    const now = Date.now();
-    const oneDay = 24 * 3600000;
-    
-    if (!user.apiKeyGenerationHistory) user.apiKeyGenerationHistory = [];
-    
-    const recentGenerations = user.apiKeyGenerationHistory.filter(time => now - time < oneDay);
-    
-    if (recentGenerations.length >= 3) {
-      const oldestGeneration = Math.min(...recentGenerations);
-      const waitTime = Math.ceil((oldestGeneration + oneDay - now) / (60 * 60 * 1000));
-      return sendJson(res, 429, { error: `After 3 generation of PrysmisAI API key you must wait 24 hours. Please wait ${waitTime} more hours.` });
-    }
-    
-    const apiKey = 'ps-prysmisai-' + crypto.randomBytes(20).toString('hex');
-    
-    if (!user.prysmisApiKeys) user.prysmisApiKeys = [];
-    user.prysmisApiKeys.push({ key: apiKey, created: now });
-    user.apiKeyGenerationHistory.push(now);
-    
-    saveDb();
-    return sendJson(res, 200, { success: true, apiKey });
-  }
-
-  if (req.method === 'GET' && pt === '/account/prysmisai-keys') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
-    const user = db.users[td.username];
-    if (!user) return sendJson(res, 404, { error: 'User not found' });
-    
-    const now = Date.now();
-    const oneDay = 24 * 3600000;
-    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
-    const canGenerate = recentGenerations.length < 3;
-    
-    return sendJson(res, 200, { 
-      keys: user.prysmisApiKeys || [], 
-      canGenerate,
-      generationsLeft: Math.max(0, 3 - recentGenerations.length)
-    });
-  }
-
-  if (req.method === 'GET' && pt === '/api/health') {
-    tryStartOllama();
-    const ollamaHealth = await new Promise((resolve) => {
-      const opts = { hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 5000 };
-      const hreq = http.request(opts, (hres) => {
-        let data = '';
-        hres.on('data', (c) => { data += c; });
-        hres.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            const models = parsed.models || [];
-            const hasModel = models.some(m => m.name === 'llama3.2-vision:latest');
-            resolve({ ok: hasModel, reachable: true, model_available: hasModel, installed_models: models.map(m => m.name) });
-          } catch (e) {
-            resolve({ ok: false, reachable: true, model_available: false, error: 'Invalid Ollama response' });
-          }
-        });
-      });
-      hreq.on('error', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama starting up...' }));
-      hreq.on('timeout', () => { hreq.destroy(); resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama timeout' }); });
-      hreq.end();
-    });
-    return sendJson(res, 200, {
-      ok: ollamaHealth.ok,
-      service: 'prysmisai-web',
-      model: { display_name: 'PSM-v1.0(PrysmisAI)', runtime_model: 'llama3.2-vision:latest' },
-      ollama: ollamaHealth
-    });
-  }
-
-  if (req.method === 'GET' && pt === '/api/meta') {
-    const baseUrl = 'https://' + (req.headers['host'] || 'api.prysmisai.wtf');
-    return sendJson(res, 200, {
-      brand: 'PrysmisAI',
-      model: {
-        display_name: 'PSM-v1.0(PrysmisAI)',
-        runtime_model: 'llama3.2-vision:latest'
-      },
-      api: {
-        base_url: baseUrl,
-        endpoint: '/api/v1/chat/completions',
-        key_prefix: 'ps-prysmisai-',
-        key_limit: 3,
-        window_hours: 24,
-        key_notice: 'After 3 generation of PrysmisAI API key you must wait 24 hours.'
-      }
-    });
-  }
-
-  if (req.method === 'GET' && pt === '/api/settings/groq-key') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
-    const user = db.users[td.username] || {};
-    const key = user.groqApiKey || '';
-    return sendJson(res, 200, { groqApiKey: key ? key.substring(0, 8) + '****' + key.slice(-4) : '', hasKey: !!key });
-  }
-
-  if (req.method === 'POST' && pt === '/api/settings/groq-key') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
-    let body;
-    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const key = typeof body.groqApiKey === 'string' ? body.groqApiKey.trim() : '';
-    if (!db.users[td.username]) db.users[td.username] = {};
-    db.users[td.username].groqApiKey = key;
-    saveDb();
-    return sendJson(res, 200, { success: true });
-  }
-
-  if (req.method === 'DELETE' && pt === '/api/settings/groq-key') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
-    if (db.users[td.username]) { db.users[td.username].groqApiKey = ''; saveDb(); }
-    return sendJson(res, 200, { success: true });
-  }
-
-  if (req.method === 'GET' && pt === '/api/settings/manus-key') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
-    const user = db.users[td.username] || {};
-    const key = user.manusApiKey || '';
-    return sendJson(res, 200, { hasKey: !!key, maskedKey: key ? key.substring(0, 8) + '****' + key.slice(-4) : '' });
-  }
-
-  if (req.method === 'POST' && pt === '/api/settings/manus-key') {
-    const td = getTokenData(getReqToken(req, url));
-    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
-    let body;
-    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const key = typeof body.manusApiKey === 'string' ? body.manusApiKey.trim() : '';
-    if (!db.users[td.username]) db.users[td.username] = {};
-    db.users[td.username].manusApiKey = key;
-    saveDb();
-    return sendJson(res, 200, { success: true });
-  }
-
-  if (req.method === 'GET' && pt === '/api/settings/api-keys') {
-    const clientId = req.headers['x-prysmisai-client'] || 'local-user';
-    const td = getTokenData(getReqToken(req, url));
-    const effectiveClientId = td ? td.username : clientId;
-    
-    const now = Date.now();
-    const oneDay = 24 * 3600000;
-    const user = db.users[effectiveClientId] || {};
-    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
-    const remaining = Math.max(0, 3 - recentGenerations.length);
-    const nextGenerationAt = remaining === 0 && recentGenerations.length > 0 
-      ? new Date(Math.min(...recentGenerations) + oneDay).toISOString()
-      : null;
-    
-    return sendJson(res, 200, {
-      label: 'PrysmisAI API Key',
-      description: 'After 3 generation of PrysmisAI API key you must wait 24 hours.',
-      status: {
-        limit: 3,
-        window_hours: 24,
-        generated_in_window: recentGenerations.length,
-        remaining: remaining,
-        next_generation_at: nextGenerationAt
-      },
-      keys: (user.prysmisApiKeys || []).map(k => ({
-        id: k.created,
-        api_key: k.key,
-        masked_key: k.key.substring(0, 18) + '****' + k.key.slice(-4),
-        created_at: new Date(k.created).toISOString()
-      }))
-    });
-  }
-
-  if (req.method === 'POST' && pt === '/api/settings/api-keys/generate') {
-    const clientId = req.headers['x-prysmisai-client'] || 'local-user';
-    const td = getTokenData(getReqToken(req, url));
-    const effectiveClientId = td ? td.username : clientId;
-    
-    const now = Date.now();
-    const oneDay = 24 * 3600000;
-    const user = db.users[effectiveClientId] || {};
-    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
-    
-    if (recentGenerations.length >= 3) {
-      const oldestGeneration = Math.min(...recentGenerations);
-      const retryAt = new Date(oldestGeneration + oneDay).toISOString();
-      return sendJson(res, 429, {
-        message: `API key generation limit reached. Try again after ${retryAt}.`,
-        retry_at: retryAt
-      });
-    }
-    
-    const apiKey = 'ps-prysmisai-' + crypto.randomBytes(24).toString('hex');
-    if (!user.prysmisApiKeys) user.prysmisApiKeys = [];
-    if (!user.apiKeyGenerationHistory) user.apiKeyGenerationHistory = [];
-    
-    user.prysmisApiKeys.push({ key: apiKey, created: now });
-    user.apiKeyGenerationHistory.push(now);
-    db.users[effectiveClientId] = user;
-    saveDb();
-    
-    const newRecentGenerations = user.apiKeyGenerationHistory.filter(time => now - time < oneDay);
-    const newRemaining = Math.max(0, 3 - newRecentGenerations.length);
-    const nextGenerationAt = newRemaining === 0 
-      ? new Date(now + oneDay).toISOString()
-      : null;
-    
-    return sendJson(res, 200, {
-      key: {
-        id: now,
-        api_key: apiKey,
-        masked_key: apiKey.substring(0, 18) + '****' + apiKey.slice(-4),
-        created_at: new Date(now).toISOString()
-      },
-      status: {
-        limit: 3,
-        window_hours: 24,
-        generated_in_window: newRecentGenerations.length,
-        remaining: newRemaining,
-        next_generation_at: nextGenerationAt
-      }
-    });
-  }
-
-  function authenticateApiKey(apiKey) {
-    if (!apiKey || !apiKey.startsWith('ps-prysmisai-')) return false;
-    for (const u in db.users) {
-      const user = db.users[u];
-      if (user.prysmisApiKeys && user.prysmisApiKeys.some(k => k.key === apiKey)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function validateRequestedModel(requestedModel) {
-    const allowedModels = ['PSM-v1.0(PrysmisAI)', 'psm-v1.0', 'llama3.2-vision:latest'];
-    if (!requestedModel) return 'psm-v1.0';
-    if (allowedModels.includes(requestedModel)) return 'psm-v1.0';
-    if (GROQ_MODELS.has(requestedModel)) return requestedModel;
-    throw new Error(`Unsupported model '${requestedModel}'. Use PSM-v1.0(PrysmisAI) or a supported Groq model.`);
-  }
-
-  if (req.method === 'POST' && pt === '/api/v1/chat/completions') {
-    let body;
-    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    
-    const authHeader = req.headers['authorization'] || '';
-    const apiKey = authHeader.replace(/^Bearer\s+/i, '');
-    
-    if (!apiKey || !authenticateApiKey(apiKey)) {
-      return sendJson(res, 401, { error: 'Invalid PrysmisAI API key.' });
-    }
-    
-    if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
-      return sendJson(res, 400, { error: 'At least one message is required.' });
-    }
-    
-    let modelToUse;
-    try {
-      modelToUse = validateRequestedModel(body.model);
-    } catch (error) {
-      return sendJson(res, 400, { error: error.message });
-    }
-    
-    const messages = body.messages.map(m => ({
-      role: m.role || 'user',
-      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
-    }));
-    
-    const temperature = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.2;
-    const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : 512;
-    
-    if (GROQ_MODELS.has(modelToUse)) {
-      const prysmisUser = Object.keys(db.users).find(u => (db.users[u].prysmisApiKeys || []).some(k => k.key === apiKey));
-      const groqKey = prysmisUser ? getUserGroqKey(prysmisUser) : null;
-      if (!groqKey || !groqKey.startsWith('gsk_')) {
-        return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
-      }
-      try {
-        const groqData = await callGroq(messages, temperature, maxTokens, groqKey, modelToUse);
-        const choice = groqData.choices && groqData.choices[0];
-        const reply = choice && choice.message && choice.message.content ? choice.message.content : '';
-        return sendJson(res, 200, {
-          id: groqData.id || 'psmchat-' + crypto.randomBytes(16).toString('hex'),
-          object: 'chat.completion',
-          created: Math.floor(Date.now() / 1000),
-          model: modelToUse,
-          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: (choice && choice.finish_reason) || 'stop' }],
-          usage: groqData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
-        });
-      } catch (error) {
-        return sendJson(res, 503, { error: 'Groq error: ' + error.message });
-      }
-    }
-
-    try {
-      const ollamaData = await callOllama(messages, temperature, maxTokens);
-      const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : '';
-      const promptTokens = ollamaData.prompt_eval_count || messages.reduce((acc, m) => acc + (m.content || '').length / 4, 0);
-      const completionTokens = ollamaData.eval_count || reply.length / 4;
-      return sendJson(res, 200, {
-        id: 'psmchat-' + crypto.randomBytes(16).toString('hex'),
-        object: 'chat.completion',
-        created: Math.floor(Date.now() / 1000),
-        model: 'PSM-v1.0(PrysmisAI)',
-        choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: ollamaData.done_reason || 'stop' }],
-        usage: { prompt_tokens: Math.floor(promptTokens), completion_tokens: Math.floor(completionTokens), total_tokens: Math.floor(promptTokens + completionTokens) }
-      });
-    } catch (error) {
-      return sendJson(res, 503, { error: 'PSM-v1.0(PrysmisAI): ' + error.message });
-    }
-  }
-
   if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions' || (isApiSubdomain && pt === '/'))) {
     let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
-    const rawModel = body.model || url.searchParams.get('model') || 'psm-v1.0';
+    const rawModel = body.model || url.searchParams.get('model') || 'gpt-5.2';
     const modelToUse = resolveModel(rawModel);
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const cleanMessages = messages.filter(m => {
@@ -1664,78 +899,92 @@ const server = http.createServer(async (req, res) => {
     });
     if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
     const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
-    const maxTok = typeof body.max_tokens === 'number' ? Math.min(body.max_tokens, 4096) : 2048;
+    const maxTok = typeof body.max_tokens === 'number' ? body.max_tokens : 4096;
+    const fallbacks = ['gpt-4o', 'claude-sonnet-4-5', 'gpt-4o-mini'];
+    const modelMap = {
+      'gpt-5.2': 'gpt-4o',
+      'gpt-5.2-mini': 'gpt-4o-mini',
+      'gemini-3.2-pro': 'claude-sonnet-4-5',
+      'gemini-3.2-flash': 'gpt-4o-mini',
+      'grok-4': 'gpt-4o',
+      'llama-4-maverick': 'gpt-4o',
+      'deepseek-r1': 'claude-sonnet-4-5',
+      'deepseek-v3': 'gpt-4o',
+      'mistral-large-2': 'gpt-4o',
+      'o3-mini': 'gpt-4o-mini',
+      'claude-haiku-3-5': 'claude-haiku-3-5',
+      'claude-opus-4-5': 'claude-opus-4-5',
+      'claude-opus-4-5-20251101': 'claude-opus-4-5',
+      'claude-sonnet-4-5': 'claude-sonnet-4-5',
+      'gpt-4o': 'gpt-4o',
+      'gpt-4o-mini': 'gpt-4o-mini'
+    };
+    const puterModel = modelMap[modelToUse] || 'gpt-4o';
+    const tryList = [puterModel, ...fallbacks.filter(f => f !== puterModel)];
+    const tryVariants = [cleanMessages, cleanMessages.filter(m => m.role !== 'system')];
 
-    if (modelToUse === 'psm-v1.0') {
-      try {
-        const ollamaData = await callOllama(cleanMessages, temp, maxTok);
-        const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'PSM-v1.0(PrysmisAI) could not generate a response.';
-        const promptLen = cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length;
-        return sendJson(res, 200, {
-          id: 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
-          object: 'chat.completion',
-          model: 'psm-v1.0',
-          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: Math.floor(promptLen / 4), completion_tokens: Math.floor(reply.length / 4), total_tokens: Math.floor((promptLen + reply.length) / 4) }
-        });
-      } catch (error) {
-        return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
+    const getDriver = (m) => {
+      if (m.startsWith('claude')) return 'claude';
+      if (m.startsWith('gemini') || m.startsWith('google')) return 'gemini';
+      if (m.startsWith('grok') || m.startsWith('x-ai')) return 'xai';
+      if (m.startsWith('meta') || m.startsWith('llama')) return 'meta-llama';
+      if (m.startsWith('deepseek')) return 'deepseek';
+      if (m.startsWith('mistral')) return 'mistral';
+      return 'openai';
+    };
+
+    const baseHdrs = {
+      'Content-Type': 'application/json',
+      'Origin': 'https://puter.com',
+      'Referer': 'https://puter.com/',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site'
+    };
+
+    const aiFetch = async (model, msgs) => {
+      const ocBody = JSON.stringify({ model, messages: msgs, stream: false, temperature: temp, max_tokens: maxTok });
+      const drBody = JSON.stringify({ interface: 'puter-chat-completion', driver: getDriver(model), method: 'complete', args: { messages: msgs, model, temperature: temp, max_tokens: maxTok } });
+      const tryUrls = [
+        { url: 'https://api.puter.com/drivers/call', body: drBody, headers: { ...baseHdrs, 'Authorization': 'Bearer anonymous' } },
+        { url: 'https://api.puter.com/drivers/call', body: drBody, headers: { ...baseHdrs, 'Authorization': 'Bearer null' } },
+        { url: 'https://ai.puter.com/v1/chat/completions', body: ocBody, headers: { ...baseHdrs } },
+        { url: 'https://api.puter.com/puterai/chat/completions', body: ocBody, headers: { ...baseHdrs } },
+        { url: 'https://api.puter.com/puterai/openai/v1/chat/completions', body: ocBody, headers: { ...baseHdrs } }
+      ];
+      let lastE = null;
+      for (const t of tryUrls) {
+        try {
+          const r = await fetch(t.url, { method: 'POST', headers: t.headers, body: t.body });
+          const txt = await r.text();
+          if (!txt) { lastE = new Error('Empty response'); continue; }
+          const low = txt.trim().toLowerCase();
+          if (low.startsWith('not found') || low.startsWith('<!') || low.startsWith('<html')) { lastE = new Error('HTML error page'); continue; }
+          let data;
+          try { data = JSON.parse(txt); } catch (_) { lastE = new Error('Invalid JSON'); continue; }
+          if (data.choices && data.choices[0]) return data;
+          if (data.result && data.result.message) return { choices: [{ message: data.result.message, finish_reason: 'stop' }] };
+          if (data.result && Array.isArray(data.result) && data.result[0] && data.result[0].message) return { choices: [{ message: data.result[0].message, finish_reason: 'stop' }] };
+          if (data.error && data.error.code === 401) { lastE = new Error('Unauthorized'); continue; }
+          lastE = new Error(data.error && data.error.message ? data.error.message : 'No choices in response');
+        } catch(e) { lastE = e; }
+      }
+      throw lastE || new Error('All endpoints failed');
+    };
+
+    let lastErr = null;
+    for (const m of tryList) {
+      for (const msgs of tryVariants) {
+        try { const r = await aiFetch(m, msgs); return sendJson(res, 200, r); } catch (e) { lastErr = e; }
       }
     }
-
-    if (modelToUse === 'manus-1.6-lite') {
-      const td = getTokenData(getReqToken(req, url));
-      const manusKey = td ? getUserManusKey(td.username) : null;
-      if (!manusKey) {
-        return sendJson(res, 400, { error: 'Manus API key not set. Add your Manus API key in AI Settings.' });
-      }
-      try {
-        const reply = await callManus(cleanMessages, manusKey);
-        return sendJson(res, 200, {
-          id: 'manus-' + crypto.randomBytes(8).toString('hex'),
-          object: 'chat.completion',
-          model: 'manus-1.6-lite',
-          choices: [{ index: 0, message: { role: 'assistant', content: reply || 'No response from Manus.' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
-        });
-      } catch (error) {
-        if (error.quotaExceeded) {
-          return sendJson(res, 402, { error: 'manus_quota_exceeded', message: 'Your Manus API has ran out. Generate a new one.' });
-        }
-        return sendJson(res, 500, { error: 'Manus error: ' + (error.message || 'Unknown error') });
-      }
-    }
-
-    if (PREMIUM_GROQ_MODELS.has(modelToUse)) {
-      const td = getTokenData(getReqToken(req, url));
-      if (!td || !(db.users[td.username] && (db.users[td.username].premium || db.users[td.username].isAdmin))) {
-        return sendJson(res, 403, { error: 'This model is for premium users only.' });
-      }
-    }
-
-    if (GROQ_MODELS.has(modelToUse)) {
-      const td = getTokenData(getReqToken(req, url));
-      const groqKey = td ? getUserGroqKey(td.username) : null;
-      if (!groqKey || !groqKey.startsWith('gsk_')) {
-        return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
-      }
-      try {
-        const groqData = await callGroq(cleanMessages, temp, maxTok, groqKey, modelToUse);
-        const choice = groqData.choices && groqData.choices[0];
-        const reply = choice && choice.message && choice.message.content ? choice.message.content : '';
-        return sendJson(res, 200, {
-          id: groqData.id || 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
-          object: 'chat.completion',
-          model: modelToUse,
-          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: (choice && choice.finish_reason) || 'stop' }],
-          usage: groqData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
-        });
-      } catch (error) {
-        return sendJson(res, 500, { error: 'Groq error: ' + (error.message || 'Unknown error') });
-      }
-    }
-
-    return sendJson(res, 400, { error: 'Model not supported' });
+    return sendJson(res, 500, { error: lastErr ? (lastErr.message || 'AI request failed') : 'AI request failed' });
   }
 
   if (req.method === 'GET' && (pt === '/APIDoc' || pt === '/APIDoc/' || pt === '/apidoc' || pt === '/apidoc/')) {
