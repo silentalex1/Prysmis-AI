@@ -90,10 +90,18 @@ Settings
 <button id="fileAttachRemove">&#215;</button>
 </div>
 <div class="input-row">
+<div id="manusKeyNotification" class="manus-notification" style="display:none">Manus API key has ended generate a new one.</div>
 <div class="model-select-wrap">
+<div id="manusKeyInputWrap" class="manus-key-wrap" style="display:none">
+<input type="password" id="manusApiKey" placeholder="Enter Manus API Key" class="manus-key-input">
+<button id="saveManusKeyBtn" class="manus-key-save">Save</button>
+</div>
 <select id="modelSelect" class="model-select-inline" size="1">
 <optgroup label="PrysmisAI">
 <option value="psm-v1.0">PSM-v1.0(PrysmisAI)</option>
+</optgroup>
+<optgroup label="Free AI Models">
+<option value="manus-1.6-lite">Manus 1.6 Lite</option>
 </optgroup>
 <optgroup label="Groq — Text to Text">
 <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
