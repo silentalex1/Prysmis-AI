@@ -1312,9 +1312,7 @@ text-decoration: underline;
 .settings-poe-status-ok { color: #10b981; }
 .settings-poe-status-err { color: #f43f5e; }
 
-/* ============================================================
-   GROQ QUOTA EXHAUSTED NOTIFICATION BANNER
-   ============================================================ */
+
 .groq-quota-banner {
   position: fixed;
   top: -80px;
@@ -1383,9 +1381,7 @@ text-decoration: underline;
 }
 .groq-quota-banner-dismiss:hover { opacity: 1; }
 
-/* ============================================================
-   SLASH COMMAND MENU
-   ============================================================ */
+
 .slash-cmd-menu {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -1445,7 +1441,6 @@ text-decoration: underline;
   letter-spacing: 0.04em;
 }
 
-/* Premium model option styling */
 .premium-model-opt { color: #a78bfa; }
 
 .manus-key-wrap { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
