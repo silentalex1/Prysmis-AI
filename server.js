@@ -222,6 +222,7 @@ function validatePassword(p) {
 
 const YOU_MODELS = [
   'psm-v1.0',
+  'manus-1.6-lite',
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
   'mistral-saba-24b',
@@ -233,6 +234,12 @@ const YOU_MODELS = [
   'whisper-large-v3-turbo',
   'distil-whisper-large-v3-en'
 ];
+
+const PREMIUM_GROQ_MODELS = new Set([
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3-32b'
+]);
 
 const GROQ_MODELS = new Set([
   'llama-3.3-70b-versatile',
@@ -249,6 +256,7 @@ const GROQ_MODELS = new Set([
 
 const MODEL_MAP = {
   'psm-v1.0': 'psm-v1.0',
+  'manus-1.6-lite': 'manus-1.6-lite',
   'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
   'mistral-saba-24b': 'mistral-saba-24b',
@@ -299,6 +307,45 @@ function callGroq(messages, temperature, maxTokens, groqApiKey, model) {
 function getUserGroqKey(username) {
   const user = db.users[username] || {};
   return user.groqApiKey || null;
+}
+
+function callManus(prompt, manusApiKey) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({ prompt });
+    const opts = {
+      hostname: 'api.manus.ai',
+      path: '/v1/tasks',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'API_KEY': manusApiKey, 'Content-Length': Buffer.byteLength(postData) },
+      timeout: 120000
+    };
+    const req = https.request(opts, (manusRes) => {
+      let data = '';
+      manusRes.on('data', (c) => { data += c; });
+      manusRes.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (manusRes.statusCode === 402 || manusRes.statusCode === 429) {
+            const err = new Error('quota_exceeded');
+            err.quotaExceeded = true;
+            reject(err);
+            return;
+          }
+          if (parsed.error) { reject(new Error(parsed.error.message || 'Manus API error')); return; }
+          resolve(parsed);
+        } catch (e) { reject(new Error('Invalid response from Manus')); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Manus request timeout')); });
+    req.on('error', (e) => { reject(e); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+function getUserManusKey(username) {
+  const user = db.users[username] || {};
+  return user.manusApiKey || null;
 }
 
 function resolveModel(m) {
@@ -1092,12 +1139,13 @@ const server = http.createServer(async (req, res) => {
     if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
     const user = db.users[td.username];
     if (!user) return sendJson(res, 404, { error: 'User not found' });
-    if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
+    if (!user.pluginToken) return sendJson(res, 400, { error: 'Plugin not connected. Open Roblox Studio and connect the plugin first.' });
     if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
     if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
     const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
     user.pendingChanges.push(change);
-    if (user.pendingChanges.length > 20) user.pendingChanges = user.pendingChanges.slice(-20);
+    if (user.pendingChanges.length > 50) user.pendingChanges = user.pendingChanges.slice(-50);
+    user.pluginConnected = true;
     saveDb();
     return sendJson(res, 200, { ok: true, changeId: change.id });
   }
@@ -1335,6 +1383,26 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true });
   }
 
+  if (req.method === 'GET' && pt === '/api/settings/manus-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    const user = db.users[td.username] || {};
+    const key = user.manusApiKey || '';
+    return sendJson(res, 200, { hasKey: !!key, maskedKey: key ? key.substring(0, 8) + '****' + key.slice(-4) : '' });
+  }
+
+  if (req.method === 'POST' && pt === '/api/settings/manus-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    let body;
+    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const key = typeof body.manusApiKey === 'string' ? body.manusApiKey.trim() : '';
+    if (!db.users[td.username]) db.users[td.username] = {};
+    db.users[td.username].manusApiKey = key;
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
   if (req.method === 'GET' && pt === '/api/settings/api-keys') {
     const clientId = req.headers['x-prysmisai-client'] || 'local-user';
     const td = getTokenData(getReqToken(req, url));
@@ -1542,6 +1610,38 @@ const server = http.createServer(async (req, res) => {
         });
       } catch (error) {
         return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
+      }
+    }
+
+    if (modelToUse === 'manus-1.6-lite') {
+      const td = getTokenData(getReqToken(req, url));
+      const manusKey = td ? getUserManusKey(td.username) : null;
+      if (!manusKey) {
+        return sendJson(res, 400, { error: 'Manus API key not set. Add your Manus API key in AI Settings.' });
+      }
+      const userPrompt = cleanMessages.filter(m => m.role !== 'system').map(m => typeof m.content === 'string' ? m.content : '').join('\n');
+      try {
+        const manusData = await callManus(userPrompt, manusKey);
+        const reply = manusData.result || manusData.output || manusData.content || JSON.stringify(manusData);
+        return sendJson(res, 200, {
+          id: 'manus-' + crypto.randomBytes(8).toString('hex'),
+          object: 'chat.completion',
+          model: 'manus-1.6-lite',
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        });
+      } catch (error) {
+        if (error.quotaExceeded) {
+          return sendJson(res, 402, { error: 'manus_quota_exceeded', message: 'Your Manus API has ran out. Generate a new one.' });
+        }
+        return sendJson(res, 500, { error: 'Manus error: ' + (error.message || 'Unknown error') });
+      }
+    }
+
+    if (PREMIUM_GROQ_MODELS.has(modelToUse)) {
+      const td = getTokenData(getReqToken(req, url));
+      if (!td || !(db.users[td.username] && (db.users[td.username].premium || db.users[td.username].isAdmin))) {
+        return sendJson(res, 403, { error: 'This model is for premium users only.' });
       }
     }
 
