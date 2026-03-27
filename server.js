@@ -1,1449 +1,1657 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
-
-:root {
---bg: #020205;
---bg2: #07070e;
---bg3: #0d0d1a;
---card: rgba(18,18,32,0.8);
---accent: #4f8ef7;
---accent2: #7c3aed;
---glow: rgba(79,142,247,0.35);
---border: rgba(255,255,255,0.07);
---border2: rgba(79,142,247,0.2);
---text: #dde0ff;
---dim: #5a5a72;
---dim2: #3a3a52;
---red: #f43f5e;
---green: #10b981;
---yellow: #f59e0b;
---code-bg: #0a0a14;
---code-keyword: #c084fc;
---code-string: #86efac;
---code-number: #fb923c;
---code-comment: #4a4a6a;
---code-fn: #60a5fa;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-*::selection { background: rgba(79,142,247,0.3); }
-
-body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-.animated-bg { position: fixed; inset: 0; background: radial-gradient(ellipse at 10% 10%, rgba(79,142,247,0.07) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(124,58,237,0.06) 0%, transparent 50%); z-index: -1; pointer-events: none; }
-
-header { height: 60px; background: rgba(2,2,5,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; z-index: 200; flex-shrink: 0; }
-
-.brand { display: flex; align-items: center; gap: 0.6rem; }
-.logo { font-size: 1.15rem; font-weight: 900; color: #fff; letter-spacing: -0.3px; }
-.badge { font-size: 0.6rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); padding: 2px 7px; border-radius: 4px; color: #fff; letter-spacing: 0.5px; }
-
-.header-actions { display: flex; align-items: center; gap: 0.8rem; }
-.nav-links { display: flex; align-items: center; gap: 1.5rem; }
-.nav-item { color: var(--dim); text-decoration: none; font-size: 0.82rem; font-weight: 500; transition: color 0.2s; }
-.nav-item:hover { color: var(--text); }
-.donate-link { color: var(--yellow) !important; }
-.select-wrapper { position: relative; }
-
-#modelSelect { appearance: none; padding: 0.45rem 2rem 0.45rem 0.85rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.82rem; font-family: inherit; cursor: pointer; outline: none; transition: border-color 0.2s; }
-#modelSelect:hover { border-color: var(--border2); }
-
-.select-wrapper::after { content: ''; position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--dim); pointer-events: none; }
-
-#generateTokenBtn { padding: 0.45rem 1rem; background: transparent; border: 1px solid var(--border2); border-radius: 8px; color: var(--accent); font-weight: 700; font-size: 0.78rem; font-family: inherit; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-#generateTokenBtn:hover { background: rgba(79,142,247,0.1); border-color: var(--accent); }
-#generateTokenBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-#connectBtn { padding: 0.45rem 1.1rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 8px; color: #fff; font-weight: 700; font-size: 0.82rem; font-family: inherit; cursor: pointer; box-shadow: 0 2px 12px var(--glow); transition: opacity 0.2s, transform 0.2s; white-space: nowrap; }
-#connectBtn:hover { opacity: 0.88; transform: translateY(-1px); }
-
-.logout-btn { padding: 0.45rem 1rem; background: transparent; border: 1px solid rgba(244,63,94,0.3); border-radius: 8px; color: var(--red); font-weight: 700; font-size: 0.78rem; font-family: inherit; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.logout-btn:hover { background: rgba(244,63,94,0.1); border-color: var(--red); }
-
-.app-container { display: flex; flex: 1; overflow: hidden; }
-
-.chat-sidebar { width: 230px; background: rgba(5,5,12,0.5); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-.sidebar-header { padding: 1rem; border-bottom: 1px solid var(--border); }
-
-#newChatBtn { width: 100%; padding: 0.65rem 1rem; background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 10px; color: var(--dim); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.82rem; font-family: inherit; font-weight: 600; transition: all 0.25s; }
-#newChatBtn:hover { background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(124,58,237,0.1)); border-color: var(--border2); color: var(--text); transform: translateY(-1px); }
-
-.history-list { flex: 1; overflow-y: auto; padding: 0.6rem; display: flex; flex-direction: column; gap: 2px; }
-.history-list::-webkit-scrollbar { width: 3px; }
-.history-list::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
-
-.history-item { padding: 0.6rem 0.85rem; border-radius: 8px; font-size: 0.79rem; color: var(--dim); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.history-item:hover { background: rgba(79,142,247,0.08); color: var(--text); }
-.history-item-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.history-del { opacity: 0; background: none; border: none; color: var(--red); cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 0.7rem; font-family: inherit; font-weight: 700; transition: opacity 0.2s, background 0.2s; flex-shrink: 0; }
-.history-item:hover .history-del { opacity: 1; }
-.history-del:hover { background: rgba(244,63,94,0.12); }
-
-.sidebar-footer { padding: 0.8rem; border-top: 1px solid var(--border); flex-shrink: 0; }
-.settings-btn { width: 100%; padding: 0.6rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 9px; color: var(--dim); font-size: 0.8rem; font-family: inherit; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
-.settings-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: var(--dim2); }
-
-.content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-.top-nav-container { display: flex; align-items: center; justify-content: space-between; padding-right: 1.5rem; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.12); flex-shrink: 0; }
-.navigation-tabs { display: flex; padding: 0 1.5rem; }
-.tab-link { padding: 1rem 0.1rem; margin-right: 2rem; background: none; border: none; color: var(--dim); font-weight: 600; font-size: 0.82rem; font-family: inherit; cursor: pointer; position: relative; transition: color 0.2s; white-space: nowrap; }
-.tab-link.active { color: var(--text); }
-.tab-link.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px 2px 0 0; box-shadow: 0 0 8px var(--glow); }
-.welcome-tag { font-size: 0.78rem; color: var(--dim); font-weight: 500; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
-.welcome-tag .uname { font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--accent2)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-.viewport { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-.messages-container { flex: 1; overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.8rem; max-width: 900px; width: 100%; margin: 0 auto; }
-.messages-container::-webkit-scrollbar { width: 3px; }
-.messages-container::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
-
-.user-msg, .ai-msg { max-width: 84%; line-height: 1.65; font-size: 0.92rem; opacity: 0; transform: translateY(10px); animation: msgIn 0.35s cubic-bezier(0.22,1,0.36,1) forwards; }
-@keyframes msgIn { to { opacity: 1; transform: translateY(0); } }
-
-.user-msg { align-self: flex-end; background: linear-gradient(135deg, rgba(79,142,247,0.18), rgba(124,58,237,0.12)); border: 1px solid rgba(79,142,247,0.2); border-radius: 18px 18px 4px 18px; padding: 0.9rem 1.15rem; color: var(--text); }
-.ai-msg { align-self: flex-start; width: 100%; max-width: 100%; }
-.ai-tag { font-size: 0.68rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; background: linear-gradient(90deg, var(--accent), var(--accent2)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.55rem; display: block; }
-.ai-msg-body { background: var(--card); border: 1px solid var(--border); border-radius: 4px 18px 18px 18px; padding: 1rem 1.25rem; line-height: 1.75; color: var(--text); font-size: 0.92rem; }
-.ai-msg-body p { margin-bottom: 0.6rem; }
-.ai-msg-body p:last-child { margin-bottom: 0; }
-.ai-msg-body strong { color: #fff; font-weight: 700; }
-.ai-msg-body em { color: #c4b5fd; font-style: italic; }
-.ai-msg-body h1 { color: #fff; font-weight: 800; margin: 1rem 0 0.4rem; font-size: 1.15rem; }
-.ai-msg-body h2 { color: #fff; font-weight: 800; margin: 1rem 0 0.4rem; font-size: 1.05rem; }
-.ai-msg-body h3 { color: #fff; font-weight: 800; margin: 0.8rem 0 0.3rem; font-size: 0.97rem; }
-.ai-msg-body ul, .ai-msg-body ol { padding-left: 1.4rem; margin: 0.5rem 0; display: flex; flex-direction: column; gap: 0.25rem; }
-.ai-msg-body li { font-size: 0.91rem; }
-
-.inline-code { background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.18); border-radius: 5px; padding: 1px 6px; font-family: 'Fira Code', monospace; font-size: 0.84em; color: #93c5fd; }
-
-.code-block { margin: 0.9rem 0; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); background: var(--code-bg); }
-.code-block-header { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05); }
-.code-lang { font-size: 0.7rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Fira Code', monospace; }
-.copy-btn { background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.2); border-radius: 6px; color: var(--accent); font-size: 0.72rem; font-family: inherit; font-weight: 600; padding: 3px 10px; cursor: pointer; transition: all 0.2s; }
-.copy-btn:hover { background: rgba(79,142,247,0.2); }
-.copy-btn.copied { color: var(--green); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
-.code-block pre { padding: 1rem 1.1rem; overflow-x: auto; font-family: 'Fira Code', monospace; font-size: 0.84rem; line-height: 1.65; }
-.code-block pre::-webkit-scrollbar { height: 4px; }
-.code-block pre::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 2px; }
-.code-block code { font-family: inherit; background: none; border: none; padding: 0; }
-.tok-kw { color: var(--code-keyword); }
-.tok-str { color: var(--code-string); }
-.tok-num { color: var(--code-number); }
-.tok-cmt { color: var(--code-comment); font-style: italic; }
-.tok-fn { color: var(--code-fn); }
-.tok-plain { color: #e2e8f0; }
-
-.checklist-block { margin: 0.9rem 0; background: rgba(10,10,22,0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; overflow: hidden; }
-.checklist-header { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); }
-.checklist-title { font-size: 0.78rem; font-weight: 800; color: var(--text); }
-.checklist-count { margin-left: auto; font-size: 0.7rem; font-weight: 700; background: rgba(79,142,247,0.15); color: var(--accent); border-radius: 20px; padding: 1px 8px; }
-.checklist-items { padding: 0.5rem 0; }
-.checklist-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; transition: background 0.15s; }
-.check-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--dim2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s cubic-bezier(0.22,1,0.36,1); }
-.check-circle.done { background: var(--green); border-color: var(--green); box-shadow: 0 0 10px rgba(16,185,129,0.35); }
-.check-circle.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(79,142,247,0.3); animation: pulseRing 1.5s infinite; }
-@keyframes pulseRing { 0%,100% { box-shadow: 0 0 8px rgba(79,142,247,0.3); } 50% { box-shadow: 0 0 16px rgba(79,142,247,0.6); } }
-.check-circle svg { display: none; }
-.check-circle.done svg { display: block; }
-.check-label { font-size: 0.84rem; color: var(--dim); transition: all 0.3s; line-height: 1.4; }
-.checklist-item.done .check-label { color: var(--dim2); text-decoration: line-through; text-decoration-color: rgba(16,185,129,0.5); }
-.checklist-item.active .check-label { color: var(--text); font-weight: 600; }
-
-.thinking-anim { align-self: flex-start; display: flex; flex-direction: column; gap: 0.5rem; opacity: 0; animation: msgIn 0.3s ease forwards; }
-.thinking-text { font-size: 0.78rem; color: var(--dim); font-weight: 600; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
-.thinking-bar { width: 100px; height: 2px; background: rgba(79,142,247,0.1); border-radius: 2px; overflow: hidden; position: relative; }
-.thinking-bar::after { content: ''; position: absolute; height: 100%; width: 40%; background: linear-gradient(90deg, var(--accent), var(--accent2)); animation: slide 1.4s infinite ease-in-out; }
-@keyframes slide { from { left: -40%; } to { left: 110%; } }
-
-.presets-wrap { display: flex; flex-direction: column; align-items: center; padding: 3rem 2rem 1rem; }
-.intro { font-size: 1.7rem; font-weight: 900; color: #fff; letter-spacing: -0.5px; margin-bottom: 0.5rem; text-align: center; }
-.intro-sub { font-size: 0.85rem; color: var(--dim); text-align: center; margin-bottom: 2.5rem; }
-.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; width: 100%; max-width: 820px; }
-.preset-card { background: var(--card); border: 1px solid var(--border); padding: 1.3rem; border-radius: 14px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
-.preset-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(79,142,247,0.05), rgba(124,58,237,0.03)); opacity: 0; transition: opacity 0.25s; }
-.preset-card:hover { border-color: var(--border2); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(79,142,247,0.12); }
-.preset-card:hover::before { opacity: 1; }
-.preset-label { display: block; font-weight: 800; font-size: 0.88rem; color: var(--text); margin-bottom: 0.3rem; }
-.preset-card p { font-size: 0.77rem; color: var(--dim); line-height: 1.4; }
-
-.input-container { padding: 1rem 1.5rem 1.4rem; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; background: rgba(2,2,5,0.4); border-top: 1px solid var(--border); }
-.input-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; max-width: 760px; }
-.input-wrapper { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 8px 8px 8px 16px; display: flex; align-items: flex-end; gap: 8px; transition: border-color 0.25s, box-shadow 0.25s; min-width: 0; position: relative; }
-.input-wrapper:focus-within { border-color: var(--border2); box-shadow: 0 0 0 3px rgba(79,142,247,0.08); }
-#input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); padding: 8px 0; resize: none; font-size: 0.9rem; font-family: inherit; line-height: 1.5; max-height: 140px; }
-#input::placeholder { color: var(--dim); }
-#sendBtn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 2px 10px var(--glow); }
-#sendBtn:hover { opacity: 0.88; transform: scale(1.05); }
-
-.sidebar-right { width: 0; background: rgba(3,3,8,0.97); border-left: 1px solid var(--border); transition: width 0.35s cubic-bezier(0.22,1,0.36,1); position: relative; flex-shrink: 0; overflow: hidden; }
-.sidebar-right.open { width: 260px; }
-.sidebar-toggle { position: absolute; top: 50%; left: -30px; transform: translateY(-50%); background: rgba(3,3,8,0.97); border: 1px solid var(--border); border-right: none; padding: 12px 5px; border-radius: 8px 0 0 8px; cursor: pointer; writing-mode: vertical-rl; font-size: 10px; font-family: inherit; font-weight: 700; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; transition: color 0.2s; }
-.sidebar-toggle:hover { color: var(--text); }
-.sidebar-inner { width: 260px; height: 100%; }
-.explorer-content { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 2.5rem; opacity: 0; transition: opacity 0.35s; gap: 0.6rem; }
-.sidebar-right.open .explorer-content { opacity: 1; }
-.explorer-status { display: flex; align-items: center; gap: 0.5rem; }
-.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dot.red { background: var(--red); box-shadow: 0 0 8px rgba(244,63,94,0.7); }
-.dot.green { background: var(--green); box-shadow: 0 0 8px rgba(16,185,129,0.7); }
-#statusText { font-size: 0.72rem; color: var(--red); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
-.explorer-title { font-size: 0.9rem; font-weight: 800; color: var(--text); }
-.explorer-block { width: 110px; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; box-shadow: 0 0 14px rgba(79,142,247,0.5); }
-
-.viewport-scroll { flex: 1; overflow-y: auto; padding: 2rem; }
-.viewport-scroll::-webkit-scrollbar { width: 3px; }
-.viewport-scroll::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
-
-.projects-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
-.projects-header h2 { font-size: 1.3rem; font-weight: 900; color: #fff; }
-#addGameBtn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; font-family: inherit; cursor: pointer; box-shadow: 0 2px 12px var(--glow); transition: opacity 0.2s, transform 0.2s; }
-#addGameBtn:hover { opacity: 0.88; transform: translateY(-1px); }
-
-.projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1.2rem; }
-.empty-state { grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; color: var(--dim); }
-.empty-state p { font-size: 0.9rem; }
-
-.game-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.4rem; display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.25s; position: relative; overflow: hidden; }
-.game-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); opacity: 0; transition: opacity 0.25s; }
-.game-card:hover { border-color: var(--border2); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(79,142,247,0.1); }
-.game-card:hover::before { opacity: 1; }
-.game-card-author { font-size: 0.7rem; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-.game-card h3 { font-size: 1rem; font-weight: 800; color: #fff; }
-.game-card p { font-size: 0.82rem; color: var(--dim); line-height: 1.5; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.game-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.4rem; }
-.game-card a { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
-.game-card a:hover { text-decoration: underline; }
-.delete-card-btn { background: none; border: 1px solid rgba(244,63,94,0.25); border-radius: 6px; color: var(--red); font-size: 0.72rem; font-family: inherit; font-weight: 700; padding: 0.25rem 0.65rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
-.delete-card-btn:hover { background: rgba(244,63,94,0.1); border-color: var(--red); }
-
-.commchat-container { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-.commchat-messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.commchat-messages::-webkit-scrollbar { width: 3px; }
-.commchat-messages::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
-.commchat-empty { text-align: center; padding: 4rem 2rem; color: var(--dim); font-size: 0.9rem; }
-
-.commchat-msg { max-width: 680px; width: 100%; padding: 0.75rem 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 12px; transition: border-color 0.2s; }
-.commchat-msg:hover { border-color: var(--border2); }
-.commchat-msg-own { border-color: rgba(79,142,247,0.15); background: rgba(79,142,247,0.06); }
-
-.commchat-reply-ref { background: rgba(79,142,247,0.08); border-left: 2px solid var(--accent); border-radius: 4px; padding: 0.3rem 0.65rem; margin-bottom: 0.5rem; font-size: 0.78rem; display: flex; gap: 0.4rem; align-items: center; }
-.commchat-reply-ref-author { color: var(--accent); font-weight: 700; flex-shrink: 0; }
-.commchat-reply-ref-text { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.commchat-msg-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.3rem; }
-.commchat-author { font-size: 0.82rem; font-weight: 800; color: var(--accent); }
-.commchat-msg-own .commchat-author { color: #a78bfa; }
-.commchat-time { font-size: 0.7rem; color: var(--dim2); }
-.commchat-text { font-size: 0.88rem; color: var(--text); line-height: 1.55; word-break: break-word; }
-
-.commchat-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; opacity: 0; transition: opacity 0.2s; }
-.commchat-msg:hover .commchat-actions { opacity: 1; }
-.commchat-action-btn { background: none; border: 1px solid var(--border); border-radius: 5px; color: var(--dim); font-size: 0.7rem; font-family: inherit; font-weight: 600; padding: 2px 8px; cursor: pointer; transition: all 0.15s; }
-.commchat-action-btn:hover { color: var(--text); border-color: var(--dim); }
-.commchat-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
-.commchat-del-btn:hover { color: var(--red); border-color: var(--red); }
-
-.commchat-reply-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.5rem; background: rgba(79,142,247,0.06); border-top: 1px solid rgba(79,142,247,0.15); flex-shrink: 0; }
-.commchat-reply-preview { flex: 1; font-size: 0.78rem; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.commchat-reply-preview strong { color: var(--accent); }
-.commchat-reply-cancel { background: none; border: none; color: var(--dim); cursor: pointer; padding: 2px; display: flex; align-items: center; transition: color 0.2s; }
-.commchat-reply-cancel:hover { color: var(--red); }
-
-.commchat-input-row { display: flex; align-items: flex-end; gap: 0.6rem; padding: 0.8rem 1.5rem 1.2rem; border-top: 1px solid var(--border); background: rgba(2,2,5,0.4); flex-shrink: 0; }
-.commchat-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 1rem; color: var(--text); font-size: 0.9rem; font-family: inherit; outline: none; resize: none; line-height: 1.5; max-height: 120px; transition: border-color 0.2s; }
-.commchat-input:focus { border-color: var(--border2); }
-.commchat-input::placeholder { color: var(--dim); }
-.commchat-send-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 2px 10px var(--glow); }
-.commchat-send-btn:hover { opacity: 0.88; transform: scale(1.05); }
-
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.2s ease; }
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-.modal-card { background: #0a0a14; border: 1px solid var(--border); border-radius: 18px; width: 460px; padding: 2rem; box-shadow: 0 24px 64px rgba(0,0,0,0.6); animation: slideUp 0.25s cubic-bezier(0.22,1,0.36,1); }
-@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-.modal-header { margin-bottom: 1.5rem; }
-.modal-header h2 { font-size: 1.2rem; font-weight: 900; color: #fff; }
-.modal-header p { font-size: 0.82rem; color: var(--dim); margin-top: 0.3rem; }
-.modal-body { display: flex; flex-direction: column; }
-.modal-divider { height: 1px; background: var(--border); margin: 1.2rem 0; }
-.input-group { margin-bottom: 1rem; }
-.input-group label { display: block; font-size: 0.7rem; color: var(--dim); margin-bottom: 0.4rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.input-group input, .input-group textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 1rem; color: var(--text); outline: none; font-family: inherit; font-size: 0.88rem; transition: border-color 0.2s, box-shadow 0.2s; }
-.input-group textarea { resize: vertical; min-height: 90px; }
-.input-group input:focus, .input-group textarea:focus { border-color: var(--border2); box-shadow: 0 0 0 3px rgba(79,142,247,0.08); }
-.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
-.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; padding: 0.7rem 1.5rem; border-radius: 9px; font-weight: 700; font-family: inherit; font-size: 0.88rem; cursor: pointer; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 2px 12px var(--glow); }
-.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--dim); padding: 0.7rem 1.2rem; border-radius: 9px; font-weight: 600; font-family: inherit; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; }
-.btn-secondary:hover { border-color: var(--dim); color: var(--text); }
-
-.token-notif { position: fixed; top: 1.2rem; right: 1.5rem; z-index: 500; animation: notifSlide 0.3s cubic-bezier(0.22,1,0.36,1); }
-@keyframes notifSlide { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
-.token-notif-inner { background: #0c0c18; border: 1px solid var(--border2); border-radius: 14px; padding: 1rem 1.2rem; min-width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-.token-notif-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.token-notif-label { font-size: 0.82rem; font-weight: 800; color: var(--green); }
-.token-notif-close { background: none; border: none; color: var(--dim); cursor: pointer; padding: 2px; display: flex; align-items: center; transition: color 0.2s; }
-.token-notif-close:hover { color: var(--text); }
-.token-notif-field { display: flex; align-items: center; gap: 0.5rem; }
-.token-notif-field input { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; color: var(--accent); font-family: 'Fira Code', monospace; font-size: 0.75rem; outline: none; cursor: default; }
-.token-notif-hide { padding: 0.45rem 0.75rem; background: transparent; border: 1px solid var(--border); border-radius: 7px; color: var(--dim); font-size: 0.72rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.token-notif-hide:hover { color: var(--text); border-color: var(--dim); }
-.token-notif-copy { padding: 0.45rem 0.85rem; background: #fff; border: none; border-radius: 7px; color: #0a0a14; font-size: 0.72rem; font-weight: 800; font-family: inherit; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
-.token-notif-copy:hover { opacity: 0.88; }
-
-.settings-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 800; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
-.settings-panel { background: #09090f; border: 1px solid var(--border); border-radius: 18px; width: 680px; height: 420px; display: flex; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.7); animation: slideUp 0.25s cubic-bezier(0.22,1,0.36,1); }
-.settings-sidebar { width: 190px; background: rgba(255,255,255,0.02); border-right: 1px solid var(--border); padding: 1.2rem 0.8rem; display: flex; flex-direction: column; gap: 0.25rem; flex-shrink: 0; }
-.settings-nav-btn { width: 100%; padding: 0.65rem 1rem; background: transparent; border: none; border-radius: 9px; color: var(--dim); font-size: 0.82rem; font-family: inherit; font-weight: 600; cursor: pointer; text-align: left; transition: all 0.2s; }
-.settings-nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
-.settings-nav-btn.active { background: rgba(79,142,247,0.12); color: var(--text); border: 1px solid rgba(79,142,247,0.18); }
-.settings-content { flex: 1; overflow-y: auto; }
-.settings-content::-webkit-scrollbar { width: 3px; }
-.settings-content::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
-.settings-page { padding: 1.8rem 2rem; }
-.settings-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
-.settings-page-header h2 { font-size: 1.15rem; font-weight: 900; color: #fff; }
-.settings-close { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--dim); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-.settings-close:hover { color: var(--text); border-color: var(--dim); }
-.settings-field-group { display: flex; flex-direction: column; gap: 0.75rem; }
-.settings-label { font-size: 0.7rem; font-weight: 800; color: var(--dim); text-transform: uppercase; letter-spacing: 0.6px; }
-.settings-token-row { display: flex; align-items: center; gap: 0.6rem; }
-.settings-token-input { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 9px; padding: 0.7rem 1rem; color: #fff; font-family: 'Fira Code', monospace; font-size: 0.8rem; outline: none; cursor: default; }
-.settings-token-input::placeholder { color: var(--dim2); font-family: inherit; }
-.settings-token-btn { padding: 0.6rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 9px; color: var(--dim); font-size: 0.75rem; font-family: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-.settings-token-btn:hover { color: var(--text); border-color: var(--dim); }
-.settings-token-btn-copy { background: #fff; border-color: #fff; color: #09090f; }
-.settings-token-btn-copy:hover { opacity: 0.88; color: #09090f; border-color: #fff; }
-.settings-token-hint { font-size: 0.75rem; color: var(--dim); line-height: 1.5; max-width: 440px; }
-
-@media (max-width: 900px) {
-.chat-sidebar { width: 180px; }
-.header-actions .nav-links { display: none; }
-}
-@media (max-width: 768px) {
-.chat-sidebar { display: none; }
-.sidebar-right { display: none; }
-.select-wrapper { display: none; }
-#generateTokenBtn { display: none; }
-.preset-grid { grid-template-columns: 1fr; max-width: 100%; }
-.messages-container { padding: 1rem; }
-.input-container { padding: 0.8rem; } .input-row { gap: 6px; } .model-select-inline { min-width: 110px; font-size: 0.72rem; }
-.top-nav-container { padding-right: 1rem; }
-.navigation-tabs { padding: 0 1rem; }
-.tab-link { margin-right: 1rem; font-size: 0.78rem; }
-.settings-panel { width: 95vw; height: 90vh; flex-direction: column; }
-.settings-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; padding: 0.6rem; }
-.settings-nav-btn { flex: 1; text-align: center; }
-header { padding: 0 1rem; }
-.logout-btn { display: none; }
-.token-notif-inner { min-width: calc(100vw - 3rem); }
-.token-notif { right: 1rem; left: 1rem; }
-}
-@media (max-width: 480px) {
-.logo { font-size: 1rem; }
-.badge { display: none; }
-.welcome-tag { display: none; }
-.intro { font-size: 1.3rem; margin: 2rem 0 1.5rem; }
-.intro-sub { font-size: 0.78rem; }
-.modal-card { width: calc(100vw - 2rem); }
-}
-
-.commchat-admin-badge {
-font-size: 0.62rem;
-font-weight: 800;
-background: rgba(244,63,94,0.15);
-border: 1px solid rgba(244,63,94,0.3);
-color: #f43f5e;
-padding: 1px 6px;
-border-radius: 4px;
-letter-spacing: 0.3px;
-margin-left: 0.35rem;
-vertical-align: middle;
-}
-
-.settings-username-row { display: flex; align-items: center; gap: 0.6rem; }
-
-.settings-username-err {
-font-size: 0.75rem;
-color: #f43f5e;
-font-weight: 600;
-min-height: 1rem;
-margin-top: 0.3rem;
-display: none;
-}
-
-.settings-username-err.show { display: block; animation: errIn 0.2s ease; }
-
-@keyframes errIn { from { opacity:0; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
-
-.settings-save-row {
-display: flex;
-justify-content: flex-end;
-margin-top: auto;
-padding-top: 1.5rem;
-border-top: 1px solid var(--border);
-}
-
-.settings-save-btn {
-padding: 0.6rem 1.4rem;
-background: linear-gradient(135deg, var(--accent), var(--accent2));
-border: none;
-border-radius: 9px;
-color: #fff;
-font-weight: 700;
-font-size: 0.85rem;
-font-family: inherit;
-cursor: pointer;
-transition: opacity 0.2s, transform 0.2s;
-box-shadow: 0 2px 12px var(--glow);
-}
-
-.settings-save-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-.settings-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-.studio-files-btn {
-width: 100%;
-padding: 0.6rem 1rem;
-background: rgba(16,185,129,0.08);
-border: 1px solid rgba(16,185,129,0.2);
-border-radius: 9px;
-color: #10b981;
-font-size: 0.8rem;
-font-family: inherit;
-font-weight: 600;
-cursor: pointer;
-display: none;
-align-items: center;
-gap: 0.5rem;
-transition: all 0.2s;
-margin-bottom: 0.4rem;
-}
-
-.studio-files-btn:hover { background: rgba(16,185,129,0.14); }
-
-.explorer-status-bar {
-display: flex;
-align-items: center;
-gap: 0.5rem;
-padding: 0.75rem 1rem;
-border-bottom: 1px solid var(--border);
-flex-shrink: 0;
-}
-
-.studio-files-panel {
-display: none;
-flex-direction: column;
-flex: 1;
-overflow: hidden;
-}
-
-.studio-files-header {
-font-size: 0.7rem;
-font-weight: 800;
-color: var(--dim);
-text-transform: uppercase;
-letter-spacing: 0.6px;
-padding: 0.6rem 1rem;
-border-bottom: 1px solid var(--border);
-flex-shrink: 0;
-}
-
-.studio-files-list {
-flex: 1;
-overflow-y: auto;
-padding: 0.4rem 0;
-}
-
-.studio-files-list::-webkit-scrollbar { width: 3px; }
-.studio-files-list::-webkit-scrollbar-thumb { background: var(--dim2); border-radius: 3px; }
-
-.studio-loading { padding: 1.5rem 1rem; text-align: center; color: var(--dim); font-size: 0.78rem; }
-.studio-empty { padding: 1.5rem 1rem; text-align: center; color: var(--dim2); font-size: 0.75rem; line-height: 1.4; }
-
-.studio-file-item {
-display: flex;
-align-items: center;
-gap: 0.6rem;
-padding: 0.5rem 1rem;
-cursor: default;
-transition: background 0.15s;
-}
-
-.studio-file-item:hover { background: rgba(255,255,255,0.03); }
-
-.studio-file-icon {
-width: 20px;
-height: 20px;
-border-radius: 4px;
-background: rgba(79,142,247,0.15);
-border: 1px solid rgba(79,142,247,0.2);
-color: #4f8ef7;
-font-size: 0.6rem;
-font-weight: 900;
-display: flex;
-align-items: center;
-justify-content: center;
-flex-shrink: 0;
-font-family: 'Fira Code', monospace;
-}
-
-.studio-file-info { display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
-
-.studio-file-name {
-font-size: 0.78rem;
-font-weight: 600;
-color: var(--text);
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
-
-.studio-file-path {
-font-size: 0.67rem;
-color: var(--dim2);
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
-
-.explorer-disconnected { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 2rem; flex: 1; }
-
-.change-btns {
-display: flex;
-gap: 0.5rem;
-margin-top: 0.75rem;
-padding-top: 0.75rem;
-border-top: 1px solid rgba(255,255,255,0.06);
-animation: msgIn 0.3s ease;
-}
-
-.change-btn {
-padding: 0.5rem 1.1rem;
-border-radius: 8px;
-font-size: 0.78rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: all 0.2s;
-border: none;
-}
-
-.change-btn-accept {
-background: linear-gradient(135deg, #10b981, #059669);
-color: #fff;
-box-shadow: 0 2px 10px rgba(16,185,129,0.3);
-}
-
-.change-btn-accept:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-.change-btn-accept:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-.change-btn-applied { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #10b981; cursor: default; }
-
-.change-btn-reject {
-background: rgba(244,63,94,0.1);
-border: 1px solid rgba(244,63,94,0.2);
-color: #f43f5e;
-}
-
-.change-btn-reject:hover:not(:disabled) { background: rgba(244,63,94,0.18); }
-.change-btn-reject:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.studio-file-type {
-font-size: 0.62rem;
-color: var(--dim2);
-font-family: 'Fira Code', monospace;
-margin-top: 1px;
-}
-
-.model-select-wrap {
-position: relative;
-display: inline-flex;
-align-items: center;
-flex-shrink: 0;
-}
-
-.model-select-inline {
-appearance: none;
-padding: 0.55rem 2.4rem 0.55rem 0.9rem;
-background: rgba(255,255,255,0.04);
-border: 1px solid rgba(255,255,255,0.09);
-border-radius: 10px;
-color: var(--text);
-font-size: 0.8rem;
-font-family: inherit;
-cursor: pointer;
-outline: none;
-transition: border-color 0.2s;
-min-width: 150px;
-white-space: nowrap;
-}
-
-.model-select-inline:hover { border-color: var(--border2); }
-.model-select-inline:focus { border-color: var(--border2); }
-
-.model-select-wrap::after {
-content: '';
-position: absolute;
-right: 0.75rem;
-top: 50%;
-transform: translateY(-50%);
-width: 0;
-height: 0;
-border-left: 4px solid transparent;
-border-right: 4px solid transparent;
-border-bottom: 5px solid var(--dim);
-pointer-events: none;
-}
-
-.model-select-inline optgroup {
-font-size: 0.7rem;
-font-weight: 700;
-color: var(--dim);
-background: #0d0d1a;
-}
-
-.model-select-inline option {
-background: #0d0d1a;
-color: var(--text);
-font-size: 0.8rem;
-}
-
-.premium-option { color: #a78bfa; }
-
-.premium-modal-overlay {
-position: fixed;
-inset: 0;
-background: rgba(0,0,0,0.75);
-backdrop-filter: blur(12px);
-z-index: 2000;
-display: flex;
-align-items: center;
-justify-content: center;
-animation: fadeIn 0.2s ease;
-}
-
-.premium-modal-card {
-background: #09090f;
-border: 1px solid rgba(139,92,246,0.25);
-border-radius: 18px;
-width: 420px;
-padding: 2rem;
-position: relative;
-box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 60px rgba(139,92,246,0.08);
-animation: slideUp 0.25s cubic-bezier(0.22,1,0.36,1);
-}
-
-.premium-modal-close {
-position: absolute;
-top: 1rem;
-right: 1rem;
-background: none;
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 7px;
-color: var(--dim);
-cursor: pointer;
-padding: 5px;
-display: flex;
-align-items: center;
-transition: all 0.2s;
-}
-
-.premium-modal-close:hover { color: var(--text); border-color: var(--dim); }
-
-.premium-modal-icon {
-width: 52px;
-height: 52px;
-border-radius: 14px;
-background: rgba(139,92,246,0.1);
-border: 1px solid rgba(139,92,246,0.25);
-display: flex;
-align-items: center;
-justify-content: center;
-color: #a78bfa;
-margin-bottom: 1.2rem;
-}
-
-.premium-modal-title {
-font-size: 1.3rem;
-font-weight: 900;
-color: #fff;
-letter-spacing: -0.3px;
-margin-bottom: 0.4rem;
-}
-
-.premium-modal-sub {
-font-size: 0.85rem;
-color: var(--dim);
-margin-bottom: 1.5rem;
-line-height: 1.5;
-}
-
-.premium-features-list {
-display: flex;
-flex-direction: column;
-gap: 0.6rem;
-margin-bottom: 1.8rem;
-padding: 1rem;
-background: rgba(255,255,255,0.02);
-border: 1px solid rgba(255,255,255,0.06);
-border-radius: 10px;
-}
-
-.premium-feature-item {
-display: flex;
-align-items: center;
-gap: 0.7rem;
-font-size: 0.84rem;
-color: var(--text);
-}
-
-.premium-feature-dot {
-width: 6px;
-height: 6px;
-border-radius: 50%;
-background: #a78bfa;
-flex-shrink: 0;
-}
-
-.premium-buy-btn {
-display: block;
-text-align: center;
-padding: 0.8rem;
-background: linear-gradient(135deg, #7c3aed, #6d28d9);
-border-radius: 10px;
-color: #fff;
-font-weight: 700;
-font-size: 0.9rem;
-text-decoration: none;
-transition: opacity 0.2s, transform 0.2s;
-box-shadow: 0 4px 20px rgba(124,58,237,0.35);
-}
-
-.premium-buy-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-
-.rank-badge {
-font-size: 0.6rem;
-font-weight: 800;
-letter-spacing: 0.4px;
-text-transform: uppercase;
-padding: 2px 6px;
-border-radius: 4px;
-margin-left: 0.3rem;
-vertical-align: middle;
-}
-
-.rank-admin {
-background: rgba(244,63,94,0.15);
-border: 1px solid rgba(244,63,94,0.3);
-color: #f43f5e;
-}
-
-.rank-premium {
-background: rgba(139,92,246,0.15);
-border: 1px solid rgba(139,92,246,0.3);
-color: #a78bfa;
-}
-
-.rank-early {
-background: rgba(245,158,11,0.12);
-border: 1px solid rgba(245,158,11,0.25);
-color: #fbbf24;
-}
-
-.rank-mod {
-background: rgba(59,130,246,0.12);
-border: 1px solid rgba(59,130,246,0.25);
-color: #60a5fa;
-}
-
-.image-paste-preview {
-max-width: 760px;
-width: 100%;
-margin-bottom: 0.5rem;
-position: relative;
-display: none;
-}
-
-.image-paste-preview.show { display: block; }
-
-.image-paste-preview img {
-max-height: 180px;
-max-width: 100%;
-border-radius: 10px;
-border: 1px solid rgba(255,255,255,0.08);
-display: block;
-}
-
-.image-paste-preview-remove {
-position: absolute;
-top: 6px;
-right: 6px;
-background: rgba(0,0,0,0.7);
-border: none;
-border-radius: 50%;
-width: 22px;
-height: 22px;
-color: #fff;
-font-size: 14px;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-line-height: 1;
-transition: background 0.2s;
-}
-
-.image-paste-preview-remove:hover { background: rgba(244,63,94,0.8); }
-
-.rank-badge.rank-owner {
-background: rgba(245,158,11,0.15);
-border: 1px solid rgba(245,158,11,0.4);
-color: #f59e0b;
-}
-
-.change-status {
-font-size: 0.75rem;
-font-weight: 600;
-color: #10b981;
-margin-left: 0.5rem;
-align-self: center;
-transition: color 0.2s;
-}
-
-.ann-header {
-display: flex;
-align-items: center;
-justify-content: space-between;
-margin-bottom: 1.5rem;
-}
-
-.ann-header h2 { font-size: 1.1rem; font-weight: 800; color: #fff; }
-
-.post-ann-btn {
-display: inline-flex;
-align-items: center;
-gap: 0.4rem;
-padding: 0.5rem 1rem;
-background: linear-gradient(135deg, var(--accent), var(--accent2));
-border: none;
-border-radius: 9px;
-color: #fff;
-font-size: 0.8rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: opacity 0.2s;
-}
-
-.post-ann-btn:hover { opacity: 0.85; }
-
-.ann-list {
-display: flex;
-flex-direction: column;
-gap: 0.9rem;
-}
-
-.ann-loading, .ann-empty {
-padding: 3rem;
-text-align: center;
-color: var(--dim);
-font-size: 0.85rem;
-}
-
-.ann-card {
-background: rgba(12,12,22,0.7);
-border: 1px solid var(--border);
-border-radius: 14px;
-padding: 1.25rem 1.5rem;
-cursor: default;
-transition: border-color 0.2s;
-}
-
-.ann-card:hover { border-color: var(--border2); }
-
-.ann-card-title {
-font-size: 0.98rem;
-font-weight: 800;
-color: #fff;
-margin-bottom: 0.4rem;
-}
-
-.ann-card-desc {
-font-size: 0.83rem;
-color: var(--dim);
-line-height: 1.55;
-margin-bottom: 0.75rem;
-}
-
-.ann-card-date {
-font-size: 0.72rem;
-color: var(--dim2);
-font-weight: 600;
-margin-bottom: 0.85rem;
-}
-
-.ann-card-actions {
-display: flex;
-gap: 0.5rem;
-}
-
-.ann-read-btn {
-padding: 0.35rem 0.9rem;
-background: rgba(79,142,247,0.1);
-border: 1px solid rgba(79,142,247,0.25);
-border-radius: 7px;
-color: var(--accent);
-font-size: 0.75rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: background 0.2s;
-}
-
-.ann-read-btn:hover { background: rgba(79,142,247,0.2); }
-
-.ann-del-btn {
-padding: 0.35rem 0.9rem;
-background: rgba(244,63,94,0.08);
-border: 1px solid rgba(244,63,94,0.2);
-border-radius: 7px;
-color: var(--red);
-font-size: 0.75rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: background 0.2s;
-}
-
-.ann-del-btn:hover { background: rgba(244,63,94,0.16); }
-
-.ann-sidebar {
-position: fixed;
-top: 0;
-right: 0;
-bottom: 0;
-width: 380px;
-background: #07070e;
-border-left: 1px solid var(--border);
-z-index: 900;
-display: none;
-flex-direction: column;
-animation: slideInRight 0.25s cubic-bezier(0.22,1,0.36,1);
-box-shadow: -8px 0 40px rgba(0,0,0,0.5);
-}
-
-@keyframes slideInRight {
-from { transform: translateX(100%); opacity: 0; }
-to { transform: translateX(0); opacity: 1; }
-}
-
-.ann-sidebar-inner {
-padding: 1.5rem;
-display: flex;
-flex-direction: column;
-height: 100%;
-overflow-y: auto;
-}
-
-.ann-sidebar-close {
-align-self: flex-end;
-background: none;
-border: 1px solid var(--border);
-border-radius: 7px;
-color: var(--dim);
-cursor: pointer;
-padding: 5px;
-display: flex;
-align-items: center;
-transition: all 0.2s;
-margin-bottom: 1.2rem;
-}
-
-.ann-sidebar-close:hover { color: var(--text); border-color: var(--dim); }
-
-.ann-sidebar-tag {
-font-size: 0.65rem;
-font-weight: 800;
-color: var(--accent);
-text-transform: uppercase;
-letter-spacing: 1px;
-margin-bottom: 0.6rem;
-}
-
-.ann-sidebar-title {
-font-size: 1.2rem;
-font-weight: 900;
-color: #fff;
-letter-spacing: -0.3px;
-margin-bottom: 1rem;
-line-height: 1.3;
-}
-
-.ann-sidebar-desc {
-font-size: 0.88rem;
-color: var(--dim);
-line-height: 1.7;
-flex: 1;
-white-space: pre-wrap;
-}
-
-.ann-sidebar-date {
-font-size: 0.72rem;
-color: var(--dim2);
-font-weight: 600;
-margin-top: 1.5rem;
-padding-top: 1rem;
-border-top: 1px solid var(--border);
-}
-
-.err-msg {
-font-size: 0.78rem;
-color: var(--red);
-font-weight: 600;
-min-height: 1rem;
-margin-top: 0.5rem;
-}
-
-.ann-card-author {
-font-size: 0.7rem;
-font-weight: 700;
-color: var(--accent);
-margin-bottom: 0.35rem;
-letter-spacing: 0.2px;
-}
-
-.commchat-topbar {
-display: flex;
-justify-content: flex-end;
-padding: 0.5rem 1rem 0;
-min-height: 0;
-}
-
-.clear-chat-btn {
-display: inline-flex;
-align-items: center;
-gap: 0.4rem;
-padding: 0.35rem 0.85rem;
-background: rgba(244,63,94,0.08);
-border: 1px solid rgba(244,63,94,0.2);
-border-radius: 7px;
-color: var(--red);
-font-size: 0.74rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: all 0.2s;
-}
-
-.clear-chat-btn:hover { background: rgba(244,63,94,0.16); }
-.clear-chat-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.multi-image-preview {
-display: flex;
-flex-wrap: wrap;
-gap: 0.5rem;
-padding: 0 0.75rem;
-padding-top: 0.5rem;
-}
-.multi-image-preview:empty { display: none; }
-.multi-image-thumb {
-position: relative;
-width: 64px;
-height: 64px;
-border-radius: 8px;
-overflow: hidden;
-border: 1px solid rgba(255,255,255,0.1);
-flex-shrink: 0;
-}
-.multi-image-thumb img {
-width: 100%;
-height: 100%;
-object-fit: cover;
-display: block;
-}
-.multi-image-thumb-remove {
-position: absolute;
-top: 2px;
-right: 2px;
-width: 18px;
-height: 18px;
-background: rgba(0,0,0,0.75);
-border: none;
-border-radius: 50%;
-color: #fff;
-font-size: 11px;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-line-height: 1;
-}
-.file-attach-preview {
-display: flex;
-align-items: center;
-gap: 0.5rem;
-padding: 0.4rem 0.85rem;
-background: rgba(79,142,247,0.08);
-border-top: 1px solid rgba(79,142,247,0.15);
-font-size: 0.78rem;
-color: #93c5fd;
-}
-.file-attach-preview svg { flex-shrink: 0; opacity: 0.7; }
-.file-attach-preview span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#fileAttachRemove {
-background: none;
-border: none;
-color: #64748b;
-cursor: pointer;
-font-size: 15px;
-padding: 0 2px;
-line-height: 1;
-transition: color 0.15s;
-}
-#fileAttachRemove:hover { color: #f43f5e; }
-.attach-btn {
-background: none;
-border: none;
-color: #64748b;
-cursor: pointer;
-padding: 0 0.3rem;
-display: flex;
-align-items: center;
-transition: color 0.2s;
-flex-shrink: 0;
-}
-.attach-btn:hover { color: #4f8ef7; }
-.drop-overlay {
-display: none;
-position: absolute;
-inset: 0;
-background: rgba(79,142,247,0.12);
-border: 2px dashed rgba(79,142,247,0.45);
-border-radius: 14px;
-z-index: 10;
-align-items: center;
-justify-content: center;
-font-size: 0.9rem;
-color: #4f8ef7;
-font-weight: 600;
-pointer-events: none;
-}
-.checkpoint-revert-btn {
-display: flex;
-align-items: center;
-gap: 0.45rem;
-width: 100%;
-padding: 0.55rem 0.85rem;
-background: linear-gradient(135deg, rgba(251,113,133,0.12), rgba(244,63,94,0.08));
-border: 1px solid rgba(244,63,94,0.3);
-border-radius: 10px;
-color: #fb7185;
-font-size: 0.78rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: all 0.2s;
-margin-bottom: 0.5rem;
-animation: pulseGlow 2s ease-in-out infinite;
-}
-@keyframes pulseGlow {
-0%, 100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); }
-50% { box-shadow: 0 0 0 4px rgba(244,63,94,0.12); }
-}
-.checkpoint-revert-btn:hover {
-background: linear-gradient(135deg, rgba(251,113,133,0.2), rgba(244,63,94,0.15));
-border-color: rgba(244,63,94,0.5);
-transform: translateY(-1px);
-}
-.checkpoint-toast {
-position: fixed;
-bottom: 2rem;
-left: 50%;
-transform: translateX(-50%) translateY(20px);
-background: rgba(16,185,129,0.15);
-border: 1px solid rgba(16,185,129,0.35);
-color: #10b981;
-padding: 0.55rem 1.1rem;
-border-radius: 50px;
-font-size: 0.82rem;
-font-weight: 600;
-display: flex;
-align-items: center;
-gap: 0.5rem;
-z-index: 9999;
-opacity: 0;
-transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-pointer-events: none;
-}
-.checkpoint-toast.show {
-opacity: 1;
-transform: translateX(-50%) translateY(0);
-}
-.ai-msg {
-position: relative;
-}
-.ai-msg:hover .checkpoint-hover-btn {
-opacity: 1;
-pointer-events: all;
-}
-.checkpoint-hover-btn {
-position: absolute;
-top: 0.5rem;
-right: 0.5rem;
-display: flex;
-align-items: center;
-gap: 0.35rem;
-padding: 0.3rem 0.65rem;
-background: rgba(16,185,129,0.1);
-border: 1px solid rgba(16,185,129,0.25);
-border-radius: 7px;
-color: #10b981;
-font-size: 0.72rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-opacity: 0;
-pointer-events: none;
-transition: all 0.18s;
-z-index: 2;
-white-space: nowrap;
-}
-.checkpoint-hover-btn:hover {
-background: rgba(16,185,129,0.2);
-border-color: rgba(16,185,129,0.4);
-}
-.checkpoint-hover-btn.is-checkpoint {
-opacity: 1;
-pointer-events: all;
-background: rgba(16,185,129,0.18);
-border-color: rgba(16,185,129,0.45);
-color: #34d399;
-}
-.continue-bar {
-display: flex;
-align-items: center;
-gap: 0.6rem;
-margin-top: 0.85rem;
-padding-top: 0.7rem;
-border-top: 1px solid rgba(255,255,255,0.06);
-animation: msgIn 0.25s ease;
-}
-.continue-btn {
-display: inline-flex;
-align-items: center;
-gap: 0.5rem;
-padding: 0.5rem 1.15rem;
-background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(139,92,246,0.1));
-border: 1px solid rgba(79,142,247,0.35);
-border-radius: 10px;
-color: #93c5fd;
-font-size: 0.8rem;
-font-weight: 700;
-font-family: inherit;
-cursor: pointer;
-transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-box-shadow: 0 2px 8px rgba(79,142,247,0.1);
-}
-.continue-btn:hover {
-background: linear-gradient(135deg, rgba(79,142,247,0.25), rgba(139,92,246,0.18));
-border-color: rgba(79,142,247,0.55);
-transform: translateY(-2px);
-box-shadow: 0 4px 16px rgba(79,142,247,0.2);
-color: #bfdbfe;
-}
-.continue-btn svg {
-animation: continuePlay 1.5s ease-in-out infinite;
-}
-@keyframes continuePlay {
-0%, 100% { transform: translateX(0); }
-50% { transform: translateX(2px); }
-}
-.chat-img-preview {
-max-width: 260px;
-max-height: 180px;
-border-radius: 10px;
-border: 1px solid rgba(255,255,255,0.08);
-display: block;
-margin-bottom: 0.5rem;
-}
-
-.settings-hint-link {
-color: #4f8ef7;
-text-decoration: none;
-font-weight: 600;
-transition: color 0.15s;
-}
-.settings-hint-link:hover {
-color: #93c5fd;
-text-decoration: underline;
-}
-.settings-api-result {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  animation: slideIn 0.3s ease-out;
-}
-
-.settings-api-key-container {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.settings-api-key-container input {
-  flex: 1;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.8rem;
-}
-
-.settings-poe-status {
-  font-size: 0.78rem;
-  margin-top: 0.45rem;
-  min-height: 1.1rem;
-}
-.settings-poe-status-ok { color: #10b981; }
-.settings-poe-status-err { color: #f43f5e; }
-
-/* ============================================================
-   GROQ QUOTA EXHAUSTED NOTIFICATION BANNER
-   ============================================================ */
-.groq-quota-banner {
-  position: fixed;
-  top: -80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 60%, #b91c1c 100%);
-  border: 1px solid rgba(239,68,68,0.55);
-  border-radius: 12px;
-  padding: 0.75rem 1.1rem;
-  min-width: 340px;
-  max-width: 520px;
-  box-shadow: 0 8px 32px rgba(185,28,28,0.45), 0 2px 8px rgba(0,0,0,0.4);
-  color: #fecaca;
-  font-size: 0.88rem;
-  font-weight: 500;
-  transition: top 0.45s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
-  opacity: 0;
-}
-.groq-quota-banner.banner-show {
-  top: 20px;
-  opacity: 1;
-}
-.groq-quota-banner.banner-hide {
-  top: -80px;
-  opacity: 0;
-  transition: top 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
-}
-.groq-quota-banner svg {
-  flex-shrink: 0;
-  color: #f87171;
-}
-.groq-quota-banner span {
-  flex: 1;
-  line-height: 1.35;
-}
-.groq-quota-banner-action {
-  background: rgba(239,68,68,0.25);
-  border: 1px solid rgba(239,68,68,0.5);
-  color: #fca5a5;
-  border-radius: 7px;
-  padding: 0.3rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  white-space: nowrap;
-}
-.groq-quota-banner-action:hover {
-  background: rgba(239,68,68,0.45);
-  color: #fff;
-}
-.groq-quota-banner-dismiss {
-  background: none;
-  border: none;
-  color: #f87171;
-  font-size: 1.15rem;
-  cursor: pointer;
-  padding: 0 0.1rem;
-  line-height: 1;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-.groq-quota-banner-dismiss:hover { opacity: 1; }
-
-/* ============================================================
-   SLASH COMMAND MENU
-   ============================================================ */
-.slash-cmd-menu {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: #13151f;
-  border: 1px solid rgba(100,120,200,0.25);
-  border-radius: 12px;
-  padding: 0.45rem 0.4rem;
-  box-shadow: 0 -8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);
-  z-index: 800;
-  animation: slashMenuIn 0.18s cubic-bezier(0.34,1.3,0.64,1);
-}
-@keyframes slashMenuIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-.slash-cmd-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #556;
-  padding: 0.15rem 0.5rem 0.35rem;
-}
-.slash-cmd-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.slash-cmd-item:hover { background: rgba(100,130,255,0.1); }
-.slash-cmd-icon { font-size: 1.05rem; line-height: 1; }
-.slash-cmd-info { display: flex; flex-direction: column; gap: 0.1rem; }
-.slash-cmd-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #c8d0f0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.slash-cmd-desc {
-  font-size: 0.75rem;
-  color: #5a6070;
-}
-.slash-cmd-premium-badge {
-  background: linear-gradient(90deg, #7c3aed, #4f46e5);
-  color: #e9d5ff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 0.1rem 0.45rem;
-  border-radius: 20px;
-  letter-spacing: 0.04em;
-}
-
-/* Premium model option styling */
-.premium-model-opt { color: #a78bfa; }
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { spawn } = require('child_process');
+
+function tryStartOllama() {
+  try {
+    const proc = spawn('ollama', ['serve'], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      shell: process.platform === 'win32'
+    });
+    proc.on('error', function() {});
+    proc.on('close', function() {});
+    try { proc.unref(); } catch(e) {}
+  } catch (e) {}
+  process.on('uncaughtException', function(e) {
+    if (e && (e.code === 'ENOENT' || e.syscall === 'spawn ollama')) return;
+    throw e;
+  });
+}
+
+function callOllamaLocal(messages, temperature, maxTokens) {
+  return new Promise((resolve, reject) => {
+    const safeMax = Math.min(maxTokens || 2048, 4096);
+    const cleanMsgs = messages.map(m => {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content };
+      if (Array.isArray(m.content)) return { role: m.role, content: m.content.filter(p => p.type === 'text').map(p => p.text).join(' ') };
+      return { role: m.role, content: String(m.content || '') };
+    });
+    const postData = JSON.stringify({
+      model: 'llama3.2-vision:latest',
+      messages: cleanMsgs,
+      stream: false,
+      options: { temperature: temperature, num_predict: safeMax }
+    });
+    const opts = {
+      hostname: '127.0.0.1',
+      port: 11434,
+      path: '/api/chat',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+      timeout: 120000
+    };
+    const req = http.request(opts, (ollamaRes) => {
+      let data = '';
+      ollamaRes.on('data', (c) => { data += c; });
+      ollamaRes.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(new Error('Invalid response from model')); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    req.on('error', (e) => { reject(e); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function callOllama(messages, temperature, maxTokens) {
+  try {
+    const result = await callOllamaLocal(messages, temperature, maxTokens);
+    return result;
+  } catch (e) {
+    if (e.code === 'ECONNREFUSED' || e.code === 'ENOENT') {
+      throw new Error('PSM-v1.0 is starting up. Please wait a few seconds and try again.');
+    }
+    throw new Error(e.message || 'PSM-v1.0 could not respond. Please try again.');
+  }
+}
+
+const DB_FILE = 'db.json';
+const DB_BACKUP = 'db.backup.json';
+const SALT = 'prysmis_v3_kx9salt2025';
+const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000;
+const MAX_CHATS = 100;
+const MAX_PROJECTS = 500;
+const MAX_COMMUNITY_MSGS = 2000;
+const ALLOWED_DISCORD_IDS = ['841749813702688858', '1360884411154825336', '617174993242947585'];
+
+let db = {
+  users: {},
+  projects: [],
+  tokens: {},
+  communityChat: [],
+  admins: {},
+  adminCodes: {},
+  announcements: [],
+  meta: { version: 5, created: Date.now() }
+};
+let saveScheduled = false;
+const sseClients = new Set();
+
+function loadDb() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      db.users = parsed.users || {};
+      db.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
+      db.tokens = parsed.tokens || {};
+      db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
+      db.admins = parsed.admins || {};
+      db.adminCodes = parsed.adminCodes || {};
+      db.announcements = Array.isArray(parsed.announcements) ? parsed.announcements : [];
+      db.meta = parsed.meta || { version: 5, created: Date.now() };
+      for (const u in db.users) {
+        if (typeof db.users[u].hashed !== 'string') { delete db.users[u]; continue; }
+        if (!Array.isArray(db.users[u].chats)) db.users[u].chats = [];
+        if (!db.users[u].created) db.users[u].created = Date.now();
+      }
+      return;
+    }
+  } catch (_) {
+    try {
+      if (fs.existsSync(DB_BACKUP)) {
+        const parsed = JSON.parse(fs.readFileSync(DB_BACKUP, 'utf8'));
+        db.users = parsed.users || {};
+        db.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
+        db.tokens = parsed.tokens || {};
+        db.communityChat = Array.isArray(parsed.communityChat) ? parsed.communityChat : [];
+        db.admins = parsed.admins || {};
+        db.adminCodes = parsed.adminCodes || {};
+        return;
+      }
+    } catch (__) {}
+  }
+}
+
+function saveDb() {
+  if (saveScheduled) return;
+  saveScheduled = true;
+  setImmediate(() => {
+    saveScheduled = false;
+    try {
+      const json = JSON.stringify(db, null, 2);
+      fs.writeFileSync(DB_FILE + '.tmp', json);
+      if (fs.existsSync(DB_FILE)) fs.copyFileSync(DB_FILE, DB_BACKUP);
+      fs.renameSync(DB_FILE + '.tmp', DB_FILE);
+    } catch (_) {}
+  });
+}
+
+loadDb();
+
+function hash(p) {
+  return crypto.createHash('sha256').update(p + SALT).digest('hex');
+}
+
+function randToken() {
+  return crypto.randomBytes(64).toString('hex');
+}
+
+function getTokenData(t) {
+  if (!t || typeof t !== 'string' || t.length < 10) return null;
+  const td = db.tokens[t];
+  if (!td) return null;
+  if (td.expires < Date.now()) { delete db.tokens[t]; saveDb(); return null; }
+  return td;
+}
+
+function getReqToken(req, url) {
+  const q = url.searchParams.get('token') || '';
+  const h = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+  return q || h;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  let changed = false;
+  for (const t in db.tokens) {
+    if (db.tokens[t].expires < now) { delete db.tokens[t]; changed = true; }
+  }
+  if (changed) saveDb();
+}, 3600000);
+
+function sendJson(res, status, data) {
+  const body = JSON.stringify(data);
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Discord-Secret',
+    'Content-Length': Buffer.byteLength(body)
+  });
+  res.end(body);
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    let size = 0;
+    req.on('data', c => {
+      size += c.length;
+      if (size > 20 * 1024 * 1024) { reject(new Error('Body too large')); return; }
+      body += c;
+    });
+    req.on('end', () => {
+      if (!body.trim()) { resolve({}); return; }
+      try { resolve(JSON.parse(body)); } catch (e) { reject(e); }
+    });
+    req.on('error', reject);
+  });
+}
+
+function validateUsername(u) {
+  if (typeof u !== 'string') return 'Username required';
+  const t = u.trim();
+  if (t.length < 3) return 'Username must be at least 3 characters';
+  if (t.length > 24) return 'Username must be 24 characters or less';
+  if (!/^[a-zA-Z0-9_]+$/.test(t)) return 'Letters, numbers, underscores only';
+  return null;
+}
+
+function validatePassword(p) {
+  if (typeof p !== 'string') return 'Password required';
+  if (p.length < 6) return 'Password must be at least 6 characters';
+  if (p.length > 128) return 'Password too long';
+  return null;
+}
+
+const YOU_MODELS = [
+  'psm-v1.0',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3-32b',
+  'whisper-large-v3',
+  'whisper-large-v3-turbo',
+  'distil-whisper-large-v3-en'
+];
+
+const GROQ_MODELS = new Set([
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3-32b',
+  'whisper-large-v3',
+  'whisper-large-v3-turbo',
+  'distil-whisper-large-v3-en'
+]);
+
+// Models locked to premium users only
+const PREMIUM_ONLY_MODELS = new Set([
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3-32b'
+]);
+
+const MODEL_MAP = {
+  'psm-v1.0': 'psm-v1.0',
+  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
+  'mistral-saba-24b': 'mistral-saba-24b',
+  'meta-llama/llama-4-scout-17b-16e-instruct': 'meta-llama/llama-4-scout-17b-16e-instruct',
+  'openai/gpt-oss-120b': 'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b': 'openai/gpt-oss-20b',
+  'qwen/qwen3-32b': 'qwen/qwen3-32b',
+  'whisper-large-v3': 'whisper-large-v3',
+  'whisper-large-v3-turbo': 'whisper-large-v3-turbo',
+  'distil-whisper-large-v3-en': 'distil-whisper-large-v3-en'
+};
+
+const https = require('https');
+
+function callGroq(messages, temperature, maxTokens, groqApiKey, model) {
+  return new Promise((resolve, reject) => {
+    const safeMax = Math.min(maxTokens || 2048, 8192);
+    const cleanMsgs = messages.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join(' ') : String(m.content || ''))
+    }));
+    const postData = JSON.stringify({ model: model, messages: cleanMsgs, temperature: temperature, max_tokens: safeMax });
+    const opts = {
+      hostname: 'api.groq.com',
+      path: '/openai/v1/chat/completions',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqApiKey, 'Content-Length': Buffer.byteLength(postData) },
+      timeout: 60000
+    };
+    const req = https.request(opts, (groqRes) => {
+      let data = '';
+      groqRes.on('data', (c) => { data += c; });
+      groqRes.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) {
+            const errMsg = parsed.error.message || 'Groq API error';
+            const errCode = parsed.error.code || '';
+            const errType = parsed.error.type || '';
+            const httpStatus = groqRes.statusCode;
+            // Detect quota exhausted / key invalid / rate limit conditions accurately
+            const isQuotaExhausted =
+              httpStatus === 429 ||
+              httpStatus === 402 ||
+              errCode === 'rate_limit_exceeded' ||
+              errCode === 'insufficient_quota' ||
+              errCode === 'invalid_api_key' ||
+              errCode === 'api_key_expired' ||
+              errType === 'tokens' ||
+              errType === 'requests' ||
+              /rate.?limit|quota|exhausted|exceeded|billing|payment|insufficient|invalid.?api.?key|expired/i.test(errMsg);
+            if (isQuotaExhausted) {
+              const quotaErr = new Error(errMsg);
+              quotaErr.groqQuotaExhausted = true;
+              quotaErr.httpStatus = httpStatus;
+              reject(quotaErr);
+              return;
+            }
+            reject(new Error(errMsg));
+            return;
+          }
+          resolve(parsed);
+        } catch (e) { reject(new Error('Invalid response from Groq')); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Groq request timeout')); });
+    req.on('error', (e) => { reject(e); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+function getUserGroqKey(username) {
+  const user = db.users[username] || {};
+  return user.groqApiKey || null;
+}
+
+function resolveModel(m) {
+  if (!m || typeof m !== 'string') return 'psm-v1.0';
+  const trimmed = m.trim();
+  if (YOU_MODELS.includes(trimmed)) return trimmed;
+  const lower = trimmed.toLowerCase();
+  if (MODEL_MAP[lower]) return MODEL_MAP[lower];
+  if (MODEL_MAP[trimmed]) return MODEL_MAP[trimmed];
+  if (trimmed.includes('/')) {
+    const short = trimmed.split('/').pop();
+    if (short && YOU_MODELS.includes(short)) return short;
+  }
+  return 'psm-v1.0';
+}
+
+function broadcastSSE(data) {
+  const payload = 'data: ' + JSON.stringify(data) + '\n\n';
+  sseClients.forEach(res => {
+    try { res.write(payload); } catch (_) { sseClients.delete(res); }
+  });
+}
+
+const server = http.createServer(async (req, res) => {
+  let url;
+  try {
+    url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  } catch (_) {
+    res.writeHead(400); res.end(); return;
+  }
+  const pt = url.pathname;
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Discord-Secret'
+    });
+    res.end(); return;
+  }
+
+  if (req.method === 'GET' && pt === '/community-chat/stream') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.write('data: {"type":"connected"}\n\n');
+    sseClients.add(res);
+    const hb = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (_) { clearInterval(hb); sseClients.delete(res); }
+    }, 20000);
+    req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
+    return;
+  }
+
+  if (req.method === 'POST' && pt === '/account') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const uErr = validateUsername(body.username);
+    if (uErr) return sendJson(res, 400, { error: uErr });
+    const pErr = validatePassword(body.password);
+    if (pErr) return sendJson(res, 400, { error: pErr });
+    const uname = body.username.trim().toLowerCase();
+    if (db.users[uname]) return sendJson(res, 409, { error: 'Account is already created' });
+    const token = randToken();
+    const now = Date.now();
+    db.users[uname] = { hashed: hash(body.password), created: now, lastLogin: now, lastSeen: now, loginCount: 1, chats: [], pluginToken: null, pluginConnected: false, pluginModel: 'psm-v1.0', authToken: null, authTokenCreated: null };
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: uname });
+  }
+
+  if (req.method === 'POST' && pt === '/login') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
+    const uname = body.username.trim().toLowerCase();
+    const user = db.users[uname];
+    if (!user) return sendJson(res, 401, { error: 'No account found with that username' });
+    if (user.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
+    const token = randToken();
+    const now = Date.now();
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now };
+    user.lastLogin = now; user.lastSeen = now;
+    user.loginCount = (user.loginCount || 0) + 1;
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: uname });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/create') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { username, password, code } = body;
+    if (!username || !password || !code) return sendJson(res, 400, { error: 'Username, password and code required' });
+    const uname = username.trim().toLowerCase();
+    const codeClean = code.trim();
+    const pErr = validatePassword(password);
+    if (pErr) return sendJson(res, 400, { error: pErr });
+    if (!db.adminCodes[uname]) return sendJson(res, 401, { error: 'No code found for this username. Use /generatecode in Discord first.' });
+    const codeData = db.adminCodes[uname];
+    if (codeData.expires < Date.now()) { delete db.adminCodes[uname]; saveDb(); return sendJson(res, 401, { error: 'Code expired. Request a new one via Discord.' }); }
+    if (codeData.code !== codeClean) return sendJson(res, 401, { error: 'Invalid code.' });
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account found for this username.' });
+    db.admins[uname] = { hashed: hash(password), linkedUsername: uname, grantedBy: codeData.grantedBy || 'discord', created: Date.now(), lastLogin: null, verified: true };
+    delete db.adminCodes[uname];
+    const token = randToken();
+    const now = Date.now();
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/login') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.username || !body.password) return sendJson(res, 400, { error: 'Username and password required' });
+    const uname = body.username.trim().toLowerCase();
+    const admin = db.admins[uname];
+    if (!admin) return sendJson(res, 401, { error: 'No admin account found' });
+    if (admin.hashed !== hash(body.password)) return sendJson(res, 401, { error: 'Incorrect password' });
+    const token = randToken();
+    const now = Date.now();
+    db.tokens[token] = { username: uname, expires: now + TOKEN_TTL, created: now, isAdmin: true };
+    admin.lastLogin = now;
+    saveDb();
+    return sendJson(res, 200, { success: true, token, username: uname, isAdmin: true });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/generate-code') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, username } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'No website account for ' + uname + '. They must register first.' });
+    const digits = '0123456789';
+    const symbols = '!@-_=+?';
+    const all = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const len = 6 + Math.floor(Math.random() * 3);
+    let suffix = '';
+    for (let i = 0; i < len; i++) {
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) suffix += digits[Math.floor(Math.random() * digits.length)];
+      else if (pick === 1) suffix += symbols[Math.floor(Math.random() * symbols.length)];
+      else suffix += all[Math.floor(Math.random() * all.length)];
+    }
+    const code = 'PrysmisAI_admin' + suffix;
+    db.adminCodes[uname] = { code, grantedBy: discordUserId, created: Date.now(), expires: Date.now() + 30 * 60 * 1000 };
+    saveDb();
+    return sendJson(res, 200, { success: true, code, username: uname, expiresIn: '30 minutes' });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/verify-code') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { code, discordUserId } = body;
+    if (!code) return sendJson(res, 400, { error: 'code required' });
+    let foundUname = null;
+    for (const u in db.adminCodes) {
+      if (db.adminCodes[u].code === code.trim()) { foundUname = u; break; }
+    }
+    if (!foundUname) return sendJson(res, 404, { error: 'Invalid code' });
+    const codeData = db.adminCodes[foundUname];
+    if (codeData.expires < Date.now()) { delete db.adminCodes[foundUname]; saveDb(); return sendJson(res, 401, { error: 'Code expired' }); }
+    return sendJson(res, 200, { success: true, username: foundUname });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/savedata') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    try {
+      const json = JSON.stringify(db, null, 2);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      fs.writeFileSync('db_backup_' + timestamp + '.json', json);
+      return sendJson(res, 200, { success: true, message: 'Data saved', users: Object.keys(db.users).length, timestamp });
+    } catch (e) {
+      return sendJson(res, 500, { error: 'Failed to save: ' + e.message });
+    }
+  }
+
+  if (req.method === 'GET' && pt === '/discord/ping') {
+    return sendJson(res, 200, { ok: true, status: 'connected', site: 'prysmisai.wtf', users: Object.keys(db.users).length, admins: Object.keys(db.admins).length });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/connect') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, botTag } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    db.meta.botConnected = true;
+    db.meta.botConnectedAt = Date.now();
+    db.meta.botTag = botTag || 'unknown';
+    db.meta.botOperatorId = discordUserId;
+    saveDb();
+    return sendJson(res, 200, { ok: true, message: 'Bot connected to PrysmisAI', site: 'prysmisai.wtf' });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/setadmin') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, username, password } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!username || !password) return sendJson(res, 400, { error: 'username and password required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'Username not found. User must register on the website first.' });
+    db.admins[uname] = { hashed: hash(password), linkedUsername: uname, grantedBy: discordUserId, created: Date.now(), lastLogin: null };
+    saveDb();
+    return sendJson(res, 200, { success: true, message: 'Admin account created for ' + uname });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/blacklist') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const { discordUserId, adminUsername } = body;
+    if (!ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!adminUsername) return sendJson(res, 400, { error: 'adminUsername required' });
+    const uname = adminUsername.trim().toLowerCase();
+    if (!db.admins[uname]) return sendJson(res, 404, { error: 'Admin account not found' });
+    delete db.admins[uname];
+    for (const t in db.tokens) { if (db.tokens[t].username === uname && db.tokens[t].isAdmin) delete db.tokens[t]; }
+    saveDb();
+    return sendJson(res, 200, { success: true, message: 'Admin account removed for ' + uname });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/notify-ready') {
+    db.meta.ollamaReady = true;
+    db.meta.ollamaReadyAt = Date.now();
+    saveDb();
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/run-ollama') {
+    const ollamaStatus = await new Promise((resolve) => {
+      const checkReq = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 4000 }, (r) => {
+        let d = '';
+        r.on('data', (c) => { d += c; });
+        r.on('end', () => {
+          try {
+            const parsed = JSON.parse(d);
+            const models = (parsed.models || []).map(m => m.name);
+            const hasModel = models.some(m => m === 'llama3.2-vision:latest');
+            resolve({ running: true, hasModel, models });
+          } catch (e) { resolve({ running: true, hasModel: false, models: [] }); }
+        });
+      });
+      checkReq.on('error', () => resolve({ running: false, hasModel: false, models: [] }));
+      checkReq.on('timeout', () => { checkReq.destroy(); resolve({ running: false, hasModel: false, models: [] }); });
+      checkReq.end();
+    });
+    if (ollamaStatus.running && ollamaStatus.hasModel) {
+      return sendJson(res, 200, { success: true, message: 'PSM-v1.0 is running and ready.', model: 'llama3.2-vision:latest', status: 'ready' });
+    }
+    if (ollamaStatus.running && !ollamaStatus.hasModel) {
+      return sendJson(res, 200, { success: false, message: 'Ollama is running but llama3.2-vision:latest is not installed. Run: ollama pull llama3.2-vision:latest', status: 'model_missing', installed: ollamaStatus.models });
+    }
+    try {
+      const isWin = process.platform === 'win32';
+      const ollamaProcess = spawn('ollama', ['serve'], { detached: true, stdio: 'ignore', shell: isWin });
+      ollamaProcess.on('error', function() {});
+      try { ollamaProcess.unref(); } catch(e) {}
+    } catch (spawnErr) {
+      return sendJson(res, 500, { success: false, error: 'Ollama is not installed or not reachable on this server.', status: 'not_found' });
+    }
+    const waitReady = () => new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 30;
+      const interval = setInterval(() => {
+        attempts++;
+        const chk = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 2000 }, (r) => {
+          let d = '';
+          r.on('data', (c) => { d += c; });
+          r.on('end', () => {
+            try {
+              const parsed = JSON.parse(d);
+              const models = (parsed.models || []).map(m => m.name);
+              const hasModel = models.some(m => m === 'llama3.2-vision:latest');
+              if (hasModel) { clearInterval(interval); resolve({ ready: true }); }
+              else if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); }
+            } catch (e) {
+              if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); }
+            }
+          });
+        });
+        chk.on('error', () => { if (attempts >= maxAttempts) { clearInterval(interval); resolve({ ready: false, reason: 'timeout' }); } });
+        chk.on('timeout', () => { chk.destroy(); });
+        chk.end();
+      }, 2000);
+    });
+    const readyResult = await waitReady();
+    if (readyResult.ready) {
+      return sendJson(res, 200, { success: true, message: 'PSM-v1.0 is running and ready.', model: 'llama3.2-vision:latest', status: 'ready' });
+    }
+    return sendJson(res, 200, { success: false, message: 'Ollama started but model took too long to load. Try again in a moment.', status: 'starting' });
+  }
+
+  if (req.method === 'POST' && pt === '/discord/set-ollama-service') {
+    try {
+      const isWin = process.platform === 'win32';
+      if (!isWin) {
+        return sendJson(res, 400, { success: false, error: 'Windows service setup only works on Windows' });
+      }
+      
+      const serviceName = 'OllamaPSM';
+      const ollamaPath = 'ollama';
+      
+      const nssmPath = path.join(process.cwd(), 'nssm.exe');
+      let useNssm = fs.existsSync(nssmPath);
+      
+      if (useNssm) {
+        const nssmInstall = spawn(nssmPath, ['install', serviceName, ollamaPath, 'serve'], {
+          windowsHide: true,
+          stdio: 'pipe'
+        });
+        
+        let output = '';
+        nssmInstall.stdout.on('data', (d) => { output += d; });
+        nssmInstall.stderr.on('data', (d) => { output += d; });
+        
+        nssmInstall.on('close', (code) => {
+          if (code === 0) {
+            spawn(nssmPath, ['set', serviceName, 'Description', 'Ollama AI Service for PrysmisAI'], { windowsHide: true });
+            spawn(nssmPath, ['set', serviceName, 'Start', 'SERVICE_AUTO_START'], { windowsHide: true });
+            spawn(nssmPath, ['start', serviceName], { windowsHide: true });
+            return sendJson(res, 200, { 
+              success: true, 
+              message: 'Ollama service installed and started. It will auto-start on Windows boot.',
+              service_name: serviceName,
+              method: 'nssm'
+            });
+          } else {
+            return sendJson(res, 500, { success: false, error: 'NSSM install failed: ' + output });
+          }
+        });
+      } else {
+        const psScript = `
+          $serviceName = "${serviceName}"
+          $binaryPath = "ollama serve"
+          
+          if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+            Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+            sc.exe delete $serviceName | Out-Null
+            Start-Sleep -Seconds 2
+          }
+          
+          sc.exe create $serviceName binPath= "cmd.exe /c start /min ollama serve" start= auto displayname= "Ollama PSM Service"
+          sc.exe description $serviceName "Ollama AI Service for PrysmisAI - Auto-starts on boot"
+          Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+          
+          Write-Host "Service created successfully"
+        `;
+        
+        const psPath = path.join(process.env.TEMP || '/tmp', 'ollama-service.ps1');
+        fs.writeFileSync(psPath, psScript);
+        
+        const ps = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath], {
+          windowsHide: true,
+          stdio: 'pipe'
+        });
+        
+        let output = '';
+        ps.stdout.on('data', (d) => { output += d; });
+        ps.stderr.on('data', (d) => { output += d; });
+        
+        ps.on('close', (code) => {
+          try { fs.unlinkSync(psPath); } catch (e) {}
+          
+          if (code === 0) {
+            return sendJson(res, 200, { 
+              success: true, 
+              message: 'Ollama Windows service created and started. It will auto-start on every Windows boot.',
+              service_name: serviceName,
+              method: 'sc.exe'
+            });
+          } else {
+            return sendJson(res, 500, { success: false, error: 'Service creation failed: ' + output });
+          }
+        });
+      }
+    } catch (error) {
+      return sendJson(res, 500, { success: false, error: 'Failed to setup service: ' + error.message });
+    }
+  }
+
+  if (req.method === 'GET' && pt === '/discord/check-user') {
+    const username = url.searchParams.get('username');
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    return sendJson(res, 200, { exists: !!db.users[uname], isAdmin: !!db.admins[uname], username: uname });
+  }
+
+  if (req.method === 'GET' && pt === '/me') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    user.lastSeen = Date.now();
+    const isAdmin = !!db.admins[td.username];
+    return sendJson(res, 200, { username: td.username, created: user.created, lastLogin: user.lastLogin, chatCount: (user.chats || []).length, loginCount: user.loginCount || 1, isAdmin, premium: isAdmin || !!user.premium, rank: user.rank || null });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/set-rank') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const isDiscordReq = true;
+    if (!isDiscordReq) {
+      const td = getTokenData(getReqToken(req, url));
+      if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+      const rawToken = getReqToken(req, url);
+      if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    }
+    const { username, rank, discordUserId } = body;
+    if (isDiscordReq && !ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    const validRanks = ['early access', 'premium', 'chat mod', 'owner', null, ''];
+    if (!validRanks.includes(rank)) return sendJson(res, 400, { error: 'Invalid rank' });
+    db.users[uname].rank = rank || null;
+    if (rank === 'premium') db.users[uname].premium = true;
+    saveDb();
+    return sendJson(res, 200, { success: true, username: uname, rank: db.users[uname].rank });
+  }
+
+  if (req.method === 'POST' && pt === '/admin/set-premium') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const isDiscordRequest = true;
+    if (!isDiscordRequest) {
+      const td = getTokenData(getReqToken(req, url));
+      if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+      const rawToken = getReqToken(req, url);
+      if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    }
+    const { username, premium, discordUserId } = body;
+    if (isDiscordRequest && !ALLOWED_DISCORD_IDS.includes(discordUserId)) return sendJson(res, 403, { error: 'Discord user not authorized' });
+    if (!username) return sendJson(res, 400, { error: 'username required' });
+    const uname = username.trim().toLowerCase();
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    db.users[uname].premium = !!premium;
+    if (premium && !db.users[uname].rank) db.users[uname].rank = 'premium';
+    saveDb();
+    return sendJson(res, 200, { success: true, username: uname, premium: db.users[uname].premium });
+  }
+
+  if (req.method === 'POST' && pt === '/logout') {
+    const t = getReqToken(req, url);
+    if (t && db.tokens[t]) { delete db.tokens[t]; saveDb(); }
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'GET' && pt === '/announcements') {
+    return sendJson(res, 200, Array.isArray(db.announcements) ? db.announcements : []);
+  }
+
+  if (req.method === 'POST' && pt === '/announcements') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.admins[td.username]) return sendJson(res, 403, { error: 'Admin only' });
+    const { title, description } = body;
+    if (!title || !title.trim()) return sendJson(res, 400, { error: 'Title required' });
+    if (!description || !description.trim()) return sendJson(res, 400, { error: 'Description required' });
+    if (!Array.isArray(db.announcements)) db.announcements = [];
+    const ann = { id: crypto.randomBytes(8).toString('hex'), title: title.trim(), description: description.trim(), author: td.username, created: Date.now() };
+    db.announcements.unshift(ann);
+    if (db.announcements.length > 100) db.announcements = db.announcements.slice(0, 100);
+    saveDb();
+    return sendJson(res, 200, { success: true, announcement: ann });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/announcements/')) {
+    const annId = pt.slice('/announcements/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.admins[td.username]) return sendJson(res, 403, { error: 'Admin only' });
+    if (!Array.isArray(db.announcements)) return sendJson(res, 404, { error: 'Not found' });
+    const idx = db.announcements.findIndex(a => a.id === annId);
+    if (idx === -1) return sendJson(res, 404, { error: 'Not found' });
+    db.announcements.splice(idx, 1);
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'GET' && pt === '/stats') {
+    const now = Date.now();
+    return sendJson(res, 200, { users: Object.keys(db.users).length, active: Math.max(Object.values(db.tokens).filter(t => t.expires > now).length, 1), projects: db.projects.length });
+  }
+
+  if (req.method === 'GET' && pt === '/status') {
+    const pluginToken = url.searchParams.get('pluginToken') || '';
+    let status = 'disconnected', model = 'psm-v1.0', username = 'unknown';
+    if (pluginToken) {
+      for (const u in db.users) {
+        if (db.users[u].pluginToken === pluginToken) { status = db.users[u].pluginConnected ? 'connected' : 'disconnected'; model = db.users[u].pluginModel || 'psm-v1.0'; username = u; break; }
+      }
+    }
+    return sendJson(res, 200, { status, model, user: username });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/connect') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const pluginToken = crypto.randomBytes(24).toString('hex');
+    user.pluginToken = pluginToken;
+    user.pluginConnected = true;
+    user.pluginModel = resolveModel(body.model);
+    user.pluginConnectedAt = Date.now();
+    saveDb();
+    return sendJson(res, 200, { success: true, pluginToken, username: td.username, model: user.pluginModel });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/disconnect') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (user) { user.pluginConnected = false; saveDb(); }
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/verify') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === body.pluginToken) {
+        db.users[u].pluginConnected = true; db.users[u].pluginLastPing = Date.now(); saveDb();
+        return sendJson(res, 200, { success: true, username: u, model: db.users[u].pluginModel || 'psm-v1.0', connected: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/ping') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === body.pluginToken) {
+        db.users[u].pluginLastPing = Date.now(); db.users[u].pluginConnected = true; saveDb();
+        return sendJson(res, 200, { ok: true, model: db.users[u].pluginModel || 'psm-v1.0', user: u });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/update-model') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    if (!body.model) return sendJson(res, 400, { error: 'model required' });
+    user.pluginModel = resolveModel(body.model);
+    saveDb();
+    return sendJson(res, 200, { success: true, model: user.pluginModel });
+  }
+
+  if (req.method === 'POST' && pt === '/auth-token/generate') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const now = Date.now();
+    if (user.authToken && user.authTokenCreated && (now - user.authTokenCreated) < 24 * 3600000) {
+      const h = Math.ceil((user.authTokenCreated + 24 * 3600000 - now) / 3600000);
+      return sendJson(res, 429, { error: 'You can generate a new token in ' + h + ' hour' + (h === 1 ? '' : 's') });
+    }
+    const authToken = crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(4).toString('hex');
+    user.authToken = authToken; user.authTokenCreated = now; saveDb();
+    return sendJson(res, 200, { success: true, authToken, url: 'prysmisai.wtf/token/' + authToken });
+  }
+
+  if (req.method === 'GET' && pt === '/auth-token') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const now = Date.now();
+    return sendJson(res, 200, { authToken: user.authToken || null, canGenerate: !user.authTokenCreated || (now - user.authTokenCreated) >= 24 * 3600000, url: user.authToken ? 'prysmisai.wtf/token/' + user.authToken : null });
+  }
+
+  if (req.method === 'GET' && pt === '/projects') {
+    return sendJson(res, 200, db.projects);
+  }
+
+  if (req.method === 'POST' && pt === '/projects') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'You must be logged in to post a project' });
+    const { title, link, about } = body;
+    if (!title || !title.trim()) return sendJson(res, 400, { error: 'Title required' });
+    if (!link || !link.trim()) return sendJson(res, 400, { error: 'Link required' });
+    if (!about || !about.trim()) return sendJson(res, 400, { error: 'Description required' });
+    if (title.trim().length > 80) return sendJson(res, 400, { error: 'Title too long' });
+    if (about.trim().length > 500) return sendJson(res, 400, { error: 'Description too long' });
+    if (db.projects.length >= MAX_PROJECTS) db.projects.pop();
+    const project = { id: crypto.randomBytes(10).toString('hex'), title: title.trim(), link: link.trim(), about: about.trim(), author: td.username, created: Date.now() };
+    db.projects.unshift(project); saveDb();
+    return sendJson(res, 200, { success: true, project });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/projects/')) {
+    const id = pt.slice('/projects/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const idx = db.projects.findIndex(p => p.id === id);
+    if (idx === -1) return sendJson(res, 404, { error: 'Not found' });
+    const isAdminUser = !!db.admins[td.username];
+    if (db.projects[idx].author !== td.username && !isAdminUser) return sendJson(res, 403, { error: 'Not your project' });
+    db.projects.splice(idx, 1); saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'DELETE' && pt === '/community-chat') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!db.admins[td.username]) return sendJson(res, 403, { error: 'Admin only' });
+    db.communityChat = [];
+    saveDb();
+    broadcastSSE({ type: 'clear_chat' });
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'GET' && pt === '/community-chat') {
+    return sendJson(res, 200, db.communityChat.slice(-200));
+  }
+
+  if (req.method === 'POST' && pt === '/community-chat') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Message required' });
+    if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
+    const isAdminSender = !!db.admins[td.username]; const senderUser = db.users[td.username] || {};
+    const msg = { id: crypto.randomBytes(8).toString('hex'), author: td.username, isAdmin: isAdminSender, rank: isAdminSender ? 'admin' : (senderUser.rank || null), text: body.text.trim(), replyTo: body.replyTo || null, created: Date.now(), edited: false };
+    db.communityChat.push(msg);
+    if (db.communityChat.length > MAX_COMMUNITY_MSGS) db.communityChat = db.communityChat.slice(-MAX_COMMUNITY_MSGS);
+    saveDb(); broadcastSSE({ type: 'new_message', msg });
+    return sendJson(res, 200, { success: true, msg });
+  }
+
+  if (req.method === 'PUT' && pt.startsWith('/community-chat/')) {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const id = pt.slice('/community-chat/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const idx = db.communityChat.findIndex(m => m.id === id);
+    if (idx === -1) return sendJson(res, 404, { error: 'Message not found' });
+    if (db.communityChat[idx].author !== td.username) return sendJson(res, 403, { error: 'Not your message' });
+    if (!body.text || !body.text.trim()) return sendJson(res, 400, { error: 'Text required' });
+    if (body.text.trim().length > 500) return sendJson(res, 400, { error: 'Message too long' });
+    db.communityChat[idx].text = body.text.trim(); db.communityChat[idx].edited = true; db.communityChat[idx].editedAt = Date.now();
+    saveDb(); broadcastSSE({ type: 'edit_message', msg: db.communityChat[idx] });
+    return sendJson(res, 200, { success: true, msg: db.communityChat[idx] });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/community-chat/')) {
+    const id = pt.slice('/community-chat/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const idx = db.communityChat.findIndex(m => m.id === id);
+    if (idx === -1) return sendJson(res, 404, { error: 'Message not found' });
+    const isAdminUser = !!db.admins[td.username];
+    if (db.communityChat[idx].author !== td.username && !isAdminUser) return sendJson(res, 403, { error: 'Not your message' });
+    db.communityChat.splice(idx, 1); saveDb();
+    broadcastSSE({ type: 'delete_message', id });
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'GET' && pt === '/chats') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    return sendJson(res, 200, Array.isArray(user.chats) ? user.chats : []);
+  }
+
+  if (req.method === 'POST' && pt === '/chats') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    if (!body.title || !Array.isArray(body.messages) || body.messages.length === 0) return sendJson(res, 400, { error: 'title and messages required' });
+    if (!Array.isArray(user.chats)) user.chats = [];
+    const chat = { id: crypto.randomBytes(10).toString('hex'), title: body.title.substring(0, 40), messages: body.messages.slice(0, 200), created: Date.now(), updated: Date.now() };
+    user.chats.unshift(chat);
+    if (user.chats.length > MAX_CHATS) user.chats = user.chats.slice(0, MAX_CHATS);
+    saveDb(); return sendJson(res, 200, { success: true, chat });
+  }
+
+  if (req.method === 'PUT' && pt.startsWith('/chats/')) {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const id = pt.slice('/chats/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user || !Array.isArray(user.chats)) return sendJson(res, 404, { error: 'User not found' });
+    const idx = user.chats.findIndex(c => c.id === id);
+    if (idx === -1) return sendJson(res, 404, { error: 'Chat not found' });
+    if (Array.isArray(body.messages)) user.chats[idx].messages = body.messages.slice(0, 200);
+    if (typeof body.title === 'string') user.chats[idx].title = body.title.substring(0, 40);
+    user.chats[idx].updated = Date.now(); saveDb();
+    return sendJson(res, 200, { success: true, chat: user.chats[idx] });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/chats/')) {
+    const id = pt.slice('/chats/'.length);
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user || !Array.isArray(user.chats)) return sendJson(res, 404, { error: 'User not found' });
+    const idx = user.chats.findIndex(c => c.id === id);
+    if (idx === -1) return sendJson(res, 404, { error: 'Chat not found' });
+    user.chats.splice(idx, 1); saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'POST' && pt === '/account/change-username') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const { newUsername } = body;
+    const uErr = validateUsername(newUsername);
+    if (uErr) return sendJson(res, 400, { error: uErr });
+    const oldUname = td.username;
+    const newUname = newUsername.trim().toLowerCase();
+    if (oldUname === newUname) return sendJson(res, 400, { error: 'That is already your username' });
+    if (db.users[newUname]) return sendJson(res, 409, { error: 'Username is already taken' });
+    db.users[newUname] = db.users[oldUname];
+    delete db.users[oldUname];
+    for (const t in db.tokens) { if (db.tokens[t].username === oldUname) db.tokens[t].username = newUname; }
+    db.communityChat.forEach(function(m) { if (m.author === oldUname) m.author = newUname; });
+    db.projects.forEach(function(p) { if (p.author === oldUname) p.author = newUname; });
+    if (db.admins[oldUname]) { db.admins[newUname] = db.admins[oldUname]; delete db.admins[oldUname]; }
+    saveDb();
+    return sendJson(res, 200, { success: true, username: newUname });
+  }
+
+  if (req.method === 'GET' && pt === '/adminpanel') {
+    fs.readFile('./adminpanel/index.html', (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(data);
+    }); return;
+  }
+
+  if (req.method === 'GET' && pt === '/admin/users') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const rawToken = getReqToken(req, url);
+    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    const users = Object.entries(db.users).map(([uname, u]) => ({ username: uname, created: u.created, lastLogin: u.lastLogin, chatCount: (u.chats || []).length, loginCount: u.loginCount || 1, isAdmin: !!db.admins[uname], premium: !!u.premium || !!db.admins[uname], rank: db.admins[uname] ? 'admin' : (u.rank || null) }));
+    return sendJson(res, 200, { users, adminCount: Object.keys(db.admins).length });
+  }
+
+  if (req.method === 'DELETE' && pt.startsWith('/admin/users/')) {
+    const uname = decodeURIComponent(pt.slice('/admin/users/'.length)).toLowerCase();
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const rawToken = getReqToken(req, url);
+    if (!db.tokens[rawToken] || !db.tokens[rawToken].isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
+    if (!db.users[uname]) return sendJson(res, 404, { error: 'User not found' });
+    if (db.admins[uname]) return sendJson(res, 403, { error: 'Cannot remove an admin. Blacklist them via Discord first.' });
+    delete db.users[uname];
+    for (const t in db.tokens) { if (db.tokens[t].username === uname) delete db.tokens[t]; }
+    db.communityChat = db.communityChat.filter(m => m.author !== uname);
+    db.projects = db.projects.filter(p => p.author !== uname);
+    saveDb(); broadcastSSE({ type: 'user_removed', username: uname });
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/files') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === body.pluginToken) {
+        db.users[u].studioFiles = Array.isArray(body.files) ? body.files : [];
+        db.users[u].studioFilesUpdated = Date.now();
+        saveDb();
+        return sendJson(res, 200, { ok: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/files') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    return sendJson(res, 200, { files: user.studioFiles || [], updated: user.studioFilesUpdated || null });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/execute') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
+    if (!body.code || !body.code.trim()) return sendJson(res, 400, { error: 'code required' });
+    if (!Array.isArray(user.pendingChanges)) user.pendingChanges = [];
+    const change = { id: crypto.randomBytes(6).toString('hex'), code: body.code.trim(), description: body.description || '', created: Date.now() };
+    user.pendingChanges.push(change);
+    if (user.pendingChanges.length > 20) user.pendingChanges = user.pendingChanges.slice(-20);
+    saveDb();
+    return sendJson(res, 200, { ok: true, changeId: change.id });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/pending') {
+    const pluginToken = url.searchParams.get('pluginToken') || '';
+    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === pluginToken) {
+        const changes = db.users[u].pendingChanges || [];
+        db.users[u].pendingChanges = [];
+        if (changes.length > 0) saveDb();
+        return sendJson(res, 200, { changes });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/poll') {
+    const pluginToken = url.searchParams.get('pluginToken') || '';
+    if (!pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === pluginToken) {
+        const user = db.users[u];
+        user.pluginLastPing = Date.now();
+        user.pluginConnected = true;
+        const changes = user.pendingChanges || [];
+        user.pendingChanges = [];
+        const command = user.pendingCommand || null;
+        user.pendingCommand = null;
+        if (changes.length > 0 || command) saveDb();
+        return sendJson(res, 200, {
+          changes,
+          command,
+          model: user.pluginModel || 'psm-v1.0',
+          username: u,
+          gameInfo: user.pluginGameInfo || null,
+          serverTime: Date.now()
+        });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/ack') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === body.pluginToken) {
+        const user = db.users[u];
+        if (!Array.isArray(user.changeHistory)) user.changeHistory = [];
+        user.changeHistory.push({
+          id: body.changeId,
+          ok: body.ok,
+          results: body.results || [],
+          appliedCount: body.appliedCount || 0,
+          errorCount: body.errorCount || 0,
+          ts: Date.now()
+        });
+        if (user.changeHistory.length > 50) user.changeHistory = user.changeHistory.slice(-50);
+        saveDb();
+        broadcastSSE({ type: 'ack', changeId: body.changeId, ok: body.ok, results: body.results, appliedCount: body.appliedCount, errorCount: body.errorCount });
+        return sendJson(res, 200, { ok: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/command') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    if (!user.pluginConnected) return sendJson(res, 400, { error: 'Plugin not connected' });
+    user.pendingCommand = { type: body.type, ...body };
+    saveDb();
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === 'GET' && pt === '/plugin/history') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    return sendJson(res, 200, { history: user.changeHistory || [] });
+  }
+
+  if (req.method === 'POST' && pt === '/plugin/gameinfo') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    if (!body.pluginToken) return sendJson(res, 400, { error: 'pluginToken required' });
+    for (const u in db.users) {
+      if (db.users[u].pluginToken === body.pluginToken) {
+        db.users[u].pluginGameInfo = {
+          gameId: body.gameId,
+          placeId: body.placeId,
+          gameName: body.gameName,
+          scriptCount: body.scriptCount || 0,
+          partCount: body.partCount || 0,
+          modelCount: body.modelCount || 0,
+          totalObjects: body.totalObjects || 0,
+          ts: Date.now()
+        };
+        saveDb();
+        return sendJson(res, 200, { ok: true });
+      }
+    }
+    return sendJson(res, 401, { error: 'Invalid plugin token' });
+  }
+
+  const host = (req.headers['host'] || '').split(':')[0];
+  const isApiSubdomain = host === 'api.prysmisai.wtf';
+
+  if (req.method === 'POST' && pt === '/account/generate-prysmisai-key') {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    
+    if (!user.apiKeyGenerationHistory) user.apiKeyGenerationHistory = [];
+    
+    const recentGenerations = user.apiKeyGenerationHistory.filter(time => now - time < oneDay);
+    
+    if (recentGenerations.length >= 3) {
+      const oldestGeneration = Math.min(...recentGenerations);
+      const waitTime = Math.ceil((oldestGeneration + oneDay - now) / (60 * 60 * 1000));
+      return sendJson(res, 429, { error: `After 3 generation of PrysmisAI API key you must wait 24 hours. Please wait ${waitTime} more hours.` });
+    }
+    
+    const apiKey = 'ps-prysmisai-' + crypto.randomBytes(20).toString('hex');
+    
+    if (!user.prysmisApiKeys) user.prysmisApiKeys = [];
+    user.prysmisApiKeys.push({ key: apiKey, created: now });
+    user.apiKeyGenerationHistory.push(now);
+    
+    saveDb();
+    return sendJson(res, 200, { success: true, apiKey });
+  }
+
+  if (req.method === 'GET' && pt === '/account/prysmisai-keys') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Not authenticated' });
+    const user = db.users[td.username];
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
+    const canGenerate = recentGenerations.length < 3;
+    
+    return sendJson(res, 200, { 
+      keys: user.prysmisApiKeys || [], 
+      canGenerate,
+      generationsLeft: Math.max(0, 3 - recentGenerations.length)
+    });
+  }
+
+  if (req.method === 'GET' && pt === '/api/health') {
+    tryStartOllama();
+    const ollamaHealth = await new Promise((resolve) => {
+      const opts = { hostname: '127.0.0.1', port: 11434, path: '/api/tags', method: 'GET', timeout: 5000 };
+      const hreq = http.request(opts, (hres) => {
+        let data = '';
+        hres.on('data', (c) => { data += c; });
+        hres.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            const models = parsed.models || [];
+            const hasModel = models.some(m => m.name === 'llama3.2-vision:latest');
+            resolve({ ok: hasModel, reachable: true, model_available: hasModel, installed_models: models.map(m => m.name) });
+          } catch (e) {
+            resolve({ ok: false, reachable: true, model_available: false, error: 'Invalid Ollama response' });
+          }
+        });
+      });
+      hreq.on('error', () => resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama starting up...' }));
+      hreq.on('timeout', () => { hreq.destroy(); resolve({ ok: false, reachable: false, model_available: false, error: 'Ollama timeout' }); });
+      hreq.end();
+    });
+    return sendJson(res, 200, {
+      ok: ollamaHealth.ok,
+      service: 'prysmisai-web',
+      model: { display_name: 'PSM-v1.0(PrysmisAI)', runtime_model: 'llama3.2-vision:latest' },
+      ollama: ollamaHealth
+    });
+  }
+
+  if (req.method === 'GET' && pt === '/api/meta') {
+    const baseUrl = 'https://' + (req.headers['host'] || 'api.prysmisai.wtf');
+    return sendJson(res, 200, {
+      brand: 'PrysmisAI',
+      model: {
+        display_name: 'PSM-v1.0(PrysmisAI)',
+        runtime_model: 'llama3.2-vision:latest'
+      },
+      api: {
+        base_url: baseUrl,
+        endpoint: '/api/v1/chat/completions',
+        key_prefix: 'ps-prysmisai-',
+        key_limit: 3,
+        window_hours: 24,
+        key_notice: 'After 3 generation of PrysmisAI API key you must wait 24 hours.'
+      }
+    });
+  }
+
+  if (req.method === 'GET' && pt === '/api/settings/groq-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    const user = db.users[td.username] || {};
+    const key = user.groqApiKey || '';
+    return sendJson(res, 200, { groqApiKey: key ? key.substring(0, 8) + '****' + key.slice(-4) : '', hasKey: !!key });
+  }
+
+  if (req.method === 'POST' && pt === '/api/settings/groq-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    let body;
+    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const key = typeof body.groqApiKey === 'string' ? body.groqApiKey.trim() : '';
+    if (!db.users[td.username]) db.users[td.username] = {};
+    db.users[td.username].groqApiKey = key;
+    saveDb();
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'DELETE' && pt === '/api/settings/groq-key') {
+    const td = getTokenData(getReqToken(req, url));
+    if (!td) return sendJson(res, 401, { error: 'Unauthorized' });
+    if (db.users[td.username]) { db.users[td.username].groqApiKey = ''; saveDb(); }
+    return sendJson(res, 200, { success: true });
+  }
+
+  if (req.method === 'GET' && pt === '/api/settings/api-keys') {
+    const clientId = req.headers['x-prysmisai-client'] || 'local-user';
+    const td = getTokenData(getReqToken(req, url));
+    const effectiveClientId = td ? td.username : clientId;
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    const user = db.users[effectiveClientId] || {};
+    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
+    const remaining = Math.max(0, 3 - recentGenerations.length);
+    const nextGenerationAt = remaining === 0 && recentGenerations.length > 0 
+      ? new Date(Math.min(...recentGenerations) + oneDay).toISOString()
+      : null;
+    
+    return sendJson(res, 200, {
+      label: 'PrysmisAI API Key',
+      description: 'After 3 generation of PrysmisAI API key you must wait 24 hours.',
+      status: {
+        limit: 3,
+        window_hours: 24,
+        generated_in_window: recentGenerations.length,
+        remaining: remaining,
+        next_generation_at: nextGenerationAt
+      },
+      keys: (user.prysmisApiKeys || []).map(k => ({
+        id: k.created,
+        api_key: k.key,
+        masked_key: k.key.substring(0, 18) + '****' + k.key.slice(-4),
+        created_at: new Date(k.created).toISOString()
+      }))
+    });
+  }
+
+  if (req.method === 'POST' && pt === '/api/settings/api-keys/generate') {
+    const clientId = req.headers['x-prysmisai-client'] || 'local-user';
+    const td = getTokenData(getReqToken(req, url));
+    const effectiveClientId = td ? td.username : clientId;
+    
+    const now = Date.now();
+    const oneDay = 24 * 3600000;
+    const user = db.users[effectiveClientId] || {};
+    const recentGenerations = (user.apiKeyGenerationHistory || []).filter(time => now - time < oneDay);
+    
+    if (recentGenerations.length >= 3) {
+      const oldestGeneration = Math.min(...recentGenerations);
+      const retryAt = new Date(oldestGeneration + oneDay).toISOString();
+      return sendJson(res, 429, {
+        message: `API key generation limit reached. Try again after ${retryAt}.`,
+        retry_at: retryAt
+      });
+    }
+    
+    const apiKey = 'ps-prysmisai-' + crypto.randomBytes(24).toString('hex');
+    if (!user.prysmisApiKeys) user.prysmisApiKeys = [];
+    if (!user.apiKeyGenerationHistory) user.apiKeyGenerationHistory = [];
+    
+    user.prysmisApiKeys.push({ key: apiKey, created: now });
+    user.apiKeyGenerationHistory.push(now);
+    db.users[effectiveClientId] = user;
+    saveDb();
+    
+    const newRecentGenerations = user.apiKeyGenerationHistory.filter(time => now - time < oneDay);
+    const newRemaining = Math.max(0, 3 - newRecentGenerations.length);
+    const nextGenerationAt = newRemaining === 0 
+      ? new Date(now + oneDay).toISOString()
+      : null;
+    
+    return sendJson(res, 200, {
+      key: {
+        id: now,
+        api_key: apiKey,
+        masked_key: apiKey.substring(0, 18) + '****' + apiKey.slice(-4),
+        created_at: new Date(now).toISOString()
+      },
+      status: {
+        limit: 3,
+        window_hours: 24,
+        generated_in_window: newRecentGenerations.length,
+        remaining: newRemaining,
+        next_generation_at: nextGenerationAt
+      }
+    });
+  }
+
+  function authenticateApiKey(apiKey) {
+    if (!apiKey || !apiKey.startsWith('ps-prysmisai-')) return false;
+    for (const u in db.users) {
+      const user = db.users[u];
+      if (user.prysmisApiKeys && user.prysmisApiKeys.some(k => k.key === apiKey)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function validateRequestedModel(requestedModel) {
+    const allowedModels = ['PSM-v1.0(PrysmisAI)', 'psm-v1.0', 'llama3.2-vision:latest'];
+    if (!requestedModel) return 'psm-v1.0';
+    if (allowedModels.includes(requestedModel)) return 'psm-v1.0';
+    if (GROQ_MODELS.has(requestedModel)) return requestedModel;
+    throw new Error(`Unsupported model '${requestedModel}'. Use PSM-v1.0(PrysmisAI) or a supported Groq model.`);
+  }
+
+  if (req.method === 'POST' && pt === '/api/v1/chat/completions') {
+    let body;
+    try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    
+    const authHeader = req.headers['authorization'] || '';
+    const apiKey = authHeader.replace(/^Bearer\s+/i, '');
+    
+    if (!apiKey || !authenticateApiKey(apiKey)) {
+      return sendJson(res, 401, { error: 'Invalid PrysmisAI API key.' });
+    }
+    
+    if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+      return sendJson(res, 400, { error: 'At least one message is required.' });
+    }
+    
+    let modelToUse;
+    try {
+      modelToUse = validateRequestedModel(body.model);
+    } catch (error) {
+      return sendJson(res, 400, { error: error.message });
+    }
+    
+    const messages = body.messages.map(m => ({
+      role: m.role || 'user',
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
+    
+    const temperature = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.2;
+    const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : 512;
+    
+    if (GROQ_MODELS.has(modelToUse)) {
+      const prysmisUser = Object.keys(db.users).find(u => (db.users[u].prysmisApiKeys || []).some(k => k.key === apiKey));
+      // Premium-only model check
+      if (PREMIUM_ONLY_MODELS.has(modelToUse)) {
+        const isPremiumUser = prysmisUser && (!!db.users[prysmisUser].premium || !!db.admins[prysmisUser]);
+        if (!isPremiumUser) {
+          return sendJson(res, 403, { error: 'This model is for premium users only. Upgrade to access it.', premiumRequired: true });
+        }
+      }
+      const groqKey = prysmisUser ? getUserGroqKey(prysmisUser) : null;
+      if (!groqKey || !groqKey.startsWith('gsk_')) {
+        return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
+      }
+      try {
+        const groqData = await callGroq(messages, temperature, maxTokens, groqKey, modelToUse);
+        const choice = groqData.choices && groqData.choices[0];
+        const reply = choice && choice.message && choice.message.content ? choice.message.content : '';
+        return sendJson(res, 200, {
+          id: groqData.id || 'psmchat-' + crypto.randomBytes(16).toString('hex'),
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: modelToUse,
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: (choice && choice.finish_reason) || 'stop' }],
+          usage: groqData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        });
+      } catch (error) {
+        if (error.groqQuotaExhausted) {
+          return sendJson(res, 402, { error: 'Groq API key exhausted. Please generate a new one.', groqQuotaExhausted: true });
+        }
+        return sendJson(res, 503, { error: 'Groq error: ' + error.message });
+      }
+    }
+
+    try {
+      const ollamaData = await callOllama(messages, temperature, maxTokens);
+      const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : '';
+      const promptTokens = ollamaData.prompt_eval_count || messages.reduce((acc, m) => acc + (m.content || '').length / 4, 0);
+      const completionTokens = ollamaData.eval_count || reply.length / 4;
+      return sendJson(res, 200, {
+        id: 'psmchat-' + crypto.randomBytes(16).toString('hex'),
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'PSM-v1.0(PrysmisAI)',
+        choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: ollamaData.done_reason || 'stop' }],
+        usage: { prompt_tokens: Math.floor(promptTokens), completion_tokens: Math.floor(completionTokens), total_tokens: Math.floor(promptTokens + completionTokens) }
+      });
+    } catch (error) {
+      return sendJson(res, 503, { error: 'PSM-v1.0(PrysmisAI): ' + error.message });
+    }
+  }
+
+  if (req.method === 'POST' && (pt === '/v1/chat/completions' || pt === '/chat/completions' || (isApiSubdomain && pt === '/'))) {
+    let body; try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: 'Invalid body' }); }
+    const rawModel = body.model || url.searchParams.get('model') || 'psm-v1.0';
+    const modelToUse = resolveModel(rawModel);
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+    const cleanMessages = messages.filter(m => {
+      if (!m || typeof m !== 'object') return false;
+      if (!['user','assistant','system'].includes(m.role)) return false;
+      if (typeof m.content === 'string') return m.content.trim().length > 0;
+      if (Array.isArray(m.content)) return m.content.length > 0;
+      return false;
+    }).map(m => {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content.trim() };
+      return { role: m.role, content: m.content };
+    });
+    if (cleanMessages.filter(m => m.role !== 'system').length === 0) return sendJson(res, 400, { error: 'No valid messages provided' });
+    const temp = typeof body.temperature === 'number' ? Math.min(Math.max(body.temperature, 0), 2) : 0.7;
+    const maxTok = typeof body.max_tokens === 'number' ? Math.min(body.max_tokens, 4096) : 2048;
+
+    if (modelToUse === 'psm-v1.0') {
+      try {
+        const ollamaData = await callOllama(cleanMessages, temp, maxTok);
+        const reply = ollamaData.message && ollamaData.message.content ? ollamaData.message.content : 'PSM-v1.0(PrysmisAI) could not generate a response.';
+        const promptLen = cleanMessages.map(m => typeof m.content === 'string' ? m.content : m.content.map(c => c.type === 'text' ? c.text : '').join(' ')).join(' ').length;
+        return sendJson(res, 200, {
+          id: 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
+          object: 'chat.completion',
+          model: 'psm-v1.0',
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: Math.floor(promptLen / 4), completion_tokens: Math.floor(reply.length / 4), total_tokens: Math.floor((promptLen + reply.length) / 4) }
+        });
+      } catch (error) {
+        return sendJson(res, 500, { error: 'PSM-v1.0(PrysmisAI) error: ' + (error.message || 'Unknown error') });
+      }
+    }
+
+    if (GROQ_MODELS.has(modelToUse)) {
+      const td = getTokenData(getReqToken(req, url));
+      // Premium-only model check
+      if (PREMIUM_ONLY_MODELS.has(modelToUse)) {
+        const isPremiumUser = td && (!!db.users[td.username]?.premium || !!db.admins[td.username]);
+        if (!isPremiumUser) {
+          return sendJson(res, 403, { error: 'This model is for premium users only. Upgrade to access it.', premiumRequired: true });
+        }
+      }
+      const groqKey = td ? getUserGroqKey(td.username) : null;
+      if (!groqKey || !groqKey.startsWith('gsk_')) {
+        return sendJson(res, 400, { error: 'Groq API key not set. Add your Groq API key in AI Settings.' });
+      }
+      try {
+        const groqData = await callGroq(cleanMessages, temp, maxTok, groqKey, modelToUse);
+        const choice = groqData.choices && groqData.choices[0];
+        const reply = choice && choice.message && choice.message.content ? choice.message.content : '';
+        return sendJson(res, 200, {
+          id: groqData.id || 'chatcmpl-' + crypto.randomBytes(8).toString('hex'),
+          object: 'chat.completion',
+          model: modelToUse,
+          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: (choice && choice.finish_reason) || 'stop' }],
+          usage: groqData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        });
+      } catch (error) {
+        if (error.groqQuotaExhausted) {
+          return sendJson(res, 402, { error: 'Groq API key exhausted. Please generate a new one.', groqQuotaExhausted: true });
+        }
+        return sendJson(res, 500, { error: 'Groq error: ' + (error.message || 'Unknown error') });
+      }
+    }
+
+    return sendJson(res, 400, { error: 'Model not supported' });
+  }
+
+  if (req.method === 'GET' && (pt === '/APIDoc' || pt === '/APIDoc/' || pt === '/apidoc' || pt === '/apidoc/')) {
+    fs.readFile('./apidoc/index.html', (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(data);
+    }); return;
+  }
+
+  if (req.method === 'GET' && (pt.startsWith('/APIDoc/') || pt.startsWith('/apidoc/'))) {
+    const filename = pt.split('/').pop();
+    const ext = path.extname(filename).toLowerCase();
+    const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8' }[ext] || 'text/plain';
+    fs.readFile('./apidoc/' + filename, (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': mime }); res.end(data);
+    }); return;
+  }
+
+  if (req.method === 'GET') {
+    let filePath = '.' + (pt === '/' ? '/index.html' : pt);
+    if (filePath.endsWith('/')) filePath += 'index.html';
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' }[ext] || 'text/plain';
+    fs.readFile(filePath, (err, data) => {
+      if (err) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': mime }); res.end(data);
+    }); return;
+  }
+
+  res.writeHead(404); res.end();
+});
+
+server.on('error', e => { if (e.code === 'EADDRINUSE') process.exit(1); });
+server.listen(process.env.PORT || 3000, '0.0.0.0');
