@@ -1131,7 +1131,7 @@ const server = http.createServer(async (req, res) => {
     user.pendingChanges.push(change);
     if (user.pendingChanges.length > 20) user.pendingChanges = user.pendingChanges.slice(-20);
     saveDb();
-    return sendJson(res, 200, { ok: true, changeId: change.id });
+    return sendJson(res, 200, { ok: true, changeId: change.id, immediate: true });
   }
 
   if (req.method === 'GET' && pt === '/plugin/pending') {
