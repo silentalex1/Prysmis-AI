@@ -1447,3 +1447,9 @@ text-decoration: underline;
 
 /* Premium model option styling */
 .premium-model-opt { color: #a78bfa; }
+
+.manus-key-wrap { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.manus-key-input { flex: 1; padding: 0.45rem 0.85rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.82rem; outline: none; }
+.manus-key-input:focus { border-color: var(--accent); }
+.manus-key-save { padding: 0.45rem 0.85rem; background: var(--accent); border: none; border-radius: 8px; color: #fff; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+.manus-notification { background: var(--red); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.5rem; text-align: center; width: 100%; }
