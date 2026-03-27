@@ -35,7 +35,14 @@ var pastedImageData = null;
 var imagePastePreview = null;
 var imagePasteImg = null;
 
-var PREMIUM_MODELS = {};
+var PREMIUM_MODELS = {
+  'openai/gpt-oss-120b': true,
+  'openai/gpt-oss-20b': true,
+  'qwen/qwen3-32b': true
+};
+
+// copygame command only for premium
+var PREMIUM_COMMANDS = { 'copygame': true };
 
 var MODEL_API_MAP = {
   'psm-v1.0': 'psm-v1.0',
@@ -63,9 +70,14 @@ fetch('/me?token=' + encodeURIComponent(storedToken))
   }).catch(function() {});
 
 function unlockPremiumOptions() {
+  // Remove lock icons from premium model options
+  document.querySelectorAll('.premium-model-opt').forEach(function(opt) {
+    opt.textContent = opt.textContent.replace('🔒 ', '');
+    opt.disabled = false;
+  });
 }
 
-var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI built to handle any request — from simple scripts to the most complex, professional-grade game systems ever built. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\n\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\n- StarterGui: LocalScripts and ScreenGuis for UI\n- ServerStorage: Server-only assets and ModuleScripts\n- Workspace: Parts, Models, terrain manipulation scripts\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\n\nYour specialties:\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments, fuselages, aerodynamics\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\n- Networking: rate limiting, anti-exploit validation, server authority patterns\n- Any other Roblox system the user can imagine\n\nWhen building anything ALWAYS:\n1. Start with [TASKS] checklist listing every script/component\n2. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\n3. Use ```lua code blocks for every script\n4. Split logic properly across the correct services — never dump everything in one place\n5. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\n6. Build the most feature-rich, polished, professional version possible\n7. Handle errors, edge cases, and player disconnects gracefully\n\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
+var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI built to handle any request — from simple scripts to the most complex, professional-grade game systems ever built. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\n\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\n- StarterGui: LocalScripts and ScreenGuis for UI\n- ServerStorage: Server-only assets and ModuleScripts\n- Workspace: Parts, Models, terrain manipulation scripts\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\n\nADVANCED PLUGIN ANIMATION COMMANDS: The PrysmisAI plugin supports rich JSON commands beyond just scripts. When building UI or world objects, you may emit ```json blocks containing plugin commands. The plugin supports these animation/build command types:\n- "animate_sequence": multi-step keyframe animation on any instance (steps: [{props, duration, style, direction, delay}], loop, pingpong)\n- "tween_advanced": single tween with reverses and repeatCount\n- "shake": physically shake a part (intensity, duration, decay)\n- "pulse": scale pulse effect (scaleUp, duration, count)\n- "spin": continuous rotation (axis, speed deg/s, duration)\n- "float": sine-wave hover (amplitude, frequency, duration)\n- "fade": transparency fade in/out\n- "slide_gui": slide GuiObjects with easing (from/to UDim2)\n- "typewrite": typewriter text effect (text, speed)\n- "color_cycle": smooth color loop ([{r,g,b}...])\n- "particle_burst": visual particle explosion (origin, count, color, spread)\n- "create_animated_panel": ScreenGui panel that animates in\n- "animate_ui_in" / "animate_ui_out": slide+fade GUI elements\n- "morph_color": smooth color transition\n- "camera_shake": shake the studio camera\n- "tween_along_path": move instance through waypoints\n- "ripple_effect": expanding ring visual effect\n- "batch_animate": run multiple animations in parallel\n- "apply_theme": apply a color theme to all matching children\n- "batch", "batch_scripts", "batch_parts": bulk creation\n- "spawn_model_hierarchy" / "create_gui_hierarchy": full nested object trees\nAlways use these commands to create smooth, cinematic, professional animations.\n\nCOPYGAME COMMAND: When the user triggers the /copygame command, you receive a prompt starting with "COPYGAME COMMAND". Build the most complete, production-quality remake possible — every mechanic, UI, system, and gameplay loop. Use the full architecture split. Include all RemoteEvents, anti-cheat, datastores, UI, and game logic.\n\nYour specialties:\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments, fuselages, aerodynamics\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\n- Networking: rate limiting, anti-exploit validation, server authority patterns\n- Any other Roblox system the user can imagine\n\nWhen building anything ALWAYS:\n1. Start with [TASKS] checklist listing every script/component\n2. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\n3. Use ```lua code blocks for every script\n4. Split logic properly across the correct services — never dump everything in one place\n5. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\n6. Build the most feature-rich, polished, professional version possible\n7. Handle errors, edge cases, and player disconnects gracefully\n\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
 
 var SYSTEM_PROMPT = SYSTEM_PROMPT_BASE;
 var studioFileContext = '';
@@ -198,8 +210,8 @@ function parseAndRenderContent(rawText, container) {
     }
   });
   if (pluginConnected && allCodeBlocks.length > 0) {
-    var combined = allCodeBlocks.join('\n\n');
-    addChangeButtons(combined, 'Apply all AI changes', container);
+    // Send the full rawText so the plugin can parse [Path > Labels] for correct placement
+    addChangeButtons(rawText, 'Apply all AI changes', container);
   }
 }
 
@@ -256,7 +268,109 @@ if (premiumModal) {
   premiumModal.addEventListener('click', function(e) { if (e.target === premiumModal) premiumModal.style.display = 'none'; });
 }
 
-modelSelect.addEventListener('change', function() {});
+modelSelect.addEventListener('change', function() {
+  var val = modelSelect.value;
+  if (PREMIUM_MODELS[val] && !userHasPremium) {
+    if (premiumModal) premiumModal.style.display = 'flex';
+    modelSelect.value = 'psm-v1.0';
+  }
+});
+
+// ============================================================
+// GROQ QUOTA EXHAUSTED BANNER
+// ============================================================
+var groqQuotaBanner = document.getElementById('groqQuotaBanner');
+var groqQuotaDismiss = document.getElementById('groqQuotaDismiss');
+var groqQuotaGoSettings = document.getElementById('groqQuotaGoSettings');
+var groqBannerTimeout = null;
+
+function showGroqQuotaBanner() {
+  if (!groqQuotaBanner) return;
+  clearTimeout(groqBannerTimeout);
+  groqQuotaBanner.style.display = 'flex';
+  // Force reflow for animation
+  void groqQuotaBanner.offsetWidth;
+  groqQuotaBanner.classList.remove('banner-hide');
+  groqQuotaBanner.classList.add('banner-show');
+  // Auto-dismiss after 8 seconds
+  groqBannerTimeout = setTimeout(function() { hideGroqQuotaBanner(); }, 8000);
+}
+
+function hideGroqQuotaBanner() {
+  if (!groqQuotaBanner) return;
+  clearTimeout(groqBannerTimeout);
+  groqQuotaBanner.classList.remove('banner-show');
+  groqQuotaBanner.classList.add('banner-hide');
+  setTimeout(function() {
+    groqQuotaBanner.style.display = 'none';
+    groqQuotaBanner.classList.remove('banner-hide');
+  }, 420);
+}
+
+if (groqQuotaDismiss) {
+  groqQuotaDismiss.addEventListener('click', function() { hideGroqQuotaBanner(); });
+}
+if (groqQuotaGoSettings) {
+  groqQuotaGoSettings.addEventListener('click', function() {
+    hideGroqQuotaBanner();
+    // Switch to settings tab
+    var settingsTab = document.querySelector('[data-tab="settings"]');
+    if (settingsTab) settingsTab.click();
+  });
+}
+
+// ============================================================
+// SLASH COMMAND MENU
+// ============================================================
+var slashMenu = document.getElementById('slashCommandMenu');
+var slashCopyGame = document.getElementById('slashCopyGame');
+
+function showSlashMenu() {
+  if (!slashMenu) return;
+  slashMenu.style.display = 'block';
+}
+function hideSlashMenu() {
+  if (!slashMenu) return;
+  slashMenu.style.display = 'none';
+}
+
+if (inputEl) {
+  inputEl.addEventListener('input', function() {
+    var val = inputEl.value;
+    if (val === '/') {
+      showSlashMenu();
+    } else {
+      hideSlashMenu();
+    }
+  });
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') hideSlashMenu();
+  });
+}
+
+// Close slash menu when clicking outside
+document.addEventListener('click', function(e) {
+  if (slashMenu && !slashMenu.contains(e.target) && e.target !== inputEl) {
+    hideSlashMenu();
+  }
+});
+
+if (slashCopyGame) {
+  slashCopyGame.addEventListener('click', function() {
+    if (!userHasPremium) {
+      hideSlashMenu();
+      if (premiumModal) premiumModal.style.display = 'flex';
+      return;
+    }
+    if (inputEl) {
+      inputEl.value = '/copygame ';
+      inputEl.focus();
+      // Put cursor at end
+      inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length;
+    }
+    hideSlashMenu();
+  });
+}
 
 function isTruncated(text) {
   var trimmed = text.trimEnd();
@@ -469,6 +583,32 @@ function doSend(overrideText, isContinue) {
   var text = isContinue ? rawText : rawText.trim();
   if (!text && pastedImages.length === 0) return;
   if (!text && pastedImages.length > 0) text = 'Analyze these images and help me with my Roblox game.';
+
+  // --- /copygame command handler ---
+  if (!isContinue && text.startsWith('/copygame')) {
+    if (!userHasPremium) {
+      if (premiumModal) premiumModal.style.display = 'flex';
+      return;
+    }
+    var gameDesc = text.replace(/^\/copygame\s*/i, '').trim();
+    if (!gameDesc) {
+      addMessage('Please provide a game description. Usage: /copygame [game description]', false, null);
+      inputEl.value = '';
+      return;
+    }
+    text = 'COPYGAME COMMAND — Recreate the following Roblox game as completely as possible.\n\nGame Description: ' + gameDesc + '\n\nBuild a full, production-quality recreation of this game. Include every system, mechanic, UI, and gameplay loop described. Split ALL code correctly across ServerScriptService, StarterPlayerScripts, StarterGui, ReplicatedStorage, etc. Label every script with its exact path. Do NOT truncate. Build the complete game now.';
+    inputEl.value = '';
+  }
+
+  // --- Premium model pre-check ---
+  if (!isContinue) {
+    var selectedModel = modelSelect ? modelSelect.value : '';
+    if (PREMIUM_MODELS[selectedModel] && !userHasPremium) {
+      if (premiumModal) premiumModal.style.display = 'flex';
+      return;
+    }
+  }
+
   var isFirst = currentMessages.length === 0 && !isContinue;
   if (!isContinue) {
     var userMsgContent;
@@ -503,6 +643,7 @@ function doSend(overrideText, isContinue) {
   if (isContinue) {
     allMsgs.push({ role: 'user', content: 'Continue from exactly where you left off. Do not repeat anything. Just continue the code or response seamlessly.' });
   }
+
 
   function handleReply(reply, finishReason) {
     removeThinking();
@@ -568,13 +709,24 @@ function doSend(overrideText, isContinue) {
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
     body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
   }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(errData) {
-        throw new Error(errData.error || 'API error (HTTP ' + r.status + ')');
-      });
-    }
-    return r.json();
+    return r.json().then(function(data) {
+      if (!r.ok) {
+        // Detect Groq quota exhaustion from server flag or error message
+        if (data.groqQuotaExhausted || r.status === 402 ||
+            /quota|exhausted|rate.?limit|invalid.?api.?key|expired/i.test(data.error || '')) {
+          showGroqQuotaBanner();
+        }
+        if (data.premiumRequired) {
+          if (premiumModal) premiumModal.style.display = 'flex';
+          removeThinking();
+          return;
+        }
+        throw new Error(data.error || 'API error (HTTP ' + r.status + ')');
+      }
+      return data;
+    });
   }).then(function(data) {
+    if (!data) return;
     var choice = data.choices && data.choices[0];
     var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
     var finishReason = choice ? choice.finish_reason : null;
