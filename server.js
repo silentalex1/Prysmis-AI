@@ -860,13 +860,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
-  let filePath = path.join(__dirname, pt === "/" ? "dashboard/aibuild/index.html" : pt);
-  
-  // If the request is for the dashboard specifically
-  if (pt === "/dashboard/aibuild" || pt === "/dashboard/aibuild/") {
-    filePath = path.join(__dirname, "dashboard/aibuild/index.html");
-  }
-
+  const publicDir = path.join(__dirname, "dashboard", "aibuild");
+  let filePath = path.join(publicDir, pt === "/" ? "index.html" : pt);
   const extname = path.extname(filePath);
   let contentType = "text/html";
   switch (extname) {
@@ -881,13 +876,13 @@ const server = http.createServer(async (req, res) => {
   fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code == "ENOENT") {
-        const dashboardIndex = path.join(__dirname, "dashboard/aibuild/index.html");
-        fs.readFile(dashboardIndex, (err2, content2) => {
-          if (err2) {
+        // If a specific file is not found, try serving index.html for SPA routing
+        fs.readFile(path.join(publicDir, "index.html"), (err, content) => {
+          if (err) {
             sendJson(res, 404, { error: "Not found" });
           } else {
             res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(content2, "utf-8");
+            res.end(content, "utf-8");
           }
         });
       } else {
