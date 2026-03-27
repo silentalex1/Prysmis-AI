@@ -357,25 +357,32 @@ function manusHttpPost(path, payload, manusApiKey) {
   });
 }
 
-async function callManus(prompt, manusApiKey) {
-  const createRes = await manusHttpPost('/api/v1/tasks', { prompt }, manusApiKey);
+async function callManus(messages, manusApiKey) {
+  const userMsgs = messages.filter(m => m.role !== 'system');
+  const prompt = userMsgs.map(m => typeof m.content === 'string' ? m.content : '').join('\n').trim();
+  const systemMsg = messages.find(m => m.role === 'system');
+  const fullPrompt = systemMsg ? systemMsg.content + '\n\n' + prompt : prompt;
+
+  const createRes = await manusHttpPost('/api/v1/tasks', { prompt: fullPrompt }, manusApiKey);
   if (createRes.status === 402 || createRes.status === 429) {
     const err = new Error('quota_exceeded');
     err.quotaExceeded = true;
     throw err;
   }
   if (createRes.status !== 200 && createRes.status !== 201) {
-    throw new Error((createRes.body && createRes.body.error) ? createRes.body.error : 'Manus API error ' + createRes.status);
+    const errMsg = (createRes.body && (createRes.body.message || createRes.body.error || createRes.body.detail)) || ('Manus API error ' + createRes.status);
+    throw new Error(errMsg);
   }
   const taskId = createRes.body.task_id || createRes.body.id;
   if (!taskId) {
     throw new Error('Manus did not return a task_id');
   }
-  const maxWait = 120;
   const pollDelay = (ms) => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < maxWait; i++) {
-    await pollDelay(i < 10 ? 1500 : 2500);
-    const pollRes = await manusHttpGet('/api/v1/tasks/' + taskId, manusApiKey);
+  for (let i = 0; i < 80; i++) {
+    await pollDelay(i < 8 ? 2000 : 3000);
+    let pollRes;
+    try { pollRes = await manusHttpGet('/api/v1/tasks/' + taskId, manusApiKey); }
+    catch (e) { continue; }
     if (pollRes.status === 402 || pollRes.status === 429) {
       const err = new Error('quota_exceeded');
       err.quotaExceeded = true;
@@ -385,18 +392,18 @@ async function callManus(prompt, manusApiKey) {
     const status = (t.status || '').toLowerCase();
     if (status === 'completed' || status === 'finished' || status === 'done' || status === 'success') {
       const result = t.result || t.output || t.content || t.response || '';
-      if (result) return { result };
+      if (result) return result;
       if (t.messages && Array.isArray(t.messages)) {
         const last = t.messages.filter(m => m.role === 'assistant').pop();
-        if (last && last.content) return { result: last.content };
+        if (last && last.content) return last.content;
       }
-      return { result: JSON.stringify(t) };
+      return JSON.stringify(t);
     }
     if (status === 'failed' || status === 'error' || status === 'cancelled') {
       throw new Error('Manus task ' + status + ': ' + (t.error || t.message || ''));
     }
   }
-  throw new Error('Manus task timed out after waiting for completion');
+  throw new Error('Manus task timed out');
 }
 
 function getUserManusKey(username) {
@@ -1682,15 +1689,13 @@ const server = http.createServer(async (req, res) => {
       if (!manusKey) {
         return sendJson(res, 400, { error: 'Manus API key not set. Add your Manus API key in AI Settings.' });
       }
-      const userPrompt = cleanMessages.filter(m => m.role !== 'system').map(m => typeof m.content === 'string' ? m.content : '').join('\n');
       try {
-        const manusData = await callManus(userPrompt, manusKey);
-        const reply = manusData.result || manusData.output || manusData.content || JSON.stringify(manusData);
+        const reply = await callManus(cleanMessages, manusKey);
         return sendJson(res, 200, {
           id: 'manus-' + crypto.randomBytes(8).toString('hex'),
           object: 'chat.completion',
           model: 'manus-1.6-lite',
-          choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
+          choices: [{ index: 0, message: { role: 'assistant', content: reply || 'No response from Manus.' }, finish_reason: 'stop' }],
           usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
         });
       } catch (error) {
