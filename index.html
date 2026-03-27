@@ -1,1 +1,136 @@
-website rewrite
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The BEST free unlimited Roblox game generator.">
+    <title>PrysmisAI - beta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#0a0a0b] text-white overflow-x-hidden">
+
+    <div id="loader" class="fixed inset-0 z-[100] bg-[#0a0a0b] flex flex-col items-center justify-center">
+        <div class="relative w-64 h-64">
+            <div id="baseplate" class="absolute bottom-0 w-full h-4 bg-gray-600 rounded-sm scale-0"></div>
+            <div class="block absolute bg-blue-500 w-12 h-12 bottom-4 left-10 opacity-0"></div>
+            <div class="block absolute bg-blue-400 w-8 h-20 bottom-4 right-12 opacity-0"></div>
+            <div class="block absolute bg-blue-600 w-16 h-8 bottom-4 left-20 opacity-0"></div>
+        </div>
+        <p id="loading-text" class="mt-8 text-gray-400 font-mono tracking-widest uppercase">Initializing Studio Environment...</p>
+    </div>
+
+    <main id="content" class="opacity-0">
+        
+        <section class="min-h-screen flex flex-col items-center justify-center text-center px-6">
+            <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent mb-6">
+                Your AI that writes, edits, and builds everything for you.
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mb-8">
+                Create, edit, and generate anything instantly. Turn ideas into full experiences in seconds.
+            </p>
+            
+            <div class="flex gap-12 text-sm font-mono text-blue-400">
+                <div>Users: <span id="user-count">0</span></div>
+                <div>Completed Projects: <span id="project-count">0</span></div>
+            </div>
+        </section>
+
+        <section class="py-24 px-6 max-w-6xl mx-auto">
+            <h2 class="text-3xl font-bold mb-12 text-center">What you can create</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="feature-card bg-[#161618] p-8 rounded-2xl border border-white/5">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4">Full Complete Roblox Maps</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Since PrysmisAI is powerful, it can create full on complex roblox maps that would usually take a dev team to do.</p>
+                </div>
+                <div class="feature-card bg-[#161618] p-8 rounded-2xl border border-white/5">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4">Game Systems</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">PrysmiAI is able to create tycoons, obbies, any games you desire and imagine.</p>
+                </div>
+                <div class="feature-card bg-[#161618] p-8 rounded-2xl border border-white/5">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4">UI & Menus</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">PrysmisAI is also able to create clean UI's, and smooth start up UI menu's.</p>
+                </div>
+                <div class="feature-card bg-[#161618] p-8 rounded-2xl border border-white/5">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4">Anti-Cheats</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">PrysmisAI can create complex anti-cheats. Just detail what you want and it will be created instantly.</p>
+                </div>
+                <div class="feature-card bg-[#161618] p-8 rounded-2xl border border-white/5 lg:col-span-2">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4">Animation & Effects</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Create smooth animations and visual effects. Make players perform any action you desire with high-fidelity movement.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-24 bg-[#0d0d0e] px-6">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-3xl font-bold mb-12 text-center">Frequently Asked Questions</h2>
+                <div class="space-y-4">
+                    <div class="faq-item bg-[#161618] rounded-xl overflow-hidden cursor-pointer border border-white/5">
+                        <button class="w-full p-6 text-left font-semibold flex justify-between items-center">
+                            Is this paid and if so how much will it be?
+                            <span class="text-blue-400">+</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden">
+                            Some AI models are paid, and there are paid features as well. But not everything is paid, the total is $10 lifetime no subscription.
+                        </div>
+                    </div>
+
+                    <div class="faq-item bg-[#161618] rounded-xl overflow-hidden cursor-pointer border border-white/5">
+                        <button class="w-full p-6 text-left font-semibold flex justify-between items-center">
+                            Is PrysmisAI safe?
+                            <span class="text-blue-400">+</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden">
+                            PrysmisAI is indeed safe to use, I don't know how or why you wouldn't think it's not safe.
+                        </div>
+                    </div>
+
+                    <div class="faq-item bg-[#161618] rounded-xl overflow-hidden cursor-pointer border border-white/5">
+                        <button class="w-full p-6 text-left font-semibold flex justify-between items-center">
+                            Is PrysmisAI hard to setup?
+                            <span class="text-blue-400">+</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden">
+                            Not at all. The setup is simple:<br>
+                            1. Click "Connect"<br>
+                            2. Copy your Studio token from the dashboard<br>
+                            3. Paste it into the plugin
+                        </div>
+                    </div>
+
+                    <div class="faq-item bg-[#161618] rounded-xl overflow-hidden cursor-pointer border border-white/5">
+                        <button class="w-full p-6 text-left font-semibold flex justify-between items-center">
+                            Can PrysmisAI create maps, loading screens, anti-cheats, animations?
+                            <span class="text-blue-400">+</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden">
+                            PrysmisAI can create anything you can imagine. It is built to be a powerful engine for all game assets.
+                        </div>
+                    </div>
+
+                    <div class="faq-item bg-[#161618] rounded-xl overflow-hidden cursor-pointer border border-white/5">
+                        <button class="w-full p-6 text-left font-semibold flex justify-between items-center">
+                            I still have so much questions..
+                            <span class="text-blue-400">+</span>
+                        </button>
+                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden">
+                            Join our <a href="https://discord.gg/b4KmRzgfZ4" class="text-blue-400 hover:underline">discord server</a> and we'll try our best to answer your questions!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-32 text-center">
+            <button id="cta-button" class="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-full font-bold transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20">
+                Start building games now..
+            </button>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
