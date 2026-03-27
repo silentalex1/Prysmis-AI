@@ -33,6 +33,7 @@ Go Back
 <a class="sidenav-link" href="#examples">Examples</a>
 <a class="sidenav-link" href="#response">Response</a>
 <a class="sidenav-link" href="#errors">Errors</a>
+<a class="sidenav-link" href="#plugin-api">Plugin API</a>
 <a class="sidenav-link" href="#tutorial">Setup Tutorial</a>
 </nav>
 
@@ -228,6 +229,58 @@ res = requests.post(<span class="cs">'https://api.prysmisai.wtf/v1/chat/completi
 <div class="codebox">
 <pre><code>{ <span class="ck">"error"</span>: <span class="cs">"No valid messages provided"</span> }</code></pre>
 </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="plugin-api">
+<h2 class="section-title">Plugin API (Studio Integration)</h2>
+<p class="section-text">These endpoints connect your Roblox Studio plugin to the website. The plugin polls for changes and sends them into your game live.</p>
+
+<h3 style="margin:1.4rem 0 0.5rem;font-size:1rem;color:#e2e8ff;">POST /plugin/ping</h3>
+<p class="section-text">Verifies plugin token and marks plugin as connected.</p>
+<table class="tbl"><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>pluginToken</code></td><td>string</td><td>Plugin token from Studio widget</td></tr>
+</tbody></table>
+<div class="codebox" style="margin-top:0.75rem"><pre><code>{ <span class="ck">"ok"</span>: <span class="cn">true</span>, <span class="ck">"model"</span>: <span class="cs">"psm-v1.0"</span>, <span class="ck">"user"</span>: <span class="cs">"username"</span> }</code></pre></div>
+
+<h3 style="margin:1.4rem 0 0.5rem;font-size:1rem;color:#e2e8ff;">GET /plugin/poll?pluginToken=</h3>
+<p class="section-text">Called every 0.6s by the plugin to receive pending changes and commands from the website.</p>
+<div class="codebox" style="margin-top:0.75rem"><pre><code>{ <span class="ck">"changes"</span>: [{ <span class="ck">"id"</span>: <span class="cs">"abc123"</span>, <span class="ck">"code"</span>: <span class="cs">"..."</span> }], <span class="ck">"command"</span>: <span class="cn">null</span>, <span class="ck">"model"</span>: <span class="cs">"psm-v1.0"</span> }</code></pre></div>
+
+<h3 style="margin:1.4rem 0 0.5rem;font-size:1rem;color:#e2e8ff;">POST /plugin/execute</h3>
+<p class="section-text">Queues a code change or JSON command to be applied in Studio. Called when user clicks "Apply Change" on the website.</p>
+<table class="tbl"><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>code</code></td><td>string</td><td>Lua code to apply (use this OR command)</td></tr>
+<tr><td><code>command</code></td><td>object</td><td>JSON command object (use this OR code)</td></tr>
+<tr><td><code>description</code></td><td>string</td><td>Optional label for the change</td></tr>
+</tbody></table>
+<p class="section-text mt">JSON command types: <code>create_script</code>, <code>create_part</code>, <code>create_model</code>, <code>create_folder</code>, <code>create_remote</code>, <code>set_property</code>, <code>delete</code>, <code>rename</code>, <code>move</code>, <code>clone</code>, <code>batch</code></p>
+<div class="codebox" style="margin-top:0.75rem">
+<div class="codebox-header"><span class="codebox-lang">JSON</span></div>
+<pre><code>{
+  <span class="ck">"command"</span>: {
+    <span class="ck">"type"</span>: <span class="cs">"create_script"</span>,
+    <span class="ck">"path"</span>: <span class="cs">"ServerScriptService &gt; MyScript"</span>,
+    <span class="ck">"code"</span>: <span class="cs">"print('Hello from PrysmisAI')"</span>,
+    <span class="ck">"scriptType"</span>: <span class="cs">"Script"</span>
+  }
+}</code></pre></div>
+
+<h3 style="margin:1.4rem 0 0.5rem;font-size:1rem;color:#e2e8ff;">POST /plugin/ack</h3>
+<p class="section-text">Sent by plugin after applying a change, reporting success/failure back to the website.</p>
+<table class="tbl"><thead><tr><th>Field</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>pluginToken</code></td><td>Plugin auth token</td></tr>
+<tr><td><code>changeId</code></td><td>ID of the change that was applied</td></tr>
+<tr><td><code>ok</code></td><td>true if applied successfully</td></tr>
+<tr><td><code>results</code></td><td>Array of per-script result objects</td></tr>
+</tbody></table>
+
+<h3 style="margin:1.4rem 0 0.5rem;font-size:1rem;color:#e2e8ff;">POST /plugin/files</h3>
+<p class="section-text">Plugin sends current game file tree to website so the AI has context about your game structure.</p>
+
+<h3 style="margin:1.4rem 0 0.5rem;font-size:1rem;color:#e2e8ff;">GET /plugin/files</h3>
+<p class="section-text">Website retrieves the latest game file tree sent by the plugin. Requires user auth token.</p>
 </section>
 
 <div class="divider"></div>
