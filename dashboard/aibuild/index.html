@@ -93,23 +93,22 @@ Settings
 <div class="model-select-wrap">
 <select id="modelSelect" class="model-select-inline" size="1">
 <optgroup label="PrysmisAI">
-<option value="psm-v1.0">PSM-v1.0(PrysmisAI)</option>
+<option value="psm-v1.0">PSM-v1.0 (PrysmisAI)</option>
 </optgroup>
-<optgroup label="Groq — Text to Text">
+<optgroup label="Free AI">
+<option value="manus-1.6-lite">Manus 1.6 Lite</option>
 <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
 <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
 <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
 <option value="mistral-saba-24b">Mistral Saba 24B</option>
-</optgroup>
-<optgroup label="Groq — Reasoning">
-<option value="openai/gpt-oss-120b">GPT OSS 120B</option>
-<option value="openai/gpt-oss-20b">GPT OSS 20B</option>
-<option value="qwen/qwen3-32b">Qwen3 32B</option>
-</optgroup>
-<optgroup label="Groq — Speech to Text">
 <option value="whisper-large-v3">Whisper Large v3</option>
 <option value="whisper-large-v3-turbo">Whisper Large v3 Turbo</option>
 <option value="distil-whisper-large-v3-en">Distil Whisper Large v3</option>
+</optgroup>
+<optgroup label="Premium Only 🔒">
+<option value="openai/gpt-oss-120b">GPT OSS 120B</option>
+<option value="openai/gpt-oss-20b">GPT OSS 20B</option>
+<option value="qwen/qwen3-32b">Qwen3 32B</option>
 </optgroup>
 </select>
 </div>
@@ -118,7 +117,7 @@ Settings
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
 </button>
 <input type="file" id="fileInput" accept="image/*,.lua,.txt,.json,.csv,.rbxmx,.rbxl" multiple style="display:none">
-<textarea id="input" rows="1" placeholder="Ask PrysmisAI anything about Roblox scripting..."></textarea>
+<textarea id="input" rows="1" placeholder="Ask PrysmisAI anything or use '/' commands..."></textarea>
 <button id="sendBtn">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
 </button>
@@ -350,6 +349,16 @@ Settings
 <p class="settings-token-hint">Click <a href="https://console.groq.com/home" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:none;font-weight:500">here</a> to generate your Groq API key.</p>
 <p id="settingsGroqStatus" class="settings-token-hint" style="display:none;color:#10b981"></p>
 </div>
+<div class="settings-field-group" style="margin-top:20px">
+<label class="settings-label">Manus API Key</label>
+<div class="settings-token-row">
+<input type="password" id="settingsManusKeyInput" class="settings-token-input" placeholder="Enter in your Manus API key" autocomplete="off" spellcheck="false">
+<button class="settings-token-btn" id="settingsManusShowBtn">Show</button>
+<button class="settings-token-btn settings-token-btn-copy" id="settingsMenusSaveBtn">Save</button>
+</div>
+<p class="settings-token-hint">Click <a href="https://manus.im/app" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:none;font-weight:500">here</a> to generate your Manus API key.</p>
+<p id="settingsManusStatus" class="settings-token-hint" style="display:none;color:#10b981"></p>
+</div>
 </div>
 </div>
 </div>
@@ -366,6 +375,19 @@ Settings
 <button id="editMsgSave" class="btn-primary">Save</button>
 </div>
 </div>
+</div>
+<div id="slashMenu" style="display:none;position:absolute;bottom:100%;left:0;right:0;margin-bottom:6px;background:#13151f;border:1px solid #2a2d3e;border-radius:12px;overflow:hidden;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+<div style="padding:8px 14px 6px;font-size:10px;font-weight:700;color:#5a6280;letter-spacing:0.08em;">COMMANDS</div>
+<div class="slash-cmd-item" data-cmd="copygame" style="display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;transition:background 0.15s;">
+<div style="flex:1;">
+<div style="display:flex;align-items:center;gap:8px;"><span style="color:#e2e8ff;font-weight:600;font-size:13px;">/copygame</span><span style="background:#7c3aed;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.05em;">PREMIUM</span></div>
+<div style="color:#6b7280;font-size:12px;margin-top:2px;">Copy any Roblox game with a detailed prompt description</div>
+</div>
+</div>
+</div>
+<div id="manusQuotaNotif" style="display:none;position:fixed;top:18px;right:18px;z-index:9999;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px;padding:12px 18px;color:#fca5a5;font-size:13px;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,0.5);max-width:320px;">
+<span style="color:#ef4444;font-weight:700;margin-right:6px;">⚠</span>Your Manus API has ran out. Generate a new one.
+<button onclick="document.getElementById('manusQuotaNotif').style.display='none'" style="background:none;border:none;color:#6b7280;cursor:pointer;float:right;margin-left:12px;font-size:16px;line-height:1;">×</button>
 </div>
 <script src="dashboard.js"></script>
 </body>
