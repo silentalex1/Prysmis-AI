@@ -1,43 +1,14 @@
-window.addEventListener('DOMContentLoaded', () => {
-    const tl = gsap.timeline();
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-    tl.to("#baseplate", { scale: 1, duration: 1, ease: "power4.out" })
-      .to(".block", { 
-          opacity: 1, 
-          y: -10, 
-          stagger: 0.15, 
-          duration: 0.6, 
-          ease: "bounce.out" 
-      }, "-=0.3")
-      .to("#loading-text", { opacity: 0, duration: 0.4, delay: 0.6 })
-      .to("#loader", { 
-          opacity: 0,
-          duration: 0.8, 
-          ease: "power2.inOut",
-          onComplete: () => {
-              document.getElementById('loader').style.display = 'none';
-          }
-      })
-      .to("#content", { 
-          opacity: 1, 
-          duration: 1 
-      }, "-=0.4");
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: radial-gradient(circle at center, #111113 0%, #0a0a0b 100%);
+}
 
-    const faqItems = document.querySelectorAll('.faq-item');
-    
-    faqItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const answer = item.querySelector('.faq-answer');
-            const icon = item.querySelector('span');
-            const isHidden = answer.classList.contains('hidden');
+input {
+    color-scheme: dark;
+}
 
-            document.querySelectorAll('.faq-answer').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.faq-item span').forEach(el => el.innerText = '+');
-
-            if (isHidden) {
-                answer.classList.remove('hidden');
-                icon.innerText = '-';
-            }
-        });
-    });
-});
+#user-tab, #admin-tab {
+    transition: all 0.3s ease;
+}
