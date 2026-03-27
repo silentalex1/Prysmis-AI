@@ -39,6 +39,7 @@ var PREMIUM_MODELS = {};
 
 var MODEL_API_MAP = {
   'psm-v1.0': 'psm-v1.0',
+  'manus-1.6-lite': 'manus-1.6-lite',
   'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
   'mistral-saba-24b': 'mistral-saba-24b',
@@ -50,6 +51,8 @@ var MODEL_API_MAP = {
   'whisper-large-v3-turbo': 'whisper-large-v3-turbo',
   'distil-whisper-large-v3-en': 'distil-whisper-large-v3-en'
 };
+
+var PREMIUM_MODELS = new Set(['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3-32b']);
 
 fetch('/me?token=' + encodeURIComponent(storedToken))
   .then(function(r) { return r.json(); })
@@ -570,7 +573,11 @@ function doSend(overrideText, isContinue) {
   }).then(function(r) {
     if (!r.ok) {
       return r.json().then(function(errData) {
-        throw new Error(errData.error || 'API error (HTTP ' + r.status + ')');
+        if (errData.error === 'manus_quota_exceeded') {
+          var notif = document.getElementById('manusQuotaNotif');
+          if (notif) notif.style.display = 'block';
+        }
+        throw new Error(errData.message || errData.error || 'API error (HTTP ' + r.status + ')');
       });
     }
     return r.json();
@@ -1311,6 +1318,7 @@ function switchSettingsTab(tab) {
     if (settingsNavAI) settingsNavAI.classList.add('active');
     loadApiKeys();
     loadGroqKey();
+    loadManusKey();
   }
 }
 
@@ -1474,6 +1482,155 @@ if (settingsGroqSaveBtn) {
       settingsGroqSaveBtn.textContent = 'Save';
       settingsGroqSaveBtn.disabled = false;
     });
+  });
+}
+
+var settingsManusKeyInput = document.getElementById('settingsManusKeyInput');
+var settingsManusShowBtn = document.getElementById('settingsManusShowBtn');
+var settingsMenusSaveBtn = document.getElementById('settingsMenusSaveBtn');
+var settingsManusStatus = document.getElementById('settingsManusStatus');
+var manusKeyVisible = false;
+
+function loadManusKey() {
+  if (!settingsManusKeyInput) return;
+  fetch('/api/settings/manus-key', { headers: { 'Authorization': 'Bearer ' + storedToken } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.hasKey) {
+        settingsManusKeyInput.placeholder = data.maskedKey;
+        settingsManusKeyInput.value = '';
+      } else {
+        settingsManusKeyInput.placeholder = 'Enter in your Manus API key';
+      }
+    })
+    .catch(function() {});
+}
+
+if (settingsManusShowBtn) {
+  settingsManusShowBtn.addEventListener('click', function() {
+    manusKeyVisible = !manusKeyVisible;
+    settingsManusKeyInput.type = manusKeyVisible ? 'text' : 'password';
+    settingsManusShowBtn.textContent = manusKeyVisible ? 'Hide' : 'Show';
+  });
+}
+
+if (settingsMenusSaveBtn) {
+  settingsMenusSaveBtn.addEventListener('click', function() {
+    var key = settingsManusKeyInput.value.trim();
+    if (!key) return;
+    settingsMenusSaveBtn.textContent = 'Saving...';
+    settingsMenusSaveBtn.disabled = true;
+    fetch('/api/settings/manus-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + storedToken },
+      body: JSON.stringify({ manusApiKey: key })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      settingsMenusSaveBtn.textContent = 'Save';
+      settingsMenusSaveBtn.disabled = false;
+      if (data.success) {
+        settingsManusKeyInput.value = '';
+        settingsManusStatus.textContent = 'Manus API key saved.';
+        settingsManusStatus.style.color = '#10b981';
+        settingsManusStatus.style.display = 'block';
+        setTimeout(function() { settingsManusStatus.style.display = 'none'; }, 3000);
+        loadManusKey();
+      } else {
+        settingsManusStatus.textContent = data.error || 'Failed to save key.';
+        settingsManusStatus.style.color = '#f43f5e';
+        settingsManusStatus.style.display = 'block';
+        setTimeout(function() { settingsManusStatus.style.display = 'none'; }, 3000);
+      }
+    })
+    .catch(function() {
+      settingsMenusSaveBtn.textContent = 'Save';
+      settingsMenusSaveBtn.disabled = false;
+    });
+  });
+}
+
+var inputEl2 = document.getElementById('input');
+var slashMenu = document.getElementById('slashMenu');
+
+if (inputEl2 && slashMenu) {
+  inputEl2.addEventListener('input', function() {
+    var val = inputEl2.value;
+    if (val === '/') {
+      slashMenu.style.display = 'block';
+    } else {
+      slashMenu.style.display = 'none';
+    }
+  });
+  inputEl2.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') slashMenu.style.display = 'none';
+  });
+  document.addEventListener('click', function(e) {
+    if (!slashMenu.contains(e.target) && e.target !== inputEl2) slashMenu.style.display = 'none';
+  });
+  var slashItems = slashMenu.querySelectorAll('.slash-cmd-item');
+  slashItems.forEach(function(item) {
+    item.addEventListener('mouseenter', function() { item.style.background = '#1a1d2e'; });
+    item.addEventListener('mouseleave', function() { item.style.background = ''; });
+    item.addEventListener('click', function() {
+      var cmd = item.getAttribute('data-cmd');
+      slashMenu.style.display = 'none';
+      if (cmd === 'copygame') {
+        if (!userHasPremium) {
+          if (premiumModal) premiumModal.style.display = 'flex';
+          inputEl2.value = '';
+          return;
+        }
+        inputEl2.value = '/copygame ';
+        inputEl2.focus();
+      }
+    });
+  });
+}
+
+if (inputEl2) {
+  var origKeydown = inputEl2.onkeydown;
+  inputEl2.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey && slashMenu && slashMenu.style.display === 'block') {
+      e.preventDefault();
+      slashMenu.style.display = 'none';
+      return;
+    }
+  });
+}
+
+var origDoSend = doSend;
+doSend = function(overrideText, isContinue) {
+  var txt = overrideText || (document.getElementById('input') ? document.getElementById('input').value : '');
+  if (txt && txt.trim().startsWith('/copygame')) {
+    if (!userHasPremium) {
+      if (premiumModal) premiumModal.style.display = 'flex';
+      if (document.getElementById('input')) document.getElementById('input').value = '';
+      return;
+    }
+    var gameName = txt.trim().replace(/^\/copygame\s*/i, '').trim();
+    if (!gameName) {
+      if (document.getElementById('input')) document.getElementById('input').value = '';
+      addMessage('Please provide a game description after /copygame. Example: /copygame an obby with 30 stages and checkpoints', false, null);
+      return;
+    }
+    var copyPrompt = 'COPY GAME REQUEST: Build a complete, professional Roblox game that replicates or is heavily inspired by: "' + gameName + '". Create the full game from scratch with ALL systems, scripts, UI, mechanics, and features a game like this would have. Split every script correctly by service. Provide 100% complete working Lua code for every single component with no truncation.';
+    if (document.getElementById('input')) document.getElementById('input').value = '';
+    origDoSend.call(this, copyPrompt, false);
+    return;
+  }
+  origDoSend.apply(this, arguments);
+};
+
+if (document.getElementById('sendBtn')) {
+  document.getElementById('sendBtn').removeEventListener('click', origDoSend);
+  document.getElementById('sendBtn').addEventListener('click', function() { doSend(); });
+}
+
+if (inputEl2) {
+  inputEl2.removeEventListener('keydown', function() {});
+  inputEl2.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
   });
 }
 
@@ -1705,6 +1862,12 @@ connectBtn.addEventListener('click', function() {
 });
 
 modelSelect.addEventListener('change', function() {
+  var selected = modelSelect.value;
+  if (PREMIUM_MODELS.has(selected) && !userHasPremium) {
+    if (premiumModal) premiumModal.style.display = 'flex';
+    modelSelect.value = 'psm-v1.0';
+    return;
+  }
   if (pluginConnected && storedToken) {
     fetch('/plugin/update-model?token=' + encodeURIComponent(storedToken), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: getModelValue() })
