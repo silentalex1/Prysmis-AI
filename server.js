@@ -829,6 +829,31 @@ const server = http.createServer(async (req, res) => {
         generationsLeft: Math.max(0, 3 - recentGenerations.length)
       });
     }
+
+    if (req.method === "GET" && pt === "/announcements") {
+      return sendJson(res, 200, db.announcements || []);
+    }
+
+    if (req.method === "POST" && pt === "/announcements") {
+      const td = getTokenData(getReqToken(req, url));
+      if (!td || !td.isAdmin) return sendJson(res, 403, { error: "Admin required" });
+      let body;
+      try { body = await readBody(req); } catch (_) { return sendJson(res, 400, { error: "Invalid body" }); }
+      const ann = { id: crypto.randomBytes(8).toString("hex"), title: body.title, description: body.description, ts: Date.now() };
+      if (!db.announcements) db.announcements = [];
+      db.announcements.unshift(ann);
+      saveDb();
+      return sendJson(res, 200, { success: true, announcement: ann });
+    }
+
+    if (req.method === "POST" && pt === "/logout") {
+      const token = getReqToken(req, url);
+      if (token && db.tokens[token]) {
+        delete db.tokens[token];
+        saveDb();
+      }
+      return sendJson(res, 200, { success: true });
+    }
     // If no API route matches, send 404 for API paths
     sendJson(res, 404, { error: "Not found" });
     return;
