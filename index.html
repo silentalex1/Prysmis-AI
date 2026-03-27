@@ -3,395 +3,162 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrysmisAI Builder</title>
+<title>PrysmisAI - Roblox AI Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="animated-bg"></div>
-<header>
-<div class="brand">
-<div class="logo">PrysmisAI</div>
-<span class="badge">BETA</span>
-</div>
-<div class="header-actions">
-<nav class="nav-links">
-<a href="https://prysmisai.wtf/APIDoc/" class="nav-item" target="_blank" rel="noopener">API Doc</a>
-<a href="#" class="nav-item donate-link">Donate to me?</a>
-<a href="https://create.roblox.com/store/asset/135923299325928/PrysmisAI?viewFromStudio=true&keyword=&searchId=57302a6c-3c8a-4f14-8b62-2059d5d85f1e" target="_blank" rel="noopener" class="nav-item">Our Plugin</a>
+<header class="site-header">
+<div class="header-inner">
+<div class="site-logo">PrysmisAI <span class="site-badge">BETA</span></div>
+<nav class="site-nav">
+<a href="#features" class="nav-link">Features</a>
+<a href="#faq" class="nav-link">FAQ</a>
+<button onclick="location='/accountauth/index.html'" class="nav-cta">Start Building</button>
 </nav>
-<button id="generateTokenBtn">Generate Token</button>
-<button id="connectBtn">Connect Plugin</button>
-<button id="logoutBtn" class="logout-btn">Logout</button>
 </div>
 </header>
-<div class="app-container">
-<aside class="chat-sidebar">
-<div class="sidebar-header">
-<button id="newChatBtn">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-New Chat
-</button>
+<section class="hero">
+<div class="hero-inner">
+<div class="hero-tag">AI-Powered Roblox Development</div>
+<h1 class="hero-title">Build Roblox games<br>with AI assistance</h1>
+<p class="hero-sub">Connect PrysmisAI to Roblox Studio and let AI write, edit, and push code directly to your game in real time.</p>
+<div class="hero-actions">
+<button onclick="location='/accountauth/index.html'" class="btn-primary-lg">Start Building Now</button>
+<a href="#features" class="btn-ghost">See what it does</a>
 </div>
-<div id="chatHistory" class="history-list"></div>
-<div class="sidebar-footer">
-<button id="checkpointRevertBtn" class="checkpoint-revert-btn" style="display:none">
-<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.5"></path></svg>
-Reverse to Checkpoint
-</button>
-<button id="viewStudioBtn" class="studio-files-btn" style="display:none">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-View Studio Files
-</button>
-<button id="settingsBtn" class="settings-btn">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-Settings
-</button>
+<div class="stats-row">
+<div class="stat-item">
+<span class="stat-num" id="statUsers">-</span>
+<span class="stat-label">Builders</span>
 </div>
-</aside>
-<main class="content-area">
-<div class="top-nav-container">
-<nav class="navigation-tabs">
-<button class="tab-link active" data-tab="chat">AI Chat</button>
-<button class="tab-link" data-tab="projects">Community Projects</button>
-<button class="tab-link" data-tab="commchat">Community Chat</button>
-<button class="tab-link" data-tab="announcements">Announcements</button>
-</nav>
-<div class="welcome-tag">Welcome back, <span class="uname" id="userName">User</span></div>
+<div class="stat-div"></div>
+<div class="stat-item">
+<span class="stat-num" id="statActive">-</span>
+<span class="stat-label">Active Now</span>
 </div>
-<section id="chatTab" class="viewport">
-<div id="chatArea" class="messages-container">
-<div id="presets" class="presets-wrap">
-<h1 class="intro">What are we building today?</h1>
-<p class="intro-sub">Describe your idea or pick a starting point below</p>
-<div class="preset-grid">
-<div class="preset-card" onclick="usePreset(0)">
-<span class="preset-label">Create Map</span>
-<p>Generate custom Roblox environments with terrain and props</p>
+<div class="stat-div"></div>
+<div class="stat-item">
+<span class="stat-num" id="statProjects">-</span>
+<span class="stat-label">Games Built</span>
 </div>
-<div class="preset-card" onclick="usePreset(1)">
-<span class="preset-label">Animate Character</span>
-<p>Advanced movement rigs and animation scripts</p>
-</div>
-<div class="preset-card" onclick="usePreset(2)">
-<span class="preset-label">Loading Screen</span>
-<p>Build a polished UI startup flow for your game</p>
-</div>
-</div>
-</div>
-</div>
-<div class="input-container" id="inputContainer">
-<div class="multi-image-preview" id="multiImagePreview"></div>
-<div class="file-attach-preview" id="fileAttachPreview" style="display:none">
-<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-<span id="fileAttachName"></span>
-<button id="fileAttachRemove">&#215;</button>
-</div>
-<div class="input-row">
-<div id="manusKeyNotification" class="manus-notification" style="display:none">Manus API key has ended generate a new one.</div>
-<div class="model-select-wrap">
-<div id="manusKeyInputWrap" class="manus-key-wrap" style="display:none">
-<input type="password" id="manusApiKey" placeholder="Enter Manus API Key" class="manus-key-input">
-<button id="saveManusKeyBtn" class="manus-key-save">Save</button>
-</div>
-<select id="modelSelect" class="model-select-inline" size="1">
-<optgroup label="PrysmisAI">
-<option value="psm-v1.0">PSM-v1.0(PrysmisAI)</option>
-</optgroup>
-<optgroup label="Free AI Models">
-<option value="manus-1.6-lite">Manus 1.6 Lite</option>
-</optgroup>
-<optgroup label="Groq — Text to Text">
-<option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
-<option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-<option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
-<option value="mistral-saba-24b">Mistral Saba 24B</option>
-</optgroup>
-<optgroup label="Groq — Reasoning (Premium)">
-<option value="openai/gpt-oss-120b" class="premium-model-opt" data-premium="true">🔒 GPT OSS 120B</option>
-<option value="openai/gpt-oss-20b" class="premium-model-opt" data-premium="true">🔒 GPT OSS 20B</option>
-<option value="qwen/qwen3-32b" class="premium-model-opt" data-premium="true">🔒 Qwen3 32B</option>
-</optgroup>
-<optgroup label="Groq — Speech to Text">
-<option value="whisper-large-v3">Whisper Large v3</option>
-<option value="whisper-large-v3-turbo">Whisper Large v3 Turbo</option>
-<option value="distil-whisper-large-v3-en">Distil Whisper Large v3</option>
-</optgroup>
-</select>
-</div>
-<div class="input-wrapper">
-<button id="attachBtn" class="attach-btn" title="Attach file or image">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-</button>
-<input type="file" id="fileInput" accept="image/*,.lua,.txt,.json,.csv,.rbxmx,.rbxl" multiple style="display:none">
-<div id="slashCommandMenu" class="slash-cmd-menu" style="display:none">
-  <div class="slash-cmd-title">Commands</div>
-  <div class="slash-cmd-item" id="slashCopyGame" data-premium="true">
-    <span class="slash-cmd-icon">🎮</span>
-    <div class="slash-cmd-info">
-      <span class="slash-cmd-name">/copygame <span class="slash-cmd-premium-badge">Premium</span></span>
-      <span class="slash-cmd-desc">Copy &amp; remake any Roblox game from a description</span>
-    </div>
-  </div>
-</div>
-<textarea id="input" rows="1" placeholder="Ask PrysmisAI to create anything.. Or use '/' command."></textarea>
-<button id="sendBtn">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-</button>
-</div>
-</div>
-<div class="drop-overlay" id="dropOverlay">Drop files here</div>
-</div>
-<div id="premiumModal" class="premium-modal-overlay" style="display:none">
-<div class="premium-modal-card">
-<button class="premium-modal-close" id="premiumModalClose">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-</button>
-<div class="premium-modal-icon">
-<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-</div>
-<h2 class="premium-modal-title">Premium Required</h2>
-<p class="premium-modal-sub">This feature is only available to premium members.</p>
-<div class="premium-features-list">
-<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Claude Opus 4.5 &amp; Gemini 3.2 Pro access</span></div>
-<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Multi-image analysis for your games</span></div>
-<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Checkpoint save &amp; revert system</span></div>
-<div class="premium-feature-item"><span class="premium-feature-dot"></span><span>Advanced multi-task AI handling</span></div>
-</div>
-<a href="#" class="premium-buy-btn">Buy Premium</a>
 </div>
 </div>
 </section>
-<section id="projectsTab" class="viewport" style="display:none">
-<div class="viewport-scroll">
-<div class="projects-header">
-<h2>Showcase</h2>
-<button id="addGameBtn" onclick="openModal()">+ Post Your Game</button>
+<section class="content-section" id="features">
+<div class="section-inner">
+<div class="section-label">Premium Features</div>
+<h2 class="section-title">Unlock more with Premium</h2>
+<p class="section-sub">The free plan gets you all the core AI models. Premium unlocks advanced tools that push what's possible.</p>
+<div class="features-grid">
+<div class="feature-card feature-card-soon">
+<div class="feature-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
 </div>
-<div class="projects-grid" id="projectsList"></div>
+<div class="feature-content">
+<div class="feature-name">Image Analysis</div>
+<p class="feature-desc">Upload screenshots of your game and let AI understand what it's looking at to give better suggestions.</p>
+</div>
+<span class="feature-tag">Premium</span>
+</div>
+<div class="feature-card feature-card-soon">
+<div class="feature-icon feature-icon-purple">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+</div>
+<div class="feature-content">
+<div class="feature-name">Image Generation</div>
+<p class="feature-desc">Generate custom game assets, textures, and UI artwork directly from a text description.</p>
+</div>
+<span class="feature-tag">Premium</span>
+</div>
+<div class="feature-card feature-card-soon">
+<div class="feature-icon feature-icon-green">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+</div>
+<div class="feature-content">
+<div class="feature-name">Version Control</div>
+<p class="feature-desc">Save, restore, and compare snapshots of your scripts. Never lose a working version again.</p>
+</div>
+<span class="feature-tag">Premium</span>
+</div>
+<div class="feature-card feature-card-more">
+<div class="feature-icon feature-icon-dim">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+</div>
+<div class="feature-content">
+<div class="feature-name">More Soon</div>
+<p class="feature-desc">We're always building. More premium features on the way.</p>
+</div>
+<span class="feature-tag feature-tag-dim">Coming</span>
+</div>
+</div>
 </div>
 </section>
-<section id="commchatTab" class="viewport" style="display:none">
-<div class="commchat-container">
-<div class="commchat-topbar" id="commchatTopbar">
-<button id="clearChatBtn" class="clear-chat-btn" style="display:none">Clear Chat</button>
+<section class="content-section alt-section" id="faq">
+<div class="section-inner">
+<div class="faq-layout">
+<div class="faq-left">
+<div class="section-label">FAQ</div>
+<h2 class="section-title">Common questions</h2>
+<p class="section-sub">Still have questions? Join our <a href="https://discord.gg/f7c8XJnUNj" target="_blank" rel="noopener noreferrer" class="discord-link">server</a> and open a ticket.</p>
 </div>
-<div id="commchatMessages" class="commchat-messages"></div>
-<div class="commchat-reply-bar" id="commchatReplyBar" style="display:none">
-<div class="commchat-reply-preview" id="commchatReplyPreview"></div>
-<button class="commchat-reply-cancel" id="commchatReplyCancel">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+<div class="faq-right">
+<div class="faq-item">
+<button class="faq-q" onclick="toggleFaq(this)">
+<span>Is this very hard to setup?</span>
+<svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
 </button>
+<div class="faq-a">No, it is not hard to setup at all. If you don't know what you're doing you can always contact support from our Discord <a href="https://discord.gg/f7c8XJnUNj" target="_blank" rel="noopener noreferrer" class="discord-link">server</a>.</div>
 </div>
-<div class="commchat-input-row">
-<textarea id="commchatInput" class="commchat-input" rows="1" placeholder="Send a message to the community..."></textarea>
-<button id="commchatSend" class="commchat-send-btn">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+<div class="faq-item">
+<button class="faq-q" onclick="toggleFaq(this)">
+<span>Are all models free?</span>
+<svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
 </button>
+<div class="faq-a">No, not all models are free. The ones that are unlocked are free to use. The ones that are locked are subscription based.</div>
+</div>
+<div class="faq-item">
+<button class="faq-q" onclick="toggleFaq(this)">
+<span>Is the subscription an expensive monthly payment?</span>
+<svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+</button>
+<div class="faq-a">No, it is a lifetime payment. One payment unlocks all AI models and premium features forever.</div>
+</div>
+<div class="faq-item">
+<button class="faq-q" onclick="toggleFaq(this)">
+<span>I still don't know what to do</span>
+<svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+</button>
+<div class="faq-a">Make a support ticket in the <a href="https://discord.gg/f7c8XJnUNj" target="_blank" rel="noopener noreferrer" class="discord-link">server</a> and we'll help you out.</div>
+</div>
+<div class="faq-item">
+<button class="faq-q" onclick="toggleFaq(this)">
+<span>Is support online 24/7?</span>
+<svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+</button>
+<div class="faq-a">We'd like to say yes, but we are humans. If a staff member isn't online please wait for one to come on.</div>
+</div>
+</div>
 </div>
 </div>
 </section>
-<section id="announcementsTab" class="viewport" style="display:none">
-<div class="viewport-scroll">
-<div class="ann-header">
-<h2>Announcements</h2>
-<button id="postAnnBtn" class="post-ann-btn" style="display:none">+ Post Announcement</button>
+<footer class="site-footer">
+<div class="footer-inner">
+<div class="footer-logo">PrysmisAI</div>
+<p class="footer-copy">Building the future of Roblox development.</p>
 </div>
-<div id="annList" class="ann-list"></div>
-</div>
-</section>
-</main>
-<div id="annSidebar" class="ann-sidebar" style="display:none">
-<div class="ann-sidebar-inner">
-<button class="ann-sidebar-close" id="annSidebarClose">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-</button>
-<div class="ann-sidebar-tag">Announcement</div>
-<h2 id="annSidebarTitle" class="ann-sidebar-title"></h2>
-<div id="annSidebarDesc" class="ann-sidebar-desc"></div>
-<div id="annSidebarDate" class="ann-sidebar-date"></div>
-</div>
-</div>
-<div id="postAnnModal" class="modal" style="display:none">
-<div class="modal-card" style="max-width:500px">
-<div class="modal-header"><h2>Post Announcement</h2></div>
-<div class="modal-divider"></div>
-<div class="modal-body">
-<div class="input-group"><label>Title</label><input type="text" id="annTitleInput" placeholder="Announcement title..." maxlength="80"></div>
-<div class="input-group"><label>Description</label><textarea id="annDescInput" style="min-height:100px;resize:vertical" placeholder="Announcement description..."></textarea></div>
-<div id="annPostErr" class="err-msg"></div>
-</div>
-<div class="modal-footer">
-<button onclick="closePostAnn()" class="btn-secondary">Cancel</button>
-<button id="annSubmitBtn" class="btn-primary">Post</button>
-</div>
-</div>
-</div>
-<aside class="sidebar-right" id="explorer">
-<div class="sidebar-toggle" onclick="toggleExplorer()">Explorer</div>
-<div class="sidebar-inner">
-<div class="explorer-status-bar">
-<span class="dot red" id="statusDot"></span>
-<span id="statusText">Disconnected</span>
-</div>
-<div id="studioFilesPanel" class="studio-files-panel" style="display:none">
-<div class="studio-files-header">Studio Files</div>
-<div id="studioFilesList" class="studio-files-list"></div>
-</div>
-<div id="explorerDisconnected" class="explorer-disconnected">
-<div class="explorer-block"></div>
-</div>
-</div>
-</aside>
-</div>
-<div id="addGameModal" class="modal" style="display:none">
-<div class="modal-card">
-<div class="modal-header">
-<h2>Share Your Project</h2>
-<p>Post your game so the community can check it out</p>
-</div>
-<div class="modal-divider"></div>
-<div class="modal-body">
-<div class="input-group"><label>Project Title</label><input type="text" id="gameTitle" placeholder="My awesome game..."></div>
-<div class="input-group"><label>Roblox Link</label><input type="text" id="gameLink" placeholder="https://roblox.com/games/..."></div>
-<div class="input-group"><label>Description</label><textarea id="gameAbout" placeholder="Tell the community what your game is about..."></textarea></div>
-</div>
-<div class="modal-footer">
-<button onclick="closeModal()" class="btn-secondary">Cancel</button>
-<button id="postGameBtn" class="btn-primary">Publish Project</button>
-</div>
-</div>
-</div>
-<div id="tokenNotif" class="token-notif" style="display:none">
-<div class="token-notif-inner">
-<div class="token-notif-top">
-<span class="token-notif-label">Token created.</span>
-<button class="token-notif-close" id="tokenNotifClose">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-</button>
-</div>
-<div class="token-notif-field">
-<input type="text" id="tokenNotifInput" readonly>
-<button class="token-notif-hide" id="tokenNotifHide">Hide</button>
-<button class="token-notif-copy" id="tokenNotifCopy">Copy Token</button>
-</div>
-</div>
-</div>
-<div id="checkpointToast" class="checkpoint-toast" style="display:none">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-<span id="checkpointToastText">Checkpoint saved</span>
-</div>
-<div id="settingsModal" class="settings-overlay" style="display:none">
-<div class="settings-panel">
-<div class="settings-sidebar">
-<button class="settings-nav-btn active" id="settingsNavAccount" onclick="switchSettingsTab('account')">User Account</button>
-<button class="settings-nav-btn" id="settingsNavStudio" onclick="switchSettingsTab('studio')">Studio Token</button>
-<button class="settings-nav-btn" id="settingsNavAI" onclick="switchSettingsTab('ai')">AI Settings</button>
-</div>
-<div class="settings-content">
-<div class="settings-page" id="settingsPageAccount">
-<div class="settings-page-header">
-<h2>User Account</h2>
-<button class="settings-close" id="settingsClose">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-</button>
-</div>
-<div class="settings-field-group">
-<label class="settings-label">Username</label>
-<div class="settings-username-row">
-<input type="text" id="settingsUsernameInput" class="settings-token-input" placeholder="Enter new username" autocomplete="off" spellcheck="false">
-</div>
-<div id="settingsUsernameErr" class="settings-username-err"></div>
-</div>
-<div class="settings-field-group">
-<label class="settings-label">Account Auth Token</label>
-<div class="settings-token-row">
-<input type="password" id="settingsTokenInput" class="settings-token-input" readonly placeholder="No token generated yet">
-<button class="settings-token-btn" id="settingsShowToken">Show Token</button>
-<button class="settings-token-btn settings-token-btn-copy" id="settingsCopyToken">Copy Token</button>
-</div>
-<p class="settings-token-hint">You can generate a new auth token after 24 hours. Do NOT share your account auth token to anyone.</p>
-</div>
-<div class="settings-save-row">
-<button class="settings-save-btn" id="settingsSaveBtn">Save Settings</button>
-</div>
-</div>
-<div class="settings-page" id="settingsPageStudio" style="display:none">
-<div class="settings-page-header">
-<h2>Studio Token</h2>
-<button class="settings-close" id="settingsClose2">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-</button>
-</div>
-<div class="settings-field-group">
-<label class="settings-label">Plugin Connection Token</label>
-<div class="settings-token-row">
-<input type="password" id="settingsStudioInput" class="settings-token-input" readonly placeholder="No token generated yet">
-<button class="settings-token-btn" id="settingsShowStudio">Show Token</button>
-<button class="settings-token-btn settings-token-btn-copy" id="settingsCopyStudio">Copy Token</button>
-</div>
-<p class="settings-token-hint">Use this token to connect Roblox Studio to your PrysmisAI account. Paste it into the plugin token field in Roblox Studio.</p>
-</div>
-</div>
-<div class="settings-page" id="settingsPageAI" style="display:none">
-<div class="settings-page-header">
-<h2>AI Settings</h2>
-<button class="settings-close" id="settingsCloseAI">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-</button>
-</div>
-<div class="settings-field-group">
-<label class="settings-label">PrysmisAI API Key</label>
-<div class="settings-token-row">
-<button class="settings-token-btn" id="settingsGenerateApiBtn">Generate API key</button>
-</div>
-<p class="settings-token-hint">After 3 generation of PrysmisAI API key you must wait 24 hours.</p>
-<div id="settingsApiKeysStack"></div>
-<p class="settings-token-hint" id="settingsApiCountHint" style="display:none">Your API key: <span id="settingsApiCount">3</span> generations remaining today</p>
-<div id="settingsApiResult" class="settings-api-result" style="display:none">
-<div class="settings-api-key-container">
-<input type="password" id="settingsApiKeyDisplay" class="settings-token-input" readonly>
-<button class="settings-token-btn" id="settingsShowApiKey">Unhide</button>
-<button class="settings-token-btn settings-token-btn-copy" id="settingsCopyApiKey">Copy</button>
-</div>
-</div>
-</div>
-<div class="settings-field-group" style="margin-top:20px">
-<label class="settings-label">Groq API Key</label>
-<div class="settings-token-row">
-<input type="password" id="settingsGroqKeyInput" class="settings-token-input" placeholder="Enter in your Groq API key" autocomplete="off" spellcheck="false">
-<button class="settings-token-btn" id="settingsGroqShowBtn">Show</button>
-<button class="settings-token-btn settings-token-btn-copy" id="settingsGroqSaveBtn">Save</button>
-</div>
-<p class="settings-token-hint">Click <a href="https://console.groq.com/home" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:none;font-weight:500">here</a> to generate your Groq API key.</p>
-<p id="settingsGroqStatus" class="settings-token-hint" style="display:none;color:#10b981"></p>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div id="editMsgModal" class="modal" style="display:none">
-<div class="modal-card" style="max-width:480px">
-<div class="modal-header"><h2>Edit Message</h2></div>
-<div class="modal-divider"></div>
-<div class="modal-body">
-<div class="input-group"><textarea id="editMsgText" style="min-height:80px;resize:vertical;"></textarea></div>
-</div>
-<div class="modal-footer">
-<button onclick="closeEditModal()" class="btn-secondary">Cancel</button>
-<button id="editMsgSave" class="btn-primary">Save</button>
-</div>
-</div>
-</div>
-<script src="dashboard.js"></script>
-<!-- Groq Quota Exhausted Notification Banner -->
-<div id="groqQuotaBanner" class="groq-quota-banner" style="display:none">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  <span>Your Groq API key has ran out — generate a new one.</span>
-  <button class="groq-quota-banner-action" id="groqQuotaGoSettings">Update Key</button>
-  <button class="groq-quota-banner-dismiss" id="groqQuotaDismiss">&#215;</button>
-</div>
+</footer>
+<script src="script.js"></script>
+<script>
+function toggleFaq(btn) {
+  var item = btn.parentElement;
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!isOpen) item.classList.add('open');
+}
+</script>
 </body>
 </html>
+
