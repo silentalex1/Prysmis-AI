@@ -90,18 +90,10 @@ Settings
 <button id="fileAttachRemove">&#215;</button>
 </div>
 <div class="input-row">
-<div id="manusKeyNotification" class="manus-notification" style="display:none">Manus API key has ended generate a new one.</div>
 <div class="model-select-wrap">
-<div id="manusKeyInputWrap" class="manus-key-wrap" style="display:none">
-<input type="password" id="manusApiKey" placeholder="Enter Manus API Key" class="manus-key-input">
-<button id="saveManusKeyBtn" class="manus-key-save">Save</button>
-</div>
 <select id="modelSelect" class="model-select-inline" size="1">
 <optgroup label="PrysmisAI">
 <option value="psm-v1.0">PSM-v1.0(PrysmisAI)</option>
-</optgroup>
-<optgroup label="Free AI Models">
-<option value="manus-1.6-lite">Manus 1.6 Lite</option>
 </optgroup>
 <optgroup label="Groq — Text to Text">
 <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
@@ -109,10 +101,10 @@ Settings
 <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
 <option value="mistral-saba-24b">Mistral Saba 24B</option>
 </optgroup>
-<optgroup label="Groq — Reasoning (Premium)">
-<option value="openai/gpt-oss-120b" class="premium-model-opt" data-premium="true">🔒 GPT OSS 120B</option>
-<option value="openai/gpt-oss-20b" class="premium-model-opt" data-premium="true">🔒 GPT OSS 20B</option>
-<option value="qwen/qwen3-32b" class="premium-model-opt" data-premium="true">🔒 Qwen3 32B</option>
+<optgroup label="Groq — Reasoning">
+<option value="openai/gpt-oss-120b">GPT OSS 120B</option>
+<option value="openai/gpt-oss-20b">GPT OSS 20B</option>
+<option value="qwen/qwen3-32b">Qwen3 32B</option>
 </optgroup>
 <optgroup label="Groq — Speech to Text">
 <option value="whisper-large-v3">Whisper Large v3</option>
@@ -126,17 +118,7 @@ Settings
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
 </button>
 <input type="file" id="fileInput" accept="image/*,.lua,.txt,.json,.csv,.rbxmx,.rbxl" multiple style="display:none">
-<div id="slashCommandMenu" class="slash-cmd-menu" style="display:none">
-  <div class="slash-cmd-title">Commands</div>
-  <div class="slash-cmd-item" id="slashCopyGame" data-premium="true">
-    <span class="slash-cmd-icon">🎮</span>
-    <div class="slash-cmd-info">
-      <span class="slash-cmd-name">/copygame <span class="slash-cmd-premium-badge">Premium</span></span>
-      <span class="slash-cmd-desc">Copy &amp; remake any Roblox game from a description</span>
-    </div>
-  </div>
-</div>
-<textarea id="input" rows="1" placeholder="Ask PrysmisAI to create anything.. Or use '/' command."></textarea>
+<textarea id="input" rows="1" placeholder="Ask PrysmisAI anything about Roblox scripting..."></textarea>
 <button id="sendBtn">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
 </button>
@@ -386,12 +368,5 @@ Settings
 </div>
 </div>
 <script src="dashboard.js"></script>
-<!-- Groq Quota Exhausted Notification Banner -->
-<div id="groqQuotaBanner" class="groq-quota-banner" style="display:none">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  <span>Your Groq API key has ran out — generate a new one.</span>
-  <button class="groq-quota-banner-action" id="groqQuotaGoSettings">Update Key</button>
-  <button class="groq-quota-banner-dismiss" id="groqQuotaDismiss">&#215;</button>
-</div>
 </body>
 </html>
