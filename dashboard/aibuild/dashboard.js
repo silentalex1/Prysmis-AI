@@ -422,4 +422,3 @@ if (localStorage.getItem("manus_api_key")) {
   manusApiKeyInput.value = localStorage.getItem("manus_api_key");
 }
 manusKeyInputWrap.style.display = modelSelect.value === "manus-1.6-lite" ? "block" : "none";
-
