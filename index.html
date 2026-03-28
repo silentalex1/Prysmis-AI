@@ -7,95 +7,112 @@
     <title>PrysmisAI - beta</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-[#0a0a0b] text-white overflow-x-hidden">
 
-    <div id="loader" class="fixed inset-0 z-[100] bg-[#0a0a0b] flex flex-col items-center justify-center">
-        <div class="relative w-64 h-64">
-            <div id="baseplate" class="absolute bottom-0 w-full h-4 bg-gray-600 rounded-sm scale-0 border-b-4 border-gray-700"></div>
-            <div class="block absolute bg-blue-500 w-12 h-12 bottom-4 left-10 opacity-0 shadow-lg"></div>
-            <div class="block absolute bg-blue-400 w-8 h-20 bottom-4 right-12 opacity-0 shadow-lg"></div>
-            <div class="block absolute bg-blue-600 w-16 h-8 bottom-4 left-20 opacity-0 shadow-lg"></div>
+    <div id="loader">
+        <div class="loader-inner" id="loader-inner">
+            <div class="loader-prism">
+                <div class="prism-ring prism-ring-1"></div>
+                <div class="prism-ring prism-ring-2"></div>
+                <div class="prism-ring prism-ring-3"></div>
+                <div class="prism-dot"></div>
+            </div>
+            <div class="loader-wordmark">Prysmis<b>AI</b></div>
+            <div class="loader-bar-wrap" id="loader-bar-wrap">
+                <div class="loader-bar" id="loader-bar"></div>
+            </div>
+            <div class="loader-status" id="loader-status">Initializing Studio Environment...</div>
         </div>
-        <p id="loading-text" class="mt-8 text-gray-400 font-mono tracking-widest uppercase animate-pulse">Initializing Studio Environment...</p>
     </div>
 
     <main id="content" class="opacity-0">
-        
+
         <section class="min-h-screen flex flex-col items-center justify-center text-center px-6">
-            <h1 class="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent mb-6 leading-tight">
+            <div class="mb-5 text-xs font-semibold tracking-[0.14em] uppercase" style="color:#3b7ef8; opacity:0.8;">Roblox AI Studio</div>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight tracking-tight" style="font-family:'Syne',sans-serif; letter-spacing:-0.02em;">
                 Your AI that writes, edits, and builds everything for you.
             </h1>
-            <p class="text-xl text-gray-400 max-w-2xl mb-4">
+            <p class="text-xl text-gray-400 max-w-2xl mb-3">
                 Create, edit, and generate anything instantly.
             </p>
-            <p class="text-lg text-gray-500 max-w-2xl mb-12">
+            <p class="text-base text-gray-500 max-w-2xl mb-12">
                 Turn ideas into full experiences in seconds.
             </p>
-            
-            <div class="flex gap-12 text-sm font-bold text-blue-500/80 bg-blue-500/5 px-8 py-4 rounded-full border border-blue-500/10">
-                <div>Users: <span id="user-count">0</span></div>
-                <div>Completed Projects: <span id="project-count">0</span></div>
+
+            <div class="flex gap-10 text-sm font-semibold px-8 py-4 rounded-full border" style="color:rgba(59,126,248,0.75); background:rgba(59,126,248,0.05); border-color:rgba(59,126,248,0.1);">
+                <div class="text-gray-400">Users: <span id="user-count" class="text-white font-bold">0</span></div>
+                <div class="text-gray-400">Completed Projects: <span id="project-count" class="text-white font-bold">0</span></div>
             </div>
         </section>
 
         <section class="py-24 px-6 max-w-6xl mx-auto">
-            <h2 class="text-4xl font-bold mb-16 text-center tracking-tight">What you can create</h2>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="feature-card bg-[#111113] p-10 rounded-3xl border border-white/5 shadow-2xl">
-                    <h3 class="text-xl font-bold text-blue-400 mb-4">Full Complete Roblox Maps</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">Since PrysmisAI is powerful, it can create full on complex roblox maps that would usually take a dev team to do.</p>
+            <div class="text-xs font-semibold tracking-[0.14em] uppercase mb-4 text-center" style="color:#3b7ef8;">Capabilities</div>
+            <h2 class="text-4xl font-bold mb-14 text-center tracking-tight" style="font-family:'Syne',sans-serif;">What you can create</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div class="feature-card bg-[#111113] p-9 rounded-2xl border border-white/5">
+                    <div class="w-7 h-7 rounded-md mb-6" style="background:rgba(59,126,248,0.12);"></div>
+                    <h3 class="text-base font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Full Complete Roblox Maps</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">Since PrysmisAI is powerful, it can create full on complex roblox maps that would usually take a dev team to do.</p>
                 </div>
-                <div class="feature-card bg-[#111113] p-10 rounded-3xl border border-white/5 shadow-2xl">
-                    <h3 class="text-xl font-bold text-blue-400 mb-4">Game Systems</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">PrysmiAI is able to create tycoons, obbies, any games you desire and imagine.</p>
+                <div class="feature-card bg-[#111113] p-9 rounded-2xl border border-white/5">
+                    <div class="w-7 h-7 rounded-md mb-6" style="background:rgba(59,126,248,0.12);"></div>
+                    <h3 class="text-base font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Game Systems</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">PrysmiAI is able to create tycoons, obbies, any games you desire and imagine.</p>
                 </div>
-                <div class="feature-card bg-[#111113] p-10 rounded-3xl border border-white/5 shadow-2xl">
-                    <h3 class="text-xl font-bold text-blue-400 mb-4">UI & Menus</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">PrysmisAI is also able to create clean UI's, and smooth start up UI menu's.</p>
+                <div class="feature-card bg-[#111113] p-9 rounded-2xl border border-white/5">
+                    <div class="w-7 h-7 rounded-md mb-6" style="background:rgba(59,126,248,0.12);"></div>
+                    <h3 class="text-base font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">UI & Menus</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">PrysmisAI is also able to create clean UI's, and smooth start up UI menu's.</p>
                 </div>
-                <div class="feature-card bg-[#111113] p-10 rounded-3xl border border-white/5 shadow-2xl">
-                    <h3 class="text-xl font-bold text-blue-400 mb-4">Anti-Cheats</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">PrysmisAI can create complex anti-cheats for your game, just give a good detail of what you want the anti-cheat to do and PrysmisAI will create it for you instantly.</p>
+                <div class="feature-card bg-[#111113] p-9 rounded-2xl border border-white/5">
+                    <div class="w-7 h-7 rounded-md mb-6" style="background:rgba(59,126,248,0.12);"></div>
+                    <h3 class="text-base font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Anti-Cheats</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">PrysmisAI can create complex anti-cheats for your game, just give a good detail of what you want the anti-cheat to do and PrysmisAI will create it for you instantly.</p>
                 </div>
-                <div class="feature-card bg-[#111113] p-10 rounded-3xl border border-white/5 shadow-2xl lg:col-span-2">
-                    <h3 class="text-xl font-bold text-blue-400 mb-4">Animation & Effects</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">PrysmiAI can create smooth animations for your game, and effects, PrysmisAI can make roblox users of your game do a animation that you desire and want.</p>
+                <div class="feature-card bg-[#111113] p-9 rounded-2xl border border-white/5 lg:col-span-2">
+                    <div class="w-7 h-7 rounded-md mb-6" style="background:rgba(59,126,248,0.12);"></div>
+                    <h3 class="text-base font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Animation & Effects</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">PrysmiAI can create smooth animations for your game, and effects, PrysmisAI can make roblox users of your game do a animation that you desire and want.</p>
                 </div>
             </div>
         </section>
 
-        <section class="py-24 bg-[#080809] px-6">
+        <section class="py-24 px-6" style="background:#080809;">
             <div class="max-w-3xl mx-auto">
-                <h2 class="text-3xl font-bold mb-12 text-center">Frequently Asked Questions</h2>
-                <div class="space-y-4">
-                    <div class="faq-item bg-[#111113] rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
-                        <button class="w-full p-6 text-left font-bold flex justify-between items-center text-gray-200">
+                <div class="text-xs font-semibold tracking-[0.14em] uppercase mb-4 text-center" style="color:#3b7ef8;">Support</div>
+                <h2 class="text-3xl font-bold mb-10 text-center tracking-tight" style="font-family:'Syne',sans-serif;">Frequently Asked Questions</h2>
+                <div class="space-y-2">
+
+                    <div class="faq-item bg-[#111113] rounded-xl border border-white/5 group hover:border-[#3b7ef8]/20 transition-all duration-200">
+                        <button class="w-full p-6 text-left font-medium flex justify-between items-center text-gray-200 text-sm">
                             Is this paid and if so how much will it be?
-                            <span class="text-blue-500 text-2xl group-hover:rotate-90 transition-transform">+</span>
+                            <span class="text-[#3b7ef8] text-xl transition-transform duration-200 select-none">+</span>
                         </button>
-                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden leading-relaxed">
+                        <div class="faq-answer px-6 pb-6 text-gray-400 text-sm leading-relaxed">
                             some ai models are paid, and there is paid features as well. But not everything is paid, the total is $10 lifetime no subscription.
                         </div>
                     </div>
 
-                    <div class="faq-item bg-[#111113] rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
-                        <button class="w-full p-6 text-left font-bold flex justify-between items-center text-gray-200">
+                    <div class="faq-item bg-[#111113] rounded-xl border border-white/5 group hover:border-[#3b7ef8]/20 transition-all duration-200">
+                        <button class="w-full p-6 text-left font-medium flex justify-between items-center text-gray-200 text-sm">
                             Is PrysmisAI safe?
-                            <span class="text-blue-500 text-2xl group-hover:rotate-90 transition-transform">+</span>
+                            <span class="text-[#3b7ef8] text-xl transition-transform duration-200 select-none">+</span>
                         </button>
-                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden leading-relaxed">
+                        <div class="faq-answer px-6 pb-6 text-gray-400 text-sm leading-relaxed">
                             PrysmisAI is indeed safe to use, I don't know how or why you wouldn't think It's not safe.
                         </div>
                     </div>
 
-                    <div class="faq-item bg-[#111113] rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
-                        <button class="w-full p-6 text-left font-bold flex justify-between items-center text-gray-200">
+                    <div class="faq-item bg-[#111113] rounded-xl border border-white/5 group hover:border-[#3b7ef8]/20 transition-all duration-200">
+                        <button class="w-full p-6 text-left font-medium flex justify-between items-center text-gray-200 text-sm">
                             Is PrysmiAI hard to setup?
-                            <span class="text-blue-500 text-2xl group-hover:rotate-90 transition-transform">+</span>
+                            <span class="text-[#3b7ef8] text-xl transition-transform duration-200 select-none">+</span>
                         </button>
-                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden leading-relaxed space-y-2">
+                        <div class="faq-answer px-6 pb-6 text-gray-400 text-sm leading-relaxed space-y-1">
                             <p>Not at all the setup is really simple.</p>
                             <p>1. Click "Connect"</p>
                             <p>2. Copy your Studio token from the dashboard</p>
@@ -104,31 +121,32 @@
                         </div>
                     </div>
 
-                    <div class="faq-item bg-[#111113] rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
-                        <button class="w-full p-6 text-left font-bold flex justify-between items-center text-gray-200">
+                    <div class="faq-item bg-[#111113] rounded-xl border border-white/5 group hover:border-[#3b7ef8]/20 transition-all duration-200">
+                        <button class="w-full p-6 text-left font-medium flex justify-between items-center text-gray-200 text-sm">
                             Can PrysmiAI create maps, loading screens, anti-cheats, animations?
-                            <span class="text-blue-500 text-2xl group-hover:rotate-90 transition-transform">+</span>
+                            <span class="text-[#3b7ef8] text-xl transition-transform duration-200 select-none">+</span>
                         </button>
-                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden leading-relaxed">
+                        <div class="faq-answer px-6 pb-6 text-gray-400 text-sm leading-relaxed">
                             PrysmisAI can create anything you can imagine. So yes it can create really well maps, really well loading screens, and good anti-cheats, it can create so much more as it is built to be powerful.
                         </div>
                     </div>
 
-                    <div class="faq-item bg-[#111113] rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
-                        <button class="w-full p-6 text-left font-bold flex justify-between items-center text-gray-200">
+                    <div class="faq-item bg-[#111113] rounded-xl border border-white/5 group hover:border-[#3b7ef8]/20 transition-all duration-200">
+                        <button class="w-full p-6 text-left font-medium flex justify-between items-center text-gray-200 text-sm">
                             I still have so much questions..
-                            <span class="text-blue-500 text-2xl group-hover:rotate-90 transition-transform">+</span>
+                            <span class="text-[#3b7ef8] text-xl transition-transform duration-200 select-none">+</span>
                         </button>
-                        <div class="faq-answer px-6 pb-6 text-gray-400 hidden leading-relaxed">
-                            Join our <a href="https://discord.gg/b4KmRzgfZ4" class="text-blue-400 hover:text-blue-300 font-bold decoration-2 underline-offset-4 underline">discord server</a> and we'll try our best to answer your questions!
+                        <div class="faq-answer px-6 pb-6 text-gray-400 text-sm leading-relaxed">
+                            Join our <a href="https://discord.gg/b4KmRzgfZ4" class="text-[#3b7ef8] hover:text-blue-300 font-semibold underline underline-offset-4">discord server</a> and we'll try our best to answer your questions!
                         </div>
                     </div>
+
                 </div>
             </div>
         </section>
 
         <section class="py-32 text-center">
-            <a href="https://prysmisai.wtf/accountauth/index.html" class="inline-block bg-blue-600 hover:bg-blue-500 text-white px-12 py-5 rounded-2xl font-black text-lg transition-all transform hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(37,99,235,0.3)]">
+            <a href="https://prysmisai.wtf/accountauth/index.html" class="inline-block text-white px-12 py-5 rounded-xl font-bold text-base transition-all transform hover:scale-105 active:scale-95" style="font-family:'Syne',sans-serif; background:#3b7ef8; box-shadow:0 0 40px rgba(59,126,248,0.28); letter-spacing:-0.01em;">
                 Start building games now..
             </a>
         </section>
