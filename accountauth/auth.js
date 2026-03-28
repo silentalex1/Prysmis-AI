@@ -12,6 +12,8 @@ userTab.addEventListener('click', () => {
     adminSection.classList.add('hidden');
     userTab.classList.add('active');
     adminTab.classList.remove('active');
+    hideError(userError);
+    hideError(adminError);
 });
 
 adminTab.addEventListener('click', () => {
@@ -19,6 +21,8 @@ adminTab.addEventListener('click', () => {
     userSection.classList.add('hidden');
     adminTab.classList.add('active');
     userTab.classList.remove('active');
+    hideError(userError);
+    hideError(adminError);
 });
 
 function showError(el, msg) {
