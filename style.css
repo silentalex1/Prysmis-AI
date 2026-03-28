@@ -1,41 +1,30 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const app = express();
-const PORT = process.env.PORT || 3000;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
 
-const DB_FILE = 'db.json';
-
-if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ users: [] }));
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #0a0a0b;
+    color: white;
 }
 
-app.use(express.json());
-app.use(express.static(__dirname));
+#loader-progress {
+    animation: spin 1s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+}
 
-app.post('/api/register', (req, handle) => {
-    const { username, password } = req.body;
-    const db = JSON.parse(fs.readFileSync(DB_FILE));
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 
-    const userExists = db.users.find(u => u.username === username);
-    if (userExists) {
-        return handle.status(400).json({ error: 'User already exists' });
-    }
+.feature-card {
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
 
-    db.users.push({ username, password, projects: 0 });
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+.feature-card:hover {
+    border-color: rgba(59, 130, 246, 0.3);
+    background-color: #141417;
+    transform: translateY(-5px);
+}
 
-    handle.json({ success: true });
-});
-
-app.get('/accountauth', (req, res) => {
-    res.sendFile(path.join(__dirname, 'accountauth', 'index.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard', 'index.html'));
-});
-
-app.listen(PORT, () => {
-    console.log(`PrysmisAI running on port ${PORT}`);
-});
+::selection {
+    background: rgba(59, 130, 246, 0.3);
+    color: white;
+}
