@@ -4,18 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PrysmisAI - Auth</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body>
 
-    <div class="auth-bg">
-        <div class="auth-glow"></div>
+    <div class="bg-scene">
+        <div class="bg-grid"></div>
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
     </div>
 
     <div class="auth-wrap">
+
+        <a href="https://prysmisai.wtf/" class="back-btn">
+            <span class="back-arrow">←</span> go back
+        </a>
 
         <div class="auth-logo">
             <div class="auth-prism">
@@ -38,16 +43,18 @@
 
                 <div class="field-group">
                     <label class="field-label">Enter in your username:</label>
-                    <input type="text" class="field-input" placeholder="username">
+                    <input type="text" id="username" class="field-input" placeholder="username" autocomplete="username">
                 </div>
 
                 <div class="field-group">
                     <label class="field-label">Enter in your password:</label>
-                    <input type="password" class="field-input" placeholder="••••••••">
+                    <input type="password" id="password" class="field-input" placeholder="••••••••" autocomplete="new-password">
                 </div>
 
+                <p id="user-error" style="font-size:12px; color:rgba(239,68,68,0.85); text-align:center; display:none; margin-top:-4px;"></p>
+
                 <p class="auth-sub">
-                    Already have an account? <a href="https://login.PrysmisAI.wtf">click here.</a>
+                    Already have an account? <a href="/loginaccount/index.html">click here.</a>
                 </p>
 
                 <button id="create-btn" class="auth-btn primary">Create account.</button>
@@ -59,20 +66,22 @@
 
                 <div class="field-group">
                     <label class="field-label">Enter admin username:</label>
-                    <input type="text" class="field-input" placeholder="admin username">
+                    <input type="text" id="admin-username" class="field-input" placeholder="admin username">
                 </div>
 
                 <div class="field-group">
                     <label class="field-label">Enter admin password:</label>
-                    <input type="password" class="field-input" placeholder="••••••••">
+                    <input type="password" id="admin-password" class="field-input" placeholder="••••••••">
                 </div>
 
                 <div class="field-group">
                     <label class="field-label">Enter admin code:</label>
-                    <input type="text" class="field-input" placeholder="admin code">
+                    <input type="text" id="admin-code" class="field-input" placeholder="admin code">
                 </div>
 
-                <button class="auth-btn secondary">Login to admin panel.</button>
+                <p id="admin-error" style="font-size:12px; color:rgba(239,68,68,0.85); text-align:center; display:none; margin-top:-4px;"></p>
+
+                <button id="admin-btn" class="auth-btn secondary">Login to admin panel.</button>
             </div>
 
         </div>
