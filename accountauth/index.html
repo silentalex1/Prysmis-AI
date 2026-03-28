@@ -6,9 +6,10 @@
     <title>PrysmisAI - Auth</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="auth.css">
 </head>
-<body class="bg-[#0a0a0b] text-white overflow-hidden">
+<body class="bg-[#0a0a0b] text-white overflow-hidden min-h-screen flex items-center justify-center">
 
     <div class="fixed inset-0 pointer-events-none z-0">
         <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full"></div>
@@ -67,9 +68,18 @@
                 <p class="text-[11px] text-red-500/60 text-center uppercase tracking-widest mb-8">This is for admins only.</p>
 
                 <div class="space-y-5">
-                    <input type="text" id="admin-username" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500/50 transition-all" placeholder="Admin Username">
-                    <input type="password" id="admin-password" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500/50 transition-all" placeholder="Admin Password">
-                    <input type="text" id="admin-code" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500/50 transition-all" placeholder="Admin Secret Code">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 mb-2 ml-1">Enter admin username:</label>
+                        <input type="text" id="admin-username" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500/50 transition-all" placeholder="admin username">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 mb-2 ml-1">Enter admin password:</label>
+                        <input type="password" id="admin-password" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500/50 transition-all" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 mb-2 ml-1">Enter admin code:</label>
+                        <input type="text" id="admin-code" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500/50 transition-all" placeholder="admin code">
+                    </div>
                     
                     <p id="admin-error" class="text-red-500/80 text-[11px] text-center hidden"></p>
 
