@@ -12,8 +12,6 @@ userTab.addEventListener('click', () => {
     adminSection.classList.add('hidden');
     userTab.classList.add('active');
     adminTab.classList.remove('active');
-    hideError(userError);
-    hideError(adminError);
 });
 
 adminTab.addEventListener('click', () => {
@@ -21,8 +19,6 @@ adminTab.addEventListener('click', () => {
     userSection.classList.add('hidden');
     adminTab.classList.add('active');
     userTab.classList.remove('active');
-    hideError(userError);
-    hideError(adminError);
 });
 
 function showError(el, msg) {
@@ -62,11 +58,8 @@ createBtn.addEventListener('click', async () => {
             return;
         }
 
-        if (data.token) {
-            localStorage.setItem('prysmis_token', data.token);
-            localStorage.setItem('prysmis_user', data.username);
-        }
-
+        localStorage.setItem('prysmis_token', data.token);
+        localStorage.setItem('prysmis_user', data.username);
         window.location.href = '/dashboard';
     } catch {
         showError(userError, 'Could not connect to server.');
@@ -104,11 +97,8 @@ adminBtn.addEventListener('click', async () => {
             return;
         }
 
-        if (data.token) {
-            localStorage.setItem('prysmis_token', data.token);
-            localStorage.setItem('prysmis_user', data.username);
-        }
-
+        localStorage.setItem('prysmis_token', data.token);
+        localStorage.setItem('prysmis_user', data.username);
         window.location.href = '/dashboard';
     } catch {
         showError(adminError, 'Could not connect to server.');
