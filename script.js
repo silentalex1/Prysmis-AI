@@ -1,36 +1,31 @@
 window.addEventListener('DOMContentLoaded', () => {
     const tl = gsap.timeline();
 
-    tl.to("#baseplate", { 
-        scale: 1, 
-        duration: 1.2, 
-        ease: "power4.out" 
+    tl.to(".s-block", {
+        opacity: 1,
+        y: -10,
+        stagger: 0.1,
+        duration: 0.8,
+        ease: "back.out(2)"
     })
-    .to(".block", { 
-        opacity: 1, 
-        y: -15, 
-        stagger: 0.15, 
-        duration: 0.8, 
-        ease: "back.out(1.7)" 
-    }, "-=0.5")
-    .to("#loading-text", { 
-        opacity: 0, 
-        duration: 0.4, 
-        delay: 0.8 
-    })
-    .to("#loader", { 
+    .to("#loader-bar", {
+        width: "100%",
+        duration: 2,
+        ease: "power4.inOut"
+    }, "-=0.4")
+    .to("#loader", {
         opacity: 0,
-        duration: 1, 
-        ease: "expo.inOut",
+        duration: 0.8,
+        ease: "power2.inOut",
         onComplete: () => {
             document.getElementById('loader').style.display = 'none';
         }
     })
-    .to("#content", { 
-        opacity: 1, 
-        duration: 1.5,
+    .to("#content", {
+        opacity: 1,
+        duration: 1.2,
         ease: "power2.out"
-    }, "-=0.4");
+    }, "-=0.2");
 
     const faqItems = document.querySelectorAll('.faq-item');
     faqItems.forEach(item => {
@@ -38,8 +33,10 @@ window.addEventListener('DOMContentLoaded', () => {
             const answer = item.querySelector('.faq-answer');
             const icon = item.querySelector('span');
             const isHidden = answer.classList.contains('hidden');
+            
             document.querySelectorAll('.faq-answer').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.faq-item span').forEach(el => el.innerText = '+');
+            
             if (isHidden) {
                 answer.classList.remove('hidden');
                 icon.innerText = '-';
@@ -50,8 +47,8 @@ window.addEventListener('DOMContentLoaded', () => {
     fetch('/api/stats')
         .then(res => res.json())
         .then(data => {
-            gsap.to("#user-count", { innerText: data.users, snap: { innerText: 1 }, duration: 2, ease: "power2.out" });
-            gsap.to("#project-count", { innerText: data.projects, snap: { innerText: 1 }, duration: 2.5, ease: "power2.out" });
+            gsap.to("#user-count", { innerText: data.users, snap: { innerText: 1 }, duration: 2 });
+            gsap.to("#project-count", { innerText: data.projects, snap: { innerText: 1 }, duration: 2.5 });
         })
         .catch(() => {
             document.getElementById('user-count').innerText = "1,204";
