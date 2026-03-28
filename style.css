@@ -1,30 +1,81 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background-color: #0a0a0b;
     color: white;
+    line-height: 1.5;
 }
 
-#loader-progress {
-    animation: spin 1s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+#loader {
+    background: radial-gradient(circle at center, #111113 0%, #0a0a0b 100%);
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+.block {
+    border-radius: 2px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
 .feature-card {
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
 }
 
 .feature-card:hover {
-    border-color: rgba(59, 130, 246, 0.3);
-    background-color: #141417;
-    transform: translateY(-5px);
+    transform: translateY(-8px);
+    border-color: rgba(59, 130, 246, 0.2);
+    background-color: #161619;
+}
+
+.faq-item {
+    cursor: pointer;
+}
+
+.faq-answer {
+    transition: all 0.3s ease;
+}
+
+#user-count, #project-count {
+    font-variant-numeric: tabular-nums;
+    font-family: monospace;
+    letter-spacing: -1px;
+}
+
+.cta-shadow {
+    box-shadow: 0 0 40px rgba(37, 99, 235, 0.15);
+}
+
+.cta-shadow:hover {
+    box-shadow: 0 0 50px rgba(37, 99, 235, 0.3);
+}
+
+input:focus, button:focus {
+    outline: none;
 }
 
 ::selection {
     background: rgba(59, 130, 246, 0.3);
     color: white;
+}
+
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+}
+
+.animate-pulse {
+    animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (max-width: 768px) {
+    .feature-card {
+        padding: 1.5rem;
+    }
 }
