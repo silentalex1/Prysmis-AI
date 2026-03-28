@@ -1,11 +1,19 @@
 {
   "name": "prysmis-ai",
   "version": "1.0.0",
+  "description": "The BEST free unlimited Roblox game generator.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "openai": "^4.0.0"
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
