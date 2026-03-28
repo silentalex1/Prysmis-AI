@@ -1,268 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-*, *::before, *::after { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
-}
-
-:root {
-    --blue: #3b7ef8;
-    --bg: #0a0a0b;
-    --surface: #111113;
-    --border: rgba(255,255,255,0.07);
-    --text: #f0f0f0;
-    --muted: #5e5e6a;
-    --dim: #9494a3;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    overflow: hidden;
+    min-height: 100vh;
 }
 
-.bg-scene {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
+.hidden {
+    display: none !important;
 }
 
-.bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.22;
+input::placeholder {
+    color: rgba(255, 255, 255, 0.15);
 }
 
-.bg-orb-1 {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(59,126,248,0.6) 0%, transparent 70%);
-    top: -180px; left: 50%;
-    transform: translateX(-50%);
-    animation: drift 16s ease-in-out infinite alternate;
+.active {
+    color: #3b82f6 !important;
+    background: rgba(59, 130, 246, 0.05) !important;
 }
 
-.bg-orb-2 {
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(80,100,240,0.5) 0%, transparent 70%);
-    bottom: 10%; right: -80px;
-    animation: drift 20s ease-in-out infinite alternate-reverse;
-}
-
-.bg-grid {
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(rgba(59,126,248,0.04) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(59,126,248,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 100%);
-}
-
-@keyframes drift { 
-    from { transform: translateX(-50%) translateY(0); } 
-    to { transform: translateX(-50%) translateY(28px); } 
-}
-
-.auth-wrap {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 400px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-}
-
-.back-btn {
-    align-self: flex-start;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--dim);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.back-btn:hover { color: var(--text); }
-
-.auth-logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Syne', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.auth-logo b { color: var(--blue); font-weight: 800; }
-
-.auth-prism {
-    position: relative;
-    width: 28px; height: 28px;
-}
-
-.ap-ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1.5px solid transparent;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.ap-r1 { width: 28px; height: 28px; border-color: var(--blue); opacity: 0.85; animation: spin 2.5s linear infinite; }
-.ap-r2 { width: 16px; height: 16px; border-color: rgba(59,126,248,0.5); animation: spin 1.6s linear infinite reverse; }
-
-.ap-dot {
-    position: absolute;
-    width: 6px; height: 6px;
-    background: var(--blue);
-    border-radius: 50%;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 10px rgba(59,126,248,0.8);
-}
-
-@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
-
-.auth-card {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
-}
-
-.auth-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-}
-
-.auth-tab {
-    flex: 1;
-    padding: 15px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--muted);
-    background: transparent;
-    border: none;
+button {
     cursor: pointer;
-    transition: all 0.25s;
 }
 
-.auth-tab.active {
-    color: var(--blue);
-    background: rgba(59,126,248,0.06);
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.auth-body {
-    padding: 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.hidden { display: none; }
-
-.auth-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    text-align: center;
-}
-
-.auth-warning {
-    font-size: 12px;
-    color: rgba(239,68,68,0.75);
-    text-align: center;
-    margin-top: -8px;
-}
-
-.field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-}
-
-.field-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-}
-
-.field-input {
-    width: 100%;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    color: white;
-    font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s;
-}
-
-.field-input:focus {
-    border-color: var(--blue);
-    outline: none;
-    background: rgba(0,0,0,0.5);
-}
-
-.auth-sub {
-    font-size: 12px;
-    color: var(--muted);
-    text-align: center;
-}
-
-.auth-sub a {
-    color: var(--blue);
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.auth-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.auth-btn.primary {
-    background: var(--blue);
-    color: white;
-}
-
-.auth-btn.primary:hover {
-    background: #2b6ee8;
-    transform: translateY(-2px);
-}
-
-.auth-btn.secondary {
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    border: 1px solid var(--border);
-}
-
-.auth-btn.secondary:hover {
-    background: rgba(255,255,255,0.08);
+#user-section, #admin-section {
+    animation: fadeIn 0.4s ease-out forwards;
 }
