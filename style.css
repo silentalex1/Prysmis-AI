@@ -1,178 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-*, *::before, *::after { box-sizing: border-box; }
+const DB_FILE = 'db.json';
 
-:root {
-    --blue: #3b7ef8;
-    --blue-mid: rgba(59,126,248,0.15);
-    --blue-glow: rgba(59,126,248,0.22);
-    --bg: #0a0a0b;
-    --surface: #111113;
-    --border: rgba(255,255,255,0.06);
-    --text: #f0f0f0;
-    --muted: #6b6b75;
-    --dim: #9494a3;
+if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify({ users: [] }));
 }
 
-html { scroll-behavior: smooth; }
+app.use(express.json());
+app.use(express.static(__dirname));
 
-body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    overflow-x: hidden;
-    margin: 0;
-    padding: 0;
-}
+app.post('/api/register', (req, handle) => {
+    const { username, password } = req.body;
+    const db = JSON.parse(fs.readFileSync(DB_FILE));
 
-h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+    const userExists = db.users.find(u => u.username === username);
+    if (userExists) {
+        return handle.status(400).json({ error: 'User already exists' });
+    }
 
-input { color-scheme: dark; }
+    db.users.push({ username, password, projects: 0 });
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 
-#loader {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: var(--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
+    handle.json({ success: true });
+});
 
-.ld-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
-    opacity: 0;
-}
+app.get('/accountauth', (req, res) => {
+    res.sendFile(path.join(__dirname, 'accountauth', 'index.html'));
+});
 
-.ld-icon {
-    position: relative;
-    width: 48px;
-    height: 48px;
-}
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard', 'index.html'));
+});
 
-.ld-ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1.5px solid transparent;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.ld-r1 { width: 48px; height: 48px; border-color: var(--blue); opacity: 0.9; animation: spin 2.5s linear infinite; }
-.ld-r2 { width: 32px; height: 32px; border-color: rgba(59,126,248,0.55); animation: spin 1.7s linear infinite reverse; }
-.ld-r3 { width: 16px; height: 16px; border-color: rgba(59,126,248,0.9); animation: spin 1s linear infinite; }
-
-.ld-dot {
-    position: absolute;
-    width: 6px; height: 6px;
-    background: var(--blue);
-    border-radius: 50%;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 12px rgba(59,126,248,0.9);
-}
-
-@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
-@keyframes spin-r { to { transform: translate(-50%,-50%) rotate(-360deg); } }
-
-.ld-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-}
-
-.ld-name b { color: var(--blue); }
-
-.ld-track {
-    width: 160px;
-    height: 2px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.ld-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--blue);
-    border-radius: 2px;
-    box-shadow: 0 0 6px rgba(59,126,248,0.8);
-    transition: width 0.12s ease;
-}
-
-.ld-label {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 500;
-}
-
-.bg-scene {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-}
-
-.bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.25;
-}
-
-.bg-orb-1 {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(59,126,248,0.6) 0%, transparent 70%);
-    top: -120px; left: 50%;
-    transform: translateX(-50%);
-    animation: drift1 14s ease-in-out infinite alternate;
-}
-
-.bg-orb-2 {
-    width: 320px; height: 320px;
-    background: radial-gradient(circle, rgba(80,100,240,0.5) 0%, transparent 70%);
-    bottom: 20%; right: -80px;
-    animation: drift2 18s ease-in-out infinite alternate;
-}
-
-.bg-orb-3 {
-    width: 260px; height: 260px;
-    background: radial-gradient(circle, rgba(59,126,248,0.35) 0%, transparent 70%);
-    top: 40%; left: -60px;
-    animation: drift1 22s ease-in-out infinite alternate-reverse;
-}
-
-.bg-grid {
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(rgba(59,126,248,0.04) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(59,126,248,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 100%);
-}
-
-@keyframes drift1 { from { transform: translateX(-50%) translateY(0px); } to { transform: translateX(-50%) translateY(30px); } }
-@keyframes drift2 { from { transform: translateY(0px); } to { transform: translateY(-40px); } }
-
-main { position: relative; z-index: 1; }
-
-.feature-card {
-    transition: border-color 0.25s, transform 0.25s;
-}
-.feature-card:hover {
-    border-color: rgba(59,126,248,0.2) !important;
-    transform: translateY(-2px);
-}
-
-.faq-answer { display: none; }
-
-#user-tab, #admin-tab { transition: all 0.25s; }
+app.listen(PORT, () => {
+    console.log(`PrysmisAI running on port ${PORT}`);
+});
