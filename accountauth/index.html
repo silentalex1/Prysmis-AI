@@ -5,66 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PrysmisAI - Auth</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="auth.css">
 </head>
-<body class="bg-[#0a0a0b] text-white min-h-screen flex items-center justify-center font-sans p-6">
+<body>
 
-    <div class="w-full max-w-[400px] bg-[#111113] rounded-3xl border border-white/5 shadow-2xl overflow-hidden">
-        
-        <div class="flex border-b border-white/5">
-            <button id="user-tab" class="flex-1 py-4 text-sm font-bold bg-white/5 text-blue-400">User</button>
-            <button id="admin-tab" class="flex-1 py-4 text-sm font-bold text-gray-500 hover:text-gray-300 transition-colors">Admin Panel</button>
+    <div class="auth-bg">
+        <div class="auth-glow"></div>
+    </div>
+
+    <div class="auth-wrap">
+
+        <div class="auth-logo">
+            <div class="auth-prism">
+                <div class="ap-ring ap-r1"></div>
+                <div class="ap-ring ap-r2"></div>
+                <div class="ap-dot"></div>
+            </div>
+            <span>Prysmis<b>AI</b></span>
         </div>
 
-        <div id="user-section" class="p-8">
-            <h1 class="text-2xl font-bold mb-8 text-center">Create your account</h1>
-            
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-xs uppercase tracking-widest text-gray-500 font-bold ml-1">Enter in your username:</label>
-                    <input type="text" class="w-full bg-[#0a0a0b] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500/50 transition-all text-sm">
+        <div class="auth-card">
+
+            <div class="auth-tabs">
+                <button id="user-tab" class="auth-tab active">User</button>
+                <button id="admin-tab" class="auth-tab">Admin Panel</button>
+            </div>
+
+            <div id="user-section" class="auth-body">
+                <h1 class="auth-title">Create your account</h1>
+
+                <div class="field-group">
+                    <label class="field-label">Enter in your username:</label>
+                    <input type="text" class="field-input" placeholder="username">
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-xs uppercase tracking-widest text-gray-500 font-bold ml-1">Enter in your password:</label>
-                    <input type="password" class="w-full bg-[#0a0a0b] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500/50 transition-all text-sm">
+                <div class="field-group">
+                    <label class="field-label">Enter in your password:</label>
+                    <input type="password" class="field-input" placeholder="••••••••">
                 </div>
 
-                <p class="text-xs text-center text-gray-500">
-                    Already have an account? <a href="https://login.PrysmisAI.wtf" class="text-blue-500 hover:underline">click here.</a>
+                <p class="auth-sub">
+                    Already have an account? <a href="https://login.PrysmisAI.wtf">click here.</a>
                 </p>
 
-                <button id="create-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-500/10">
-                    Create account.
-                </button>
+                <button id="create-btn" class="auth-btn primary">Create account.</button>
             </div>
+
+            <div id="admin-section" class="auth-body hidden">
+                <h1 class="auth-title">Admin Login</h1>
+                <p class="auth-warning">This is for admins only.</p>
+
+                <div class="field-group">
+                    <label class="field-label">Enter admin username:</label>
+                    <input type="text" class="field-input" placeholder="admin username">
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Enter admin password:</label>
+                    <input type="password" class="field-input" placeholder="••••••••">
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Enter admin code:</label>
+                    <input type="text" class="field-input" placeholder="admin code">
+                </div>
+
+                <button class="auth-btn secondary">Login to admin panel.</button>
+            </div>
+
         </div>
 
-        <div id="admin-section" class="p-8 hidden">
-            <h1 class="text-xl font-bold text-center mb-2">Admin Login</h1>
-            <p class="text-xs text-red-500/80 text-center mb-8 font-medium">This is for admins only.</p>
-
-            <div class="space-y-5">
-                <div class="space-y-2">
-                    <label class="text-xs text-gray-500 font-bold ml-1">Enter admin username:</label>
-                    <input type="text" class="w-full bg-[#0a0a0b] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500/50 text-sm">
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-xs text-gray-500 font-bold ml-1">Enter admin password:</label>
-                    <input type="password" class="w-full bg-[#0a0a0b] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500/50 text-sm">
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-xs text-gray-500 font-bold ml-1">Enter admin code:</label>
-                    <input type="text" class="w-full bg-[#0a0a0b] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500/50 text-sm">
-                </div>
-
-                <button class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl transition-all border border-white/5">
-                    Login to admin panel.
-                </button>
-            </div>
-        </div>
     </div>
 
     <script src="auth.js"></script>
