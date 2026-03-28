@@ -1,6 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
 
 :root {
     --blue: #3b7ef8;
@@ -63,7 +67,10 @@ body {
     mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 100%);
 }
 
-@keyframes drift { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(28px); } }
+@keyframes drift { 
+    from { transform: translateX(-50%) translateY(0); } 
+    to { transform: translateX(-50%) translateY(28px); } 
+}
 
 .auth-wrap {
     position: relative;
@@ -87,15 +94,9 @@ body {
     color: var(--dim);
     text-decoration: none;
     transition: color 0.2s;
-    letter-spacing: 0.01em;
 }
 
 .back-btn:hover { color: var(--text); }
-
-.back-arrow {
-    font-size: 15px;
-    line-height: 1;
-}
 
 .auth-logo {
     display: flex;
@@ -105,7 +106,6 @@ body {
     font-size: 18px;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: -0.02em;
 }
 
 .auth-logo b { color: var(--blue); font-weight: 800; }
@@ -144,7 +144,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.03);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
 }
 
 .auth-tabs {
@@ -162,15 +162,13 @@ body {
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: color 0.2s, background 0.2s;
+    transition: all 0.25s;
 }
 
 .auth-tab.active {
     color: var(--blue);
     background: rgba(59,126,248,0.06);
 }
-
-.auth-tab:hover:not(.active) { color: var(--dim); }
 
 .auth-body {
     padding: 32px;
@@ -179,23 +177,19 @@ body {
     gap: 18px;
 }
 
-.auth-body.hidden { display: none; }
+.hidden { display: none; }
 
 .auth-title {
     font-family: 'Syne', sans-serif;
     font-size: 20px;
     font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--text);
     text-align: center;
-    margin-bottom: 2px;
 }
 
 .auth-warning {
     font-size: 12px;
     color: rgba(239,68,68,0.75);
     text-align: center;
-    font-weight: 500;
     margin-top: -8px;
 }
 
@@ -208,37 +202,32 @@ body {
 .field-label {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
+    letter-spacing: 0.1em;
 }
 
 .field-input {
     width: 100%;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.3);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 15px;
+    border-radius: 12px;
+    padding: 14px;
+    color: white;
     font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text);
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    color-scheme: dark;
+    transition: all 0.2s;
 }
 
-.field-input::placeholder { color: var(--muted); }
-
 .field-input:focus {
-    border-color: rgba(59,126,248,0.5);
-    box-shadow: 0 0 0 3px rgba(59,126,248,0.08);
+    border-color: var(--blue);
+    outline: none;
+    background: rgba(0,0,0,0.5);
 }
 
 .auth-sub {
     font-size: 12px;
-    text-align: center;
     color: var(--muted);
-    margin-top: -2px;
+    text-align: center;
 }
 
 .auth-sub a {
@@ -247,44 +236,33 @@ body {
     font-weight: 600;
 }
 
-.auth-sub a:hover { text-decoration: underline; text-underline-offset: 3px; }
-
 .auth-btn {
     width: 100%;
-    padding: 13px;
-    border-radius: 10px;
-    font-family: 'Syne', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    cursor: pointer;
+    padding: 14px;
+    border-radius: 12px;
     border: none;
-    transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-
-.auth-btn:hover { transform: translateY(-1px); }
-.auth-btn:active { transform: scale(0.98); }
 
 .auth-btn.primary {
     background: var(--blue);
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(59,126,248,0.25);
+    color: white;
 }
 
 .auth-btn.primary:hover {
-    background: #5090ff;
-    box-shadow: 0 4px 28px rgba(59,126,248,0.4);
+    background: #2b6ee8;
+    transform: translateY(-2px);
 }
 
 .auth-btn.secondary {
     background: rgba(255,255,255,0.05);
-    color: var(--dim);
+    color: var(--text);
     border: 1px solid var(--border);
 }
 
 .auth-btn.secondary:hover {
     background: rgba(255,255,255,0.08);
-    color: var(--text);
 }
-
-#user-tab, #admin-tab { transition: all 0.25s; }
