@@ -9,6 +9,7 @@ app.use(express.json({ limit: '50mb' }));
 const studioSessions = new Map();
 const studioFiles = new Map();
 const pendingCommands = new Map();
+const adminCodes = new Map();
 
 let ollamaModel = null;
 
@@ -61,10 +62,7 @@ app.post('/api/chat', async function(req, res) {
     const model = await getModel();
 
     const langchainMessages = [];
-
-    if (system) {
-      langchainMessages.push(new SystemMessage(system));
-    }
+    if (system) langchainMessages.push(new SystemMessage(system));
 
     for (const msg of messages) {
       if (msg.role === 'user') {
@@ -93,12 +91,9 @@ app.post('/api/chat', async function(req, res) {
     }
 
     const stream = await model.stream(langchainMessages);
-
     for await (const chunk of stream) {
       const text = typeof chunk.content === 'string' ? chunk.content : '';
-      if (text) {
-        res.write('data: ' + JSON.stringify({ text }) + '\n\n');
-      }
+      if (text) res.write('data: ' + JSON.stringify({ text }) + '\n\n');
     }
 
     res.write('data: [DONE]\n\n');
@@ -110,6 +105,115 @@ app.post('/api/chat', async function(req, res) {
   }
 });
 
+app.get('/api/bot/stats', function(req, res) {
+  const botSecret = req.headers['x-bot-secret'];
+  if (!botSecret || botSecret !== process.env.BOT_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return res.json({
+    status: 'online',
+    port: PORT,
+    activeSessions: studioSessions.size,
+    connectedPlugins: Array.from(studioSessions.values()).filter(s => s.pluginConnected).length,
+    uptime: process.uptime()
+  });
+});
+
+app.post('/api/bot/setadmin', function(req, res) {
+  const botSecret = req.headers['x-bot-secret'];
+  if (!botSecret || botSecret !== process.env.BOT_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { username, code } = req.body;
+  if (!username || !code) return res.status(400).json({ error: 'Missing username or code' });
+
+  adminCodes.set(code, {
+    username: username.toLowerCase(),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 30 * 60 * 1000
+  });
+
+  return res.json({ success: true });
+});
+
+app.post('/api/bot/verify', function(req, res) {
+  const { code, username } = req.body;
+  if (!code || !username) return res.status(400).json({ error: 'Missing code or username' });
+
+  const entry = adminCodes.get(code);
+  if (!entry) return res.status(404).json({ error: 'Invalid code' });
+  if (Date.now() > entry.expiresAt) {
+    adminCodes.delete(code);
+    return res.status(410).json({ error: 'Code expired' });
+  }
+  if (entry.username !== username.toLowerCase()) {
+    return res.status(403).json({ error: 'Code does not match this username' });
+  }
+
+  adminCodes.delete(code);
+
+  const users = getUsers();
+  if (!users[username.toLowerCase()]) {
+    return res.status(404).json({ error: 'User not found on site' });
+  }
+  users[username.toLowerCase()].role = 'admin';
+  saveUsers(users);
+
+  return res.json({ success: true, username: username });
+});
+
+app.post('/api/bot/run', function(req, res) {
+  const botSecret = req.headers['x-bot-secret'];
+  if (!botSecret || botSecret !== process.env.BOT_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { command } = req.body;
+  if (!command) return res.status(400).json({ error: 'Missing command' });
+
+  const { exec } = require('child_process');
+  exec(command, { timeout: 15000 }, function(err, stdout, stderr) {
+    return res.json({
+      success: !err,
+      stdout: stdout || '',
+      stderr: stderr || '',
+      error: err ? err.message : null
+    });
+  });
+});
+
+const fs = require('fs');
+const USERS_FILE = path.join(__dirname, 'users.json');
+
+function getUsers() {
+  try {
+    if (fs.existsSync(USERS_FILE)) return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    return {};
+  } catch(e) { return {}; }
+}
+
+function saveUsers(users) {
+  try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch(e) {}
+}
+
+app.post('/api/auth/register', function(req, res) {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+  const users = getUsers();
+  if (users[username.toLowerCase()]) return res.status(409).json({ error: 'Username taken' });
+  users[username.toLowerCase()] = { username, password, role: 'user', createdAt: Date.now() };
+  saveUsers(users);
+  return res.json({ success: true, username, role: 'user' });
+});
+
+app.post('/api/auth/login', function(req, res) {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+  const users = getUsers();
+  const user = users[username.toLowerCase()];
+  if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' });
+  return res.json({ success: true, username: user.username, role: user.role || 'user' });
+});
+
 app.post('/api/studio/connect', function(req, res) {
   const { token } = req.body;
   if (!token) return res.status(400).json({ success: false, error: 'No token provided' });
@@ -118,7 +222,7 @@ app.post('/api/studio/connect', function(req, res) {
   session.connectedAt = Date.now();
   session.pluginConnected = true;
   pendingCommands.set(token, []);
-  return res.json({ success: true, username: session.username, model: 'llama3.2-vision' });
+  return res.json({ success: true, username: session.username, model: process.env.OLLAMA_MODEL || 'llama3.2-vision' });
 });
 
 app.post('/api/studio/files', function(req, res) {
