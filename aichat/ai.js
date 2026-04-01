@@ -714,13 +714,11 @@
     }
 
     try {
-      var response = await fetch('https://api.anthropic.com/v1/messages', {
+      var response = await fetch('/api/anthropic/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'messages-2023-12-15'
+          'x-api-key': apiKey
         },
         body: JSON.stringify({
           model: 'claude-opus-4-5',
