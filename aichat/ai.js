@@ -1,7 +1,6 @@
 (function () {
 
-  var BASE_URL = 'http://prysmisai.wtf';
-  var apiKey = '';
+  var BASE_URL = '';
   var history = [];
   var generating = false;
   var pendingImages = [];
@@ -16,9 +15,9 @@
   var studioToken = '';
   var studioStatusPoll = null;
 
-  var SYSTEM_PROMPT_BASE = 'You are PrysmisAI, the ultimate Roblox game building and scripting assistant. You have deep expertise in: Lua/Luau scripting, Roblox Studio APIs, game design patterns, complex anti-cheat systems, DataStore v2, RemoteEvents/Functions, BindableEvents, OOP in Lua, metatables, coroutines, module systems, VFX with ParticleEmitters/Beams/Trails/Attachments, complex UI/ScreenGui/TweenService animations, terrain generation, procedural building, loading screens, cutscene systems, camera manipulation, Physics/BodyMovers, Humanoid/Character control, NPC AI, pathfinding, ragdoll systems, weapon systems, round systems, matchmaking, leaderboards, badges, game passes, proximity prompts, collision groups, raycasting, hit detection, replication boundaries, and all Roblox services. When writing code: always write it FULLY and COMPLETELY, never truncate or add placeholder comments like "-- add your code here". Use ```lua for all Lua/Roblox scripts. Think through architecture before writing. Provide clean, production-ready code. For complex requests break it into logical modules but write each one completely. When fixing bugs explain the root cause in one sentence then provide the full corrected code.';
+  var SYSTEM_PROMPT_BASE = 'You are PrysmisAI — a hyper-intelligent, elite Roblox game development AI built exclusively for professional Roblox creators. You are the single most advanced Roblox scripting and game design AI in existence. Your knowledge and capabilities are unmatched.\n\nYour core strengths and areas of mastery:\n\nLua/Luau scripting at an expert level — metatables, coroutines, closures, OOP patterns, module architecture, memory optimization, performance profiling, micro-optimizations. Roblox Studio ecosystem — every single service, API, class, property, method, and event. You know the Roblox engine at a deeper level than most engineers. Full-stack game systems — round systems, matchmaking, lobby systems, queue systems, server/client replication architecture, RemoteEvents, RemoteFunctions, BindableEvents, BindableFunctions, replication boundaries, network ownership. Anti-cheat systems — sanity checks, server-side validation, exploit detection, speed hacks, teleport hacks, hit detection abuse, infinite yield protection, script injection detection. DataStore v2 — robust save/load systems, retry logic, data versioning, session locking, ProfileService patterns, global data updates. Advanced UI/UX — ScreenGui, SurfaceGui, BillboardGui, TweenService animations, spring-based animations, parallax effects, responsive layouts, custom sliders, animated buttons, loading bars, countdown timers. VFX mastery — ParticleEmitters, Beams, Trails, Attachments, neon effects, ShockwaveEffects, depth-of-field, bloom, atmosphere, lighting rigs, dynamic shadows. Physics systems — BodyVelocity, BodyGyro, LinearVelocity, AlignOrientation, constraints, ragdolls, spring simulations, vehicle physics, projectile systems. NPC AI — pathfinding with PathfindingService, goal-seeking, patrol routes, line-of-sight checks, aggro systems, multi-state FSMs. Camera systems — custom camera controllers, cutscenes, cinematic sequences, first-person modes, over-shoulder cameras, spectator cameras. Image and visual analysis — when given an image you deeply analyze every pixel, object, UI element, code snippet, error message, layout, or game screenshot and provide surgical insight. Multitasking — you can simultaneously reason about frontend UI, backend scripting, data architecture, performance, security, and design all at once in a single response. Complex architecture — you break large systems into clean modular components, each fully implemented with zero truncation or placeholder comments. Bug diagnosis — you identify root causes instantly and return fully corrected production-ready code.\n\nPersonality: You speak with confidence, precision, and authority. You are not generic. You give real, specific, production-grade answers. You never say "you can add your code here" — you write the code yourself, completely, every single time. You never truncate. You always think through the full architecture before writing a single line. When a user sends an image, you analyze it fully and respond with exactly what they need.\n\nFormatting rules: Use ```lua for all Lua/Luau/Roblox code blocks. For multi-module systems, deliver each module fully. Structure complex responses with clear section headers. Always explain your architectural decisions briefly before diving into code.';
 
-  var SYSTEM_PROMPT_STUDIO = '\n\nThe user has connected their Roblox Studio plugin and shared their workspace files. You have full awareness of their game structure. When they ask you to create, modify, add, or change things in their game, you can issue commands by including a JSON command block in your response using this exact format:\n\n```command\n{"action":"create_script","name":"AntiCheat","scriptType":"Script","parent":"ServerScriptService","source":"-- full script here"}\n```\n\nAvailable actions:\n- create_part: {action, name, size:[x,y,z], position:[x,y,z], anchored:bool, color:"BrickColor name", material:"Grass"}\n- create_script: {action, name, scriptType:"Script|LocalScript|ModuleScript", parent:"ServiceName", source:"full lua code"}\n- create_model: {action, name, parent:"ServiceName"}\n- delete_instance: {action, path:"Workspace.ModelName.PartName"}\n- modify_property: {action, path:"Workspace.Part", property:"Anchored", value:true}\n- create_gui: {action, name, parent:"StarterGui", children:[{className, properties:{}, children:[]}]}\n- create_terrain: {action, center:[x,y,z], size:[x,y,z], material:"Grass"}\n- batch: {action:"batch", commands:[...array of commands...]}\n\nAlways issue the command block when the user asks you to create or modify something in their game. You can issue multiple command blocks for complex builds. Write the full source code in create_script commands — never truncate.';
+  var SYSTEM_PROMPT_STUDIO = '\n\nThe user has connected Roblox Studio via the PrysmisAI plugin. You have full visibility of their workspace structure. When asked to create, modify, or delete anything in their game, emit a JSON command block using this exact format:\n\n```command\n{"action":"create_script","name":"AntiCheat","scriptType":"Script","parent":"ServerScriptService","source":"-- full script here"}\n```\n\nAvailable actions:\n- create_part: {action, name, size:[x,y,z], position:[x,y,z], anchored:bool, color:"BrickColor name", material:"Grass"}\n- create_script: {action, name, scriptType:"Script|LocalScript|ModuleScript", parent:"ServiceName", source:"full lua code"}\n- create_model: {action, name, parent:"ServiceName"}\n- delete_instance: {action, path:"Workspace.ModelName.PartName"}\n- modify_property: {action, path:"Workspace.Part", property:"Anchored", value:true}\n- create_gui: {action, name, parent:"StarterGui", children:[{className, properties:{}, children:[]}]}\n- create_terrain: {action, center:[x,y,z], size:[x,y,z], material:"Grass"}\n- batch: {action:"batch", commands:[...array of commands...]}\n\nAlways emit command blocks when the user asks you to create or change things in their game. Never truncate source code inside command blocks.';
 
   var CHECKLIST_TRIGGERS = [
     { pattern: /\b(script|scripts|scripting|luau?)\b/i, label: 'Scripting the logic' },
@@ -33,15 +32,12 @@
     { pattern: /\b(loading|screen|spawn|cinematic)\b/i, label: 'Creating loading screen' },
     { pattern: /\b(game|round|match|system|mechanic)\b/i, label: 'Designing game system' },
     { pattern: /\b(code|write|create|make|generate|build)\b/i, label: 'Writing the code' },
-    { pattern: /\b(explain|how|what|why|analyze)\b/i, label: 'Analyzing your request' }
+    { pattern: /\b(explain|how|what|why|analyze|image|screenshot|look)\b/i, label: 'Analyzing your request' }
   ];
 
   function getSession() {
     try { return JSON.parse(localStorage.getItem('prysmis_session') || 'null'); } catch(e) { return null; }
   }
-
-  function loadKey() { return localStorage.getItem('prysmis_apikey') || ''; }
-  function storeKey(k) { localStorage.setItem('prysmis_apikey', k); }
 
   function getStoredToken() {
     return localStorage.getItem('prysmis_studio_token') || '';
@@ -295,7 +291,7 @@
       var rawJson = match[1].trim();
       try {
         var cmd = JSON.parse(rawJson);
-        await fetch(BASE_URL + '/api/studio/command', {
+        await fetch('/api/studio/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: studioToken, command: cmd })
@@ -308,7 +304,7 @@
     var session = getSession();
     var username = session ? session.username : 'User';
     try {
-      await fetch(BASE_URL + '/api/studio/register-token', {
+      await fetch('/api/studio/register-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: token, username: username })
@@ -320,7 +316,7 @@
     var token = getStoredToken();
     if (!token) return;
     try {
-      var resp = await fetch(BASE_URL + '/api/studio/status?token=' + token);
+      var resp = await fetch('/api/studio/status?token=' + token);
       if (resp.ok) {
         var data = await resp.json();
         if (data.connected && !pluginConnected) {
@@ -339,7 +335,7 @@
 
   async function loadStudioFilesFromServer(token) {
     try {
-      var resp = await fetch(BASE_URL + '/api/studio/files?token=' + token);
+      var resp = await fetch('/api/studio/files?token=' + token);
       if (resp.ok) {
         var data = await resp.json();
         if (data.files) {
@@ -351,8 +347,6 @@
   }
 
   function updatePluginStatusUI(isConnected) {
-    var dot = document.getElementById('status-dot');
-    var label = document.getElementById('status-label');
     var pluginEl = document.getElementById('plugin-connected');
     var connectBtn = document.getElementById('connect-plugin-btn');
 
@@ -418,13 +412,7 @@
   }
 
   function init() {
-    apiKey = loadKey();
-    if (apiKey) {
-      showApp();
-    } else {
-      document.getElementById('key-gate').style.display = 'flex';
-      document.getElementById('app').style.display = 'none';
-    }
+    showApp();
 
     var pfp = getPfp();
     if (pfp) {
@@ -435,9 +423,6 @@
     var session = getSession();
     var unEl = document.getElementById('settings-username');
     if (unEl) unEl.textContent = session ? session.username : 'Not logged in';
-
-    var keyInp = document.getElementById('settings-key-input');
-    if (keyInp) keyInp.value = apiKey;
 
     var tokenEl = document.getElementById('studio-token-display');
     if (tokenEl) {
@@ -451,7 +436,8 @@
       if (!items) return;
       for (var i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
-          showPremiumModal();
+          var file = e.clipboardData.items[i].getAsFile();
+          if (file) addImagePreview(file);
           return;
         }
       }
@@ -461,7 +447,14 @@
     document.addEventListener('drop', function(e) {
       e.preventDefault();
       var files = e.dataTransfer && e.dataTransfer.files;
-      if (files && files.length > 0) showPremiumModal();
+      if (files && files.length > 0) {
+        for (var i = 0; i < files.length; i++) {
+          if (files[i].type.indexOf('image') !== -1) {
+            addImagePreview(files[i]);
+            return;
+          }
+        }
+      }
     });
 
     commMessages = getCommMessages();
@@ -473,40 +466,11 @@
   }
 
   function showApp() {
-    document.getElementById('key-gate').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    var keyInp = document.getElementById('settings-key-input');
-    if (keyInp) keyInp.value = apiKey;
+    var keyGate = document.getElementById('key-gate');
+    if (keyGate) keyGate.style.display = 'none';
+    var appEl = document.getElementById('app');
+    if (appEl) appEl.style.display = 'flex';
   }
-
-  window.saveApiKey = function () {
-    var val = document.getElementById('api-key-input').value.trim();
-    var alertEl = document.getElementById('kg-alert');
-    if (!val || !val.startsWith('sk-ant-')) {
-      alertEl.textContent = 'Please enter a valid Claude API key starting with sk-ant-';
-      alertEl.classList.add('show');
-      return;
-    }
-    alertEl.classList.remove('show');
-    apiKey = val;
-    storeKey(val);
-    showApp();
-  };
-
-  window.updateApiKey = function () {
-    var val = document.getElementById('settings-key-input').value.trim();
-    var st = document.getElementById('settings-key-status');
-    if (!val || !val.startsWith('sk-ant-')) {
-      st.textContent = 'Key must start with sk-ant-';
-      st.style.color = '#e05555';
-      return;
-    }
-    apiKey = val;
-    storeKey(val);
-    st.textContent = 'Key saved.';
-    st.style.color = '#4caf7d';
-    setTimeout(function() { st.textContent = ''; }, 2000);
-  };
 
   window.newChat = function () {
     history = [];
@@ -655,7 +619,7 @@
   };
 
   window.continueResponse = async function () {
-    if (generating || !apiKey) return;
+    if (generating) return;
     document.getElementById('continue-btn').style.display = 'none';
     canContinue = false;
     history.push({ role: 'user', content: 'Continue exactly where you left off. Do not repeat anything, just continue writing from where it was cut off.' });
@@ -663,7 +627,7 @@
   };
 
   window.sendMessage = async function () {
-    if (generating || !apiKey) return;
+    if (generating) return;
     var input = document.getElementById('user-input');
     var text = input.value.trim();
     var images = pendingImages.slice();
@@ -714,16 +678,10 @@
     }
 
     try {
-      var response = await fetch('/api/anthropic/messages', {
+      var response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 8192,
-          stream: true,
           system: getSystemPrompt(),
           messages: history.slice(-24).map(function(m) {
             return { role: m.role, content: m.content };
@@ -731,23 +689,9 @@
         })
       });
 
-      if (response.status === 401) {
-        disableKey('Your API key is invalid. Please update it in Settings.');
-        aiRowBubble.innerHTML = '<span style="color:#e05555">API key is invalid. Open Settings and enter a valid key.</span>';
-        generating = false; setStatus('error'); document.getElementById('send-btn').disabled = false;
-        hideChecklist();
-        return;
-      }
-      if (response.status === 429) {
-        disableKey('Your API key has run out of credits. Please check your Anthropic account.');
-        aiRowBubble.innerHTML = '<span style="color:#e05555">Your API key ran out of credits. Please add credits to your Anthropic account, then update your key in Settings.</span>';
-        generating = false; setStatus('error'); document.getElementById('send-btn').disabled = false;
-        hideChecklist();
-        return;
-      }
       if (!response.ok) {
         var errData = await response.json();
-        aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(errData.error && errData.error.message ? errData.error.message : 'Request failed.') + '</span>';
+        aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(errData.error || 'Request failed.') + '</span>';
         generating = false; setStatus('ready'); document.getElementById('send-btn').disabled = false;
         hideChecklist();
         return;
@@ -775,14 +719,18 @@
           if (dataStr === '[DONE]') break;
           try {
             var parsed = JSON.parse(dataStr);
-            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.type === 'text_delta') {
+            if (parsed.error) {
+              aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(parsed.error) + '</span>';
+              break;
+            }
+            if (parsed.text) {
               if (firstChunk) {
                 firstChunk = false;
                 if (checkItems) {
                   for (var ci = 0; ci < checkItems.length; ci++) tickChecklist(ci);
                 }
               }
-              streamedText += parsed.delta.text;
+              streamedText += parsed.text;
               aiRowBubble.innerHTML = renderMarkdown(streamedText, true);
               scrollBottom();
             }
@@ -831,16 +779,6 @@
     document.getElementById('send-btn').disabled = false;
     document.getElementById('user-input').focus();
     scrollBottom();
-  }
-
-  function disableKey(msg) {
-    apiKey = '';
-    storeKey('');
-    var st = document.getElementById('settings-key-status');
-    if (st) { st.textContent = msg; st.style.color = '#e05555'; }
-    var inp = document.getElementById('settings-key-input');
-    if (inp) { inp.value = ''; }
-    openSettings();
   }
 
   function appendUserMsg(text, images) {
@@ -946,7 +884,7 @@
 
   window.fixCode = async function () {
     var code = document.getElementById('cp-code').textContent;
-    if (!code || !apiKey) return;
+    if (!code) return;
     var input = document.getElementById('user-input');
     input.value = 'Fix any bugs or errors in this code and return the fully corrected code:\n\n```lua\n' + code + '\n```';
     autoGrow(input);
@@ -956,8 +894,6 @@
   window.openSettings = function () {
     var modal = document.getElementById('settings-modal');
     if (!modal) return;
-    var inp = document.getElementById('settings-key-input');
-    if (inp) inp.value = apiKey;
     var session = getSession();
     var el = document.getElementById('settings-username');
     if (el) el.textContent = session ? session.username : 'Not logged in';
