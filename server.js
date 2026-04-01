@@ -10,6 +10,21 @@ const studioSessions = new Map();
 const studioFiles = new Map();
 const pendingCommands = new Map();
 
+let ollamaModel = null;
+
+async function getModel() {
+  if (ollamaModel) return ollamaModel;
+  const { ChatOllama } = await import('@langchain/ollama');
+  ollamaModel = new ChatOllama({
+    baseUrl: process.env.OLLAMA_HOST || 'http://localhost:11434',
+    model: process.env.OLLAMA_MODEL || 'llama3.2-vision',
+    streaming: true,
+    temperature: 0.7,
+    numCtx: 8192,
+  });
+  return ollamaModel;
+}
+
 app.use('/aichat', express.static(path.join(__dirname, 'aichat')));
 app.use('/auth', express.static(path.join(__dirname, 'auth')));
 app.use('/API', express.static(path.join(__dirname, 'API')));
@@ -41,90 +56,55 @@ app.post('/api/chat', async function(req, res) {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
-  const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2-vision';
-
-  const ollamaMessages = [];
-
-  if (system) {
-    ollamaMessages.push({ role: 'system', content: system });
-  }
-
-  for (const msg of messages) {
-    if (msg.role === 'user') {
-      if (Array.isArray(msg.content)) {
-        const textParts = msg.content.filter(p => p.type === 'text').map(p => p.text).join('\n');
-        const imgParts = msg.content.filter(p => p.type === 'image');
-        if (imgParts.length > 0) {
-          ollamaMessages.push({
-            role: 'user',
-            content: textParts || 'Analyze this image.',
-            images: imgParts.map(p => p.source.data)
-          });
-        } else {
-          ollamaMessages.push({ role: 'user', content: textParts });
-        }
-      } else {
-        ollamaMessages.push({ role: 'user', content: msg.content });
-      }
-    } else if (msg.role === 'assistant') {
-      ollamaMessages.push({
-        role: 'assistant',
-        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-      });
-    }
-  }
-
   try {
-    const ollamaRes = await fetch(OLLAMA_HOST + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: ollamaMessages,
-        stream: true,
-        options: { temperature: 0.7, num_ctx: 8192 }
-      })
-    });
+    const { HumanMessage, AIMessage, SystemMessage } = await import('@langchain/core/messages');
+    const model = await getModel();
 
-    if (!ollamaRes.ok) {
-      const errText = await ollamaRes.text();
-      res.write('data: ' + JSON.stringify({ error: 'Ollama error: ' + errText }) + '\n\n');
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
+    const langchainMessages = [];
+
+    if (system) {
+      langchainMessages.push(new SystemMessage(system));
     }
 
-    const reader = ollamaRes.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        if (Array.isArray(msg.content)) {
+          const textParts = msg.content.filter(p => p.type === 'text').map(p => p.text).join('\n');
+          const imgParts = msg.content.filter(p => p.type === 'image');
+          if (imgParts.length > 0) {
+            langchainMessages.push(new HumanMessage({
+              content: [
+                ...imgParts.map(p => ({
+                  type: 'image_url',
+                  image_url: { url: 'data:' + p.source.media_type + ';base64,' + p.source.data }
+                })),
+                { type: 'text', text: textParts || 'Analyze this image.' }
+              ]
+            }));
+          } else {
+            langchainMessages.push(new HumanMessage(textParts));
+          }
+        } else {
+          langchainMessages.push(new HumanMessage(msg.content));
+        }
+      } else if (msg.role === 'assistant') {
+        langchainMessages.push(new AIMessage(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)));
+      }
+    }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const parsed = JSON.parse(line);
-          if (parsed.message && parsed.message.content) {
-            res.write('data: ' + JSON.stringify({ text: parsed.message.content }) + '\n\n');
-          }
-          if (parsed.done) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-            return;
-          }
-        } catch(e) {}
+    const stream = await model.stream(langchainMessages);
+
+    for await (const chunk of stream) {
+      const text = typeof chunk.content === 'string' ? chunk.content : '';
+      if (text) {
+        res.write('data: ' + JSON.stringify({ text }) + '\n\n');
       }
     }
 
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (err) {
-    res.write('data: ' + JSON.stringify({ error: 'Could not connect to Ollama. Make sure Ollama is running and OLLAMA_HOST is set correctly. ' + err.message }) + '\n\n');
+    res.write('data: ' + JSON.stringify({ error: err.message || 'Ollama error' }) + '\n\n');
     res.write('data: [DONE]\n\n');
     res.end();
   }
