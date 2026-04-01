@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -116,6 +117,51 @@ app.get('/api/studio/status', function(req, res) {
   const session = studioSessions.get(token);
   if (!session) return res.status(401).json({ connected: false });
   return res.json({ connected: session.pluginConnected, username: session.username });
+});
+
+app.post('/api/anthropic/messages', function(req, res) {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) return res.status(400).json({ error: 'Missing API key' });
+
+  const body = JSON.stringify(req.body);
+
+  const options = {
+    hostname: 'api.anthropic.com',
+    path: '/v1/messages',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'messages-2023-12-15',
+      'Content-Length': Buffer.byteLength(body)
+    }
+  };
+
+  const isStream = req.body && req.body.stream === true;
+
+  if (isStream) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+  }
+
+  const proxyReq = https.request(options, function(proxyRes) {
+    if (!isStream) {
+      res.status(proxyRes.statusCode);
+      proxyRes.pipe(res);
+      return;
+    }
+    res.status(proxyRes.statusCode);
+    proxyRes.pipe(res, { end: true });
+  });
+
+  proxyReq.on('error', function(e) {
+    if (!res.headersSent) res.status(500).json({ error: e.message });
+  });
+
+  proxyReq.write(body);
+  proxyReq.end();
 });
 
 app.listen(PORT, function() {
