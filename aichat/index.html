@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrysmisAI - Chat</title>
+  <link rel="stylesheet" href="ai.css">
+</head>
+<body>
+
+<div class="bg-grid-fixed"></div>
+<div class="bg-glow-fixed"></div>
+
+<div id="key-gate">
+  <div class="key-gate-card">
+    <div class="kg-logo">Prysmis<em>AI</em></div>
+    <h2 class="kg-title">Connect your Claude API key</h2>
+    <p class="kg-desc">Paste your Anthropic Claude API key below to get started. Your key is saved only in your browser.</p>
+    <div class="kg-field">
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="kg-alert" id="kg-alert"></div>
+    <button class="kg-btn" onclick="saveApiKey()">Connect</button>
+    <a href="https://console.anthropic.com" target="_blank" class="kg-link">Get a Claude API key</a>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <aside id="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-logo">Prysmis<em>AI</em></div>
+      <button class="new-chat-btn" onclick="newChat()">+ New chat</button>
+      <div id="chat-history-list"></div>
+    </div>
+    <div class="sidebar-bottom">
+      <button class="studio-files-btn" onclick="toggleStudioPanel()">Studio Files</button>
+      <button class="settings-btn" onclick="openSettings()">Settings</button>
+    </div>
+  </aside>
+
+  <div id="main">
+    <nav class="chat-nav">
+      <div class="chat-nav-left">
+        <span class="nav-logo-small">Prysmis<em>AI</em></span>
+        <div class="nav-tabs">
+          <button class="nav-tab active" onclick="switchMainTab('chat', this)">AI Chat</button>
+          <button class="nav-tab" onclick="switchMainTab('community-projects', this)">Community Projects</button>
+          <button class="nav-tab" onclick="switchMainTab('community-chat', this)">Community Chat</button>
+        </div>
+      </div>
+      <div class="chat-nav-right">
+        <button class="nav-action-btn" id="connect-plugin-btn" onclick="connectPlugin()">Connect plugin</button>
+        <a href="https://www.roblox.com/library" target="_blank" class="nav-action-btn">Our plugin</a>
+        <a href="/API" class="nav-action-btn">API Doc</a>
+        <div class="status-pill" id="status-pill">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-label">Ready</span>
+        </div>
+        <div class="plugin-connected" id="plugin-connected" style="display:none">
+          <span class="plugin-dot"></span>
+          <span>Connected</span>
+        </div>
+      </div>
+    </nav>
+
+    <div id="tab-chat" class="tab-content active">
+      <div id="chat-area">
+        <div id="welcome" class="welcome">
+          <h1 class="welcome-title">What can I help you build?</h1>
+          <p class="welcome-sub">Scripts, code, image analysis, file manipulation — ask anything.</p>
+          <div class="quick-chips">
+            <button class="chip" onclick="chipSend('I need help building a map that does ')">I need help building a map</button>
+            <button class="chip" onclick="chipSend('Make me an advanced startup loading screen that is ')">Startup loading screen</button>
+            <button class="chip" onclick="chipSend('Make me a VFX of ')">Make me a VFX</button>
+          </div>
+        </div>
+        <div id="messages"></div>
+      </div>
+      <div id="checklist-bar" class="checklist-bar" style="display:none">
+        <div class="checklist-bar-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          AI Progress
+        </div>
+        <div id="checklist-items" class="checklist-items"></div>
+      </div>
+      <div id="input-area">
+        <div id="image-preview-row" class="image-preview-row"></div>
+        <div class="input-box">
+          <button class="attach-btn" onclick="document.getElementById('file-input').click()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageAttach(event)">
+          <textarea id="user-input" placeholder="Ask Prysmis anything..." rows="1" onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+          <button class="continue-btn" id="continue-btn" onclick="continueResponse()" style="display:none" title="Continue where the AI left off">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Continue
+          </button>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="input-hints">
+          <span><kbd>Enter</kbd> send &nbsp; <kbd>Shift+Enter</kbd> newline</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-community-projects" class="tab-content">
+      <div class="community-projects-tab">
+        <div class="cp-tab-header">
+          <div class="cp-tab-title">Community Projects</div>
+          <button class="post-game-btn" onclick="openPostGame()">+ Post your game</button>
+        </div>
+        <div class="games-grid" id="games-grid">
+          <div class="no-games" id="no-games">
+            <div class="no-games-title">Community Projects</div>
+            <div class="no-games-sub">Browse and share Roblox projects built with PrysmisAI. Be the first to post yours.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-community-chat" class="tab-content">
+      <div id="comm-messages" class="comm-messages"></div>
+      <div class="comm-input-area">
+        <div class="comm-input-box">
+          <textarea id="comm-input" placeholder="Say something to the community..." rows="1" onkeydown="commHandleKey(event)" oninput="autoGrow(this)"></textarea>
+          <button class="send-btn" onclick="sendCommMessage()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="code-panel" class="code-panel closed">
+    <div class="cp-header">
+      <span class="cp-title" id="cp-title">code</span>
+      <div class="cp-actions">
+        <button class="cp-btn" onclick="copyCode()">Copy</button>
+        <button class="cp-btn" onclick="fixCode()">Fix errors</button>
+        <button class="cp-close" onclick="closeCodePanel()">&times;</button>
+      </div>
+    </div>
+    <div class="cp-body">
+      <pre id="cp-code"></pre>
+    </div>
+  </div>
+
+  <div id="studio-panel" class="studio-panel closed">
+    <div class="studio-panel-header">
+      <span class="studio-panel-title">Studio Files</span>
+      <button class="studio-panel-close" onclick="toggleStudioPanel()">&times;</button>
+    </div>
+    <div class="studio-panel-body">
+      <div class="studio-not-connected">
+        <div class="studio-nc-block">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+        </div>
+        <p class="studio-nc-text">Studio not connected yet.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="settings-modal" class="modal-overlay" style="display:none" onclick="closeSettingsIfBg(event)">
+  <div class="modal-card settings-modal-card">
+    <div class="settings-layout">
+      <div class="settings-sidebar">
+        <div class="settings-brand">Prysmis<em>AI</em></div>
+        <button class="stab active" onclick="switchStab(this,'account')">User Account</button>
+        <button class="stab" onclick="switchStab(this,'ai')">AI Settings</button>
+        <button class="stab" onclick="switchStab(this,'studio')">Studio</button>
+        <button class="stab stab-logout" onclick="logout()">Log out</button>
+      </div>
+      <div class="settings-content">
+        <button class="modal-close" onclick="closeSettings()">&times;</button>
+
+        <div class="spanel active" id="spanel-account">
+          <h3 class="spanel-title">User Account</h3>
+          <div class="pfp-section">
+            <div class="pfp-square" id="pfp-square" onclick="document.getElementById('pfp-input').click()">
+              <img id="pfp-img" src="" alt="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px;">
+              <span id="pfp-placeholder">Click to upload photo</span>
+            </div>
+            <input type="file" id="pfp-input" accept="image/*" style="display:none" onchange="handlePfpUpload(event)">
+            <p class="pfp-hint">Click the box to upload or change your profile photo.</p>
+          </div>
+          <div class="setting-group">
+            <label>USERNAME</label>
+            <div class="setting-sub" id="settings-username">Not logged in</div>
+          </div>
+        </div>
+
+        <div class="spanel" id="spanel-ai">
+          <h3 class="spanel-title">AI Settings</h3>
+          <div class="setting-group">
+            <label>Claude API key</label>
+            <div class="setting-row">
+              <input type="password" id="settings-key-input" placeholder="sk-ant-..." autocomplete="off">
+              <button class="setting-btn" onclick="updateApiKey()">Save</button>
+            </div>
+            <div class="setting-sub" id="settings-key-status"></div>
+          </div>
+        </div>
+
+        <div class="spanel" id="spanel-studio">
+          <h3 class="spanel-title">Studio</h3>
+          <div class="setting-group">
+            <label>Plugin Token</label>
+            <div class="studio-token-row">
+              <input type="text" id="studio-token-display" readonly placeholder="Generate a token to connect Studio">
+              <button class="setting-btn" id="token-show-btn" onclick="toggleTokenVisibility()">Hide</button>
+              <button class="setting-btn" onclick="copyStudioToken()">Copy</button>
+            </div>
+            <p class="pfp-hint">Generate a token, then paste it into the PrysmisAI Roblox Studio plugin to connect.</p>
+          </div>
+          <div class="setting-group">
+            <button class="setting-btn-regen" onclick="regenToken()">Generate new token</button>
+          </div>
+          <div class="setting-sub" id="settings-key-status"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="premium-modal" class="modal-overlay" style="display:none" onclick="closePremiumIfBg(event)">
+  <div class="modal-card">
+    <div class="premium-modal">
+      <div class="premium-modal-header">
+        <div>
+          <div class="premium-modal-title">Premium Required</div>
+          <div class="premium-modal-sub">You need Premium to drop or paste files.</div>
+        </div>
+        <div class="premium-modal-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+      </div>
+      <div class="premium-modal-sub">With Premium you can:</div>
+      <div class="premium-features">
+        <div class="premium-feature"><div class="premium-feature-dot"></div><div class="premium-feature-text">Have image analysis</div></div>
+        <div class="premium-feature"><div class="premium-feature-dot"></div><div class="premium-feature-text">Have revert time (revert back)</div></div>
+        <div class="premium-feature"><div class="premium-feature-dot"></div><div class="premium-feature-text">AI is even more expert with multi task</div></div>
+        <div class="premium-feature"><div class="premium-feature-dot"></div><div class="premium-feature-text">AI has more better memory</div></div>
+      </div>
+      <button class="premium-close-btn" onclick="closePremiumModal()">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<div id="post-game-modal" class="modal-overlay" style="display:none" onclick="closePostGameIfBg(event)">
+  <div class="modal-card">
+    <div class="post-game-modal">
+      <div>
+        <div class="post-game-modal-title">Post your Roblox game</div>
+        <div class="post-game-modal-sub">Made with PrysmisAI</div>
+      </div>
+      <div class="post-game-alert" id="post-game-alert"></div>
+      <div class="post-game-field">
+        <label>Game name</label>
+        <input type="text" id="pg-name" placeholder="Enter your Roblox game name">
+      </div>
+      <div class="post-game-field">
+        <label>About your game</label>
+        <textarea id="pg-desc" rows="3" placeholder="Tell the community about your Roblox game, what is it about?"></textarea>
+      </div>
+      <div class="post-game-field">
+        <label>Game link</label>
+        <input type="text" id="pg-link" placeholder="Enter in your Roblox game link">
+      </div>
+      <button class="post-game-submit" onclick="submitGame()">Submit game</button>
+      <button class="post-game-cancel" onclick="closePostGame()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="ai.js"></script>
+</body>
+</html>

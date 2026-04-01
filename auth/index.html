@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrysmisAI - Sign in</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <a href="/" class="back-home">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to home
+  </a>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-card-header">
+        <div class="auth-logo">Prysmis<em>AI</em></div>
+        <h1 class="auth-heading">Welcome back</h1>
+        <p class="auth-sub">Sign in to keep building</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login" onclick="switchTab('login')">Log In</button>
+        <button class="auth-tab" data-tab="create" onclick="switchTab('create')">Sign Up</button>
+        <button class="auth-tab" data-tab="admin" onclick="switchTab('admin')">Admin</button>
+      </div>
+
+      <div class="auth-panel active" id="panel-login">
+        <div class="auth-alert" id="login-alert"></div>
+        <div class="auth-field">
+          <label>Username</label>
+          <input type="text" id="login-username" placeholder="Your username" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <div class="pw-row">
+            <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password">
+            <button class="pw-toggle" onclick="togglePw('login-password', this)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="auth-btn" onclick="loginAccount()">Log In</button>
+        <p class="auth-switch">No account yet? <a href="#" onclick="switchTab('create')">Sign up</a></p>
+      </div>
+
+      <div class="auth-panel" id="panel-create">
+        <div class="auth-alert" id="create-alert"></div>
+        <div class="auth-field">
+          <label>Username</label>
+          <input type="text" id="create-username" placeholder="Pick a username" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <div class="pw-row">
+            <input type="password" id="create-password" placeholder="Pick a password" autocomplete="new-password">
+            <button class="pw-toggle" onclick="togglePw('create-password', this)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="auth-btn" onclick="createAccount()">Create Account</button>
+        <p class="auth-switch">Already have one? <a href="#" onclick="switchTab('login')">Log in</a></p>
+      </div>
+
+      <div class="auth-panel" id="panel-admin">
+        <div class="auth-alert" id="admin-alert"></div>
+        <div class="auth-field">
+          <label>Admin Username</label>
+          <input type="text" id="admin-username" placeholder="Admin username" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Admin Password</label>
+          <div class="pw-row">
+            <input type="password" id="admin-password" placeholder="Admin password" autocomplete="current-password">
+            <button class="pw-toggle" onclick="togglePw('admin-password', this)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>Passcode</label>
+          <input type="password" id="admin-passcode" placeholder="6-digit passcode">
+        </div>
+        <button class="auth-btn" onclick="adminLogin()">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+</html>
