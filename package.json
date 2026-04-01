@@ -1,13 +1,22 @@
 {
-  "name": "prysmisai",
+  "name": "prysmis-ai",
   "version": "1.0.0",
-  "description": "PrysmisAI - Roblox AI game builder",
+  "description": "The BEST free unlimited Roblox game generator.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "@langchain/core": "^0.3.0",
+    "@langchain/ollama": "^0.1.0",
+    "express": "^4.18.2",
+    "langchain": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
