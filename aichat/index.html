@@ -195,13 +195,42 @@
         <div class="spanel" id="spanel-ai">
           <h3 class="spanel-title">AI Settings</h3>
           <div class="setting-group">
-            <label>Claude API key</label>
+            <label>CLAUDE API KEY</label>
             <div class="setting-row">
               <input type="password" id="settings-key-input" placeholder="sk-ant-..." autocomplete="off">
-              <button class="setting-btn" onclick="updateApiKey()">Save</button>
+              <button class="setting-btn" onclick="window.updateApiKey()">Save</button>
             </div>
-            <div class="setting-sub" id="settings-key-status"></div>
+            <div class="setting-sub">or click <a href="https://platform.claude.com/settings/keys" target="_blank" class="settings-link">here directly</a> to generate your claude api key.</div>
           </div>
+          <div class="setting-group" style="margin-top:18px">
+            <label>GROQ API KEY</label>
+            <div class="setting-row">
+              <input type="password" id="settings-groq-input" placeholder="gsk_..." autocomplete="off">
+              <button class="setting-btn" onclick="window.updateGroqKey()">Save</button>
+            </div>
+            <div class="setting-sub">or click <a href="https://console.groq.com/home?utm_source=website&utm_medium=outbound_link&utm_campaign=dev_console_click" target="_blank" class="settings-link">here directly</a> to generate your groq api key.</div>
+          </div>
+          <div class="setting-group" style="margin-top:18px">
+            <label>AI MODEL</label>
+            <div class="model-dropdown-wrap">
+              <button class="model-dropdown-btn" id="model-dropdown-btn" onclick="window.toggleModelDropdown()">
+                <span id="model-dropdown-label">claude-haiku-3-5 (Free)</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <div class="model-dropdown-list" id="model-dropdown-list">
+                <div class="model-dropdown-section">Claude</div>
+                <div class="model-option" data-value="claude-haiku-4-5" onclick="window.selectModel(this)">claude-haiku-4-5 (Free tier)</div>
+                <div class="model-option" data-value="claude-sonnet-4-5" onclick="window.selectModel(this)">claude-sonnet-4-5</div>
+                <div class="model-option" data-value="claude-opus-4-5" onclick="window.selectModel(this)">claude-opus-4-5</div>
+                <div class="model-dropdown-section" style="margin-top:6px">Groq</div>
+                <div class="model-option" data-value="groq:llama-3.3-70b-versatile" onclick="window.selectModel(this)">llama-3.3-70b-versatile (Free)</div>
+                <div class="model-option" data-value="groq:llama-3.1-8b-instant" onclick="window.selectModel(this)">llama-3.1-8b-instant (Free)</div>
+                <div class="model-option" data-value="groq:gemma2-9b-it" onclick="window.selectModel(this)">gemma2-9b-it (Free)</div>
+                <div class="model-option" data-value="groq:mixtral-8x7b-32768" onclick="window.selectModel(this)">mixtral-8x7b (Free)</div>
+              </div>
+            </div>
+          </div>
+          <div class="setting-sub" id="settings-key-status" style="margin-top:10px"></div>
         </div>
 
         <div class="spanel" id="spanel-studio">
