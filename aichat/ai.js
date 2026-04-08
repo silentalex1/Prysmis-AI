@@ -659,6 +659,100 @@
     await runAiRequest(checkItems, false);
   };
 
+  function getApiKey() {
+    return localStorage.getItem('prysmis_claude_key') || '';
+  }
+
+  function getGroqKey() {
+    return localStorage.getItem('prysmis_groq_key') || '';
+  }
+
+  function getSelectedModel() {
+    return localStorage.getItem('prysmis_model') || 'claude-haiku-4-5';
+  }
+
+  window.updateApiKey = function () {
+    var inp = document.getElementById('settings-key-input');
+    var val = inp ? inp.value.trim() : '';
+    if (val) {
+      localStorage.setItem('prysmis_claude_key', val);
+      var st = document.getElementById('settings-key-status');
+      if (st) { st.textContent = 'Claude API key saved.'; st.style.color = '#4caf7d'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    }
+  };
+
+  window.updateGroqKey = function () {
+    var inp = document.getElementById('settings-groq-input');
+    var val = inp ? inp.value.trim() : '';
+    if (val) {
+      localStorage.setItem('prysmis_groq_key', val);
+      var st = document.getElementById('settings-key-status');
+      if (st) { st.textContent = 'Groq API key saved.'; st.style.color = '#4caf7d'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    }
+  };
+
+  window.toggleModelDropdown = function () {
+    var list = document.getElementById('model-dropdown-list');
+    if (list) list.classList.toggle('open');
+  };
+
+  window.selectModel = function (el) {
+    var value = el.dataset.value;
+    var label = el.textContent;
+    localStorage.setItem('prysmis_model', value);
+    var lbl = document.getElementById('model-dropdown-label');
+    if (lbl) lbl.textContent = label;
+    var list = document.getElementById('model-dropdown-list');
+    if (list) list.classList.remove('open');
+  };
+
+  document.addEventListener('click', function(e) {
+    var wrap = document.querySelector('.model-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      var list = document.getElementById('model-dropdown-list');
+      if (list) list.classList.remove('open');
+    }
+  });
+
+  async function callClaudeApi(messages, system) {
+    var apiKey = getApiKey();
+    if (!apiKey) throw new Error('No Claude API key set. Go to Settings > AI Settings to add your key.');
+    var body = { model: 'claude-haiku-4-5-20251001', max_tokens: 4096, stream: true, messages: messages };
+    if (system) body.system = system;
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+    return response;
+  }
+
+  async function callGroqApi(messages, system, modelName) {
+    var apiKey = getGroqKey();
+    if (!apiKey) throw new Error('No Groq API key set. Go to Settings > AI Settings to add your key.');
+    var groqMessages = [];
+    if (system) groqMessages.push({ role: 'system', content: system });
+    messages.forEach(function(m) {
+      if (Array.isArray(m.content)) {
+        var text = m.content.filter(function(p) { return p.type === 'text'; }).map(function(p) { return p.text; }).join('\n');
+        groqMessages.push({ role: m.role, content: text || '' });
+      } else {
+        groqMessages.push({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) });
+      }
+    });
+    var response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({ model: modelName, max_tokens: 4096, stream: true, messages: groqMessages })
+    });
+    return response;
+  }
+
   async function runAiRequest(checkItems, isContinue) {
     generating = true;
     setStatus('busy');
@@ -678,20 +772,49 @@
     }
 
     try {
-      var response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system: getSystemPrompt(),
-          messages: history.slice(-24).map(function(m) {
-            return { role: m.role, content: m.content };
-          })
-        })
-      });
+      var selectedModel = getSelectedModel();
+      var isGroq = selectedModel.startsWith('groq:');
+      var modelName = isGroq ? selectedModel.slice(5) : selectedModel;
+
+      var msgHistory = history.slice(-24).map(function(m) { return { role: m.role, content: m.content }; });
+      var response;
+
+      if (isGroq) {
+        response = await callGroqApi(msgHistory, getSystemPrompt(), modelName);
+      } else {
+        var claudeMessages = msgHistory.map(function(m) {
+          if (Array.isArray(m.content)) {
+            return { role: m.role, content: m.content.map(function(p) {
+              if (p.type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.source.media_type, data: p.source.data } };
+              return { type: 'text', text: p.text };
+            })};
+          }
+          return { role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) };
+        });
+        var claudeModel = modelName;
+        if (modelName === 'claude-haiku-4-5') claudeModel = 'claude-haiku-4-5-20251001';
+        else if (modelName === 'claude-sonnet-4-5') claudeModel = 'claude-sonnet-4-5-20251001';
+        else if (modelName === 'claude-opus-4-5') claudeModel = 'claude-opus-4-5-20251001';
+        var apiKey = getApiKey();
+        if (!apiKey) throw new Error('No Claude API key set. Go to Settings > AI Settings to add your key.');
+        var body = { model: claudeModel, max_tokens: 4096, stream: true, messages: claudeMessages, system: getSystemPrompt() };
+        response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify(body)
+        });
+      }
 
       if (!response.ok) {
-        var errData = await response.json();
-        aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(errData.error || 'Request failed.') + '</span>';
+        var errText = await response.text();
+        var errMsg = 'Request failed (' + response.status + ')';
+        try { var errJson = JSON.parse(errText); errMsg = errJson.error && errJson.error.message ? errJson.error.message : errMsg; } catch(e) {}
+        aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(errMsg) + '</span>';
         generating = false; setStatus('ready'); document.getElementById('send-btn').disabled = false;
         hideChecklist();
         return;
@@ -716,21 +839,28 @@
           var line = lines[li].trim();
           if (!line || !line.startsWith('data:')) continue;
           var dataStr = line.slice(5).trim();
-          if (dataStr === '[DONE]') break;
+          if (dataStr === '[DONE]') continue;
           try {
             var parsed = JSON.parse(dataStr);
-            if (parsed.error) {
-              aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(parsed.error) + '</span>';
-              break;
+            var chunkText = '';
+            if (isGroq) {
+              if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                chunkText = parsed.choices[0].delta.content;
+              }
+            } else {
+              if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
+                chunkText = parsed.delta.text;
+              } else if (parsed.error) {
+                aiRowBubble.innerHTML = '<span style="color:#e05555">Error: ' + esc(parsed.error.message || 'API error') + '</span>';
+                break;
+              }
             }
-            if (parsed.text) {
+            if (chunkText) {
               if (firstChunk) {
                 firstChunk = false;
-                if (checkItems) {
-                  for (var ci = 0; ci < checkItems.length; ci++) tickChecklist(ci);
-                }
+                if (checkItems) { for (var ci = 0; ci < checkItems.length; ci++) tickChecklist(ci); }
               }
-              streamedText += parsed.text;
+              streamedText += chunkText;
               aiRowBubble.innerHTML = renderMarkdown(streamedText, true);
               scrollBottom();
             }
@@ -766,7 +896,6 @@
       }
 
       await dispatchCommandsFromResponse(streamedText);
-
       hideChecklist();
 
     } catch (err) {
@@ -902,6 +1031,18 @@
       var existing = getStoredToken();
       tokenEl.value = existing || '';
       tokenEl.placeholder = existing ? '' : 'Click Generate to create a token';
+    }
+    var keyInp = document.getElementById('settings-key-input');
+    if (keyInp) keyInp.value = '';
+    var groqInp = document.getElementById('settings-groq-input');
+    if (groqInp) groqInp.value = '';
+    var savedModel = getSelectedModel();
+    var lbl = document.getElementById('model-dropdown-label');
+    if (lbl) {
+      var opts = document.querySelectorAll('.model-option');
+      opts.forEach(function(o) {
+        if (o.dataset.value === savedModel) lbl.textContent = o.textContent;
+      });
     }
     modal.style.display = 'flex';
   };
