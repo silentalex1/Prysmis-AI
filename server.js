@@ -20,7 +20,7 @@ async function getModel() {
     baseUrl: process.env.OLLAMA_HOST || 'http://localhost:11434',
     model: process.env.OLLAMA_MODEL || 'llama3.2-vision',
     streaming: true,
-    temperature: 0.7,
+    temperature: 0.4,
     numCtx: 8192,
   });
   return ollamaModel;
